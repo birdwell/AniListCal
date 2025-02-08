@@ -114,19 +114,19 @@ export function registerRoutes(app: Express) {
       }
 
       console.log('Auth callback - Starting token exchange');
-      console.log('Client ID:', process.env.ANILIST_CLIENT_ID); 
-      console.log('Redirect URI:', `${req.protocol}://${req.get('host')}/auth/callback`);
+      console.log('Using redirect URI:', `${req.protocol}://${req.get('host')}/auth/callback`);
 
       const tokenResponse = await fetch(ANILIST_TOKEN_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
+          'Authorization': `Basic ${Buffer.from(
+            `${process.env.ANILIST_CLIENT_ID}:${process.env.ANILIST_CLIENT_SECRET}`
+          ).toString('base64')}`,
         },
         body: JSON.stringify({
           grant_type: 'authorization_code',
-          client_id: process.env.ANILIST_CLIENT_ID,
-          client_secret: process.env.ANILIST_CLIENT_SECRET,
           redirect_uri: `${req.protocol}://${req.get('host')}/auth/callback`,
           code: code,
         }),
