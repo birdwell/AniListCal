@@ -1,4 +1,6 @@
 import { users, watchlist, type User, type WatchlistItem, type InsertUser, type InsertWatchlistItem } from "@shared/schema";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 
 export interface IStorage {
   getUser(auth0Id: string): Promise<User | undefined>;
@@ -11,73 +13,62 @@ export interface IStorage {
   removeFromWatchlist(id: number): Promise<void>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private watchlist: Map<number, WatchlistItem>;
-  private userId = 1;
-  private watchlistId = 1;
-
-  constructor() {
-    this.users = new Map();
-    this.watchlist = new Map();
-  }
-
+export class DatabaseStorage implements IStorage {
   async getUser(auth0Id: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(u => u.auth0Id === auth0Id);
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.auth0Id, auth0Id));
+    return user;
   }
 
   async createUser(userData: InsertUser): Promise<User> {
-    const id = this.userId++;
-    const user: User = {
-      id,
-      auth0Id: userData.auth0Id,
-      username: userData.username,
-      anilistId: userData.anilistId || null,
-      lastSync: userData.lastSync || null
-    };
-    this.users.set(id, user);
+    const [user] = await db
+      .insert(users)
+      .values(userData)
+      .returning();
     return user;
   }
 
   async updateUser(id: number, data: Partial<User>): Promise<User> {
-    const user = this.users.get(id);
-    if (!user) throw new Error("User not found");
-    const updated = { ...user, ...data };
-    this.users.set(id, updated);
-    return updated;
+    const [user] = await db
+      .update(users)
+      .set(data)
+      .where(eq(users.id, id))
+      .returning();
+    return user;
   }
 
   async getWatchlist(userId: number): Promise<WatchlistItem[]> {
-    return Array.from(this.watchlist.values()).filter(item => item.userId === userId);
+    return await db
+      .select()
+      .from(watchlist)
+      .where(eq(watchlist.userId, userId));
   }
 
   async addToWatchlist(item: InsertWatchlistItem): Promise<WatchlistItem> {
-    const id = this.watchlistId++;
-    const watchlistItem: WatchlistItem = {
-      id,
-      userId: item.userId,
-      anilistId: item.anilistId,
-      title: item.title,
-      imageUrl: item.imageUrl || null,
-      status: item.status,
-      aiScore: item.aiScore || null,
-      aiNotes: item.aiNotes || null
-    };
-    this.watchlist.set(id, watchlistItem);
+    const [watchlistItem] = await db
+      .insert(watchlist)
+      .values(item)
+      .returning();
     return watchlistItem;
   }
 
   async updateWatchlistItem(id: number, data: Partial<WatchlistItem>): Promise<WatchlistItem> {
-    const item = this.watchlist.get(id);
-    if (!item) throw new Error("Watchlist item not found");
-    const updated = { ...item, ...data };
-    this.watchlist.set(id, updated);
-    return updated;
+    const [item] = await db
+      .update(watchlist)
+      .set(data)
+      .where(eq(watchlist.id, id))
+      .returning();
+    return item;
   }
 
   async removeFromWatchlist(id: number): Promise<void> {
-    this.watchlist.delete(id);
+    await db
+      .delete(watchlist)
+      .where(eq(watchlist.id, id));
   }
 }
 
-export const storage = new MemStorage();
+// Replace MemStorage with DatabaseStorage
+export const storage = new DatabaseStorage();
