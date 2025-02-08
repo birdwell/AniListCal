@@ -5,52 +5,69 @@ import { insertUserSchema, insertWatchlistSchema } from "@shared/schema";
 import OpenAI from "openai";
 import express from "express";
 import session from "express-session";
-import MemoryStore from "memorystore";
-import { WebSocketServer } from 'ws';
+import { WebSocketServer, WebSocket } from 'ws';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import pkg from 'pg';
+const { Pool } = pkg;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const MemoryStoreSession = MemoryStore(session);
-
-// Initialize OpenAI with error handling for missing API key
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || '' // Empty string fallback for type safety
+  apiKey: process.env.OPENAI_API_KEY || '' 
 });
 
 const ANILIST_TOKEN_URL = 'https://anilist.co/api/v2/oauth/token';
 const ANILIST_GRAPHQL_URL = 'https://graphql.anilist.co';
-const UPDATE_INTERVAL = 60000; // Check for updates every minute
+const UPDATE_INTERVAL = 60000; 
 
-export function registerRoutes(app: Express) {
+const pool = new Pool({
+  user: process.env.PGUSER,
+  host: process.env.PGHOST,
+  database: process.env.PGDATABASE,
+  password: process.env.PGPASSWORD,
+  port: parseInt(process.env.PGPORT || '5432', 10), 
+});
+
+export async function registerRoutes(app: Express) {
   const httpServer = createServer(app);
 
-  // Set up session middleware
+  // Import connect-pg-simple dynamically
+  const { default: connectPgSimple } = await import('connect-pg-simple');
+  const PostgresStore = connectPgSimple(session);
+
+  // Set up session middleware with PostgreSQL store
   app.use(
     session({
-      store: new MemoryStoreSession({
-        checkPeriod: 86400000, // prune expired entries every 24h
+      store: new PostgresStore({
+        pool,
+        tableName: 'session'
       }),
-      secret: 'your-secret-key', // In production, use a proper secret from environment variables
+      secret: process.env.REPL_ID!,
       resave: false,
       saveUninitialized: false,
-      cookie: { secure: false }, // Set to true if using HTTPS
+      cookie: {
+        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+        secure: process.env.NODE_ENV === 'production',
+        httpOnly: true
+      }
     })
   );
 
-  // Set up WebSocket server
+  if (process.env.NODE_ENV === 'production') {
+    app.set('trust proxy', 1);
+  }
+
   const wss = new WebSocketServer({
     server: httpServer,
     path: '/ws/airing'
   });
 
-  // Track connected clients
-  const clients = new Set<WebSocket>();
+  const clients: Set<WebSocket> = new Set();
 
-  wss.on('connection', (ws) => {
+  wss.on('connection', (ws: WebSocket) => {
     clients.add(ws);
 
     ws.on('close', () => {
@@ -58,26 +75,20 @@ export function registerRoutes(app: Express) {
     });
   });
 
-  // Broadcast updates to all connected clients
   async function broadcastAiringUpdates() {
-    // Only proceed if there are connected clients
     if (clients.size === 0) return;
 
     try {
-      // Get all users with their Anilist IDs
       const userList = await Promise.all(
         Array.from(clients).map(async () => {
-          // This is a placeholder - we'll implement proper user tracking
-          return { anilistId: null };
+          return { anilistId: '' };
         })
       );
 
-      // Filter out users without Anilist IDs
       const activeUsers = userList.filter(u => u.anilistId);
 
       if (activeUsers.length === 0) return;
 
-      // Update each user's airing shows
       for (const user of activeUsers) {
         try {
           const shows = await fetchUserAnime(parseInt(user.anilistId));
@@ -85,17 +96,16 @@ export function registerRoutes(app: Express) {
             show.status === "RELEASING" && show.nextAiringEpisode
           );
 
-          // Broadcast to all clients
           const message = JSON.stringify({
             type: 'airing_update',
             data: airingShows
           });
 
-          for (const client of clients) {
+          clients.forEach((client) => {
             if (client.readyState === WebSocket.OPEN) {
               client.send(message);
             }
-          }
+          });
         } catch (error) {
           console.error('Error fetching user anime:', error);
         }
@@ -105,10 +115,8 @@ export function registerRoutes(app: Express) {
     }
   }
 
-  // Start the update interval
   setInterval(broadcastAiringUpdates, UPDATE_INTERVAL);
 
-  // Update the callback section in the post handler
   app.post("/api/auth/callback", async (req, res) => {
     try {
       const { code, redirectUri } = req.body;
@@ -116,33 +124,9 @@ export function registerRoutes(app: Express) {
         throw new Error('Authorization code is required');
       }
 
-      // Log the credentials we're using (without exposing sensitive data)
-      console.log('Checking client credentials...');
-      console.log('Client ID exists:', !!process.env.ANILIST_CLIENT_ID);
-      console.log('Client Secret exists:', !!process.env.ANILIST_CLIENT_SECRET);
-
       if (!process.env.ANILIST_CLIENT_ID || !process.env.ANILIST_CLIENT_SECRET) {
         throw new Error('Anilist client credentials are not properly configured');
       }
-
-      // Use the redirect URI provided by the client to ensure consistency
-      console.log('Auth callback - Starting token exchange');
-      console.log('Using redirect URI:', redirectUri);
-
-      // Create the token request payload
-      const tokenPayload = {
-        grant_type: 'authorization_code',
-        client_id: process.env.ANILIST_CLIENT_ID,
-        client_secret: process.env.ANILIST_CLIENT_SECRET,
-        redirect_uri: redirectUri,
-        code: code,
-      };
-
-      console.log('Token request payload (excluding sensitive data):', {
-        ...tokenPayload,
-        client_secret: '[REDACTED]',
-        code: '[REDACTED]'
-      });
 
       const tokenResponse = await fetch(ANILIST_TOKEN_URL, {
         method: 'POST',
@@ -150,26 +134,27 @@ export function registerRoutes(app: Express) {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        body: JSON.stringify(tokenPayload),
+        body: JSON.stringify({
+          grant_type: 'authorization_code',
+          client_id: process.env.ANILIST_CLIENT_ID,
+          client_secret: process.env.ANILIST_CLIENT_SECRET,
+          redirect_uri: redirectUri,
+          code: code,
+        }),
       });
 
       if (!tokenResponse.ok) {
         const errorData = await tokenResponse.json();
         console.error('Token exchange failed:', errorData);
-        console.error('Response status:', tokenResponse.status);
-        console.error('Response headers:', Object.fromEntries(tokenResponse.headers.entries()));
         throw new Error(`Failed to get access token: ${errorData.message || tokenResponse.statusText}`);
       }
 
       const tokenData = await tokenResponse.json();
-      console.log('Successfully obtained access token');
 
-      // Get user info from Anilist
       const userResponse = await fetch(ANILIST_GRAPHQL_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json',
           'Authorization': `Bearer ${tokenData.access_token}`,
         },
         body: JSON.stringify({
@@ -185,21 +170,16 @@ export function registerRoutes(app: Express) {
       });
 
       if (!userResponse.ok) {
-        console.error('User info fetch failed:', await userResponse.text());
         throw new Error('Failed to get user info');
       }
 
       const userData = await userResponse.json();
       const anilistUser = userData.data.Viewer;
-      console.log('Successfully fetched user info:', anilistUser.name);
 
-      // Store user session
-      if (req.session) {
-        req.session.userId = anilistUser.id;
-        req.session.accessToken = tokenData.access_token;
-      }
+      // Store the session data
+      req.session.userId = anilistUser.id;
+      req.session.accessToken = tokenData.access_token;
 
-      // Create or update user in our database
       let user = await storage.getUser(anilistUser.id.toString());
       if (!user) {
         user = await storage.createUser({
@@ -210,7 +190,6 @@ export function registerRoutes(app: Express) {
           accessToken: tokenData.access_token,
         });
       } else {
-        // Update existing user with new token and sync time
         user = await storage.updateUserByAuth0Id(anilistUser.id.toString(), {
           lastSync: new Date(),
           accessToken: tokenData.access_token,
@@ -225,19 +204,17 @@ export function registerRoutes(app: Express) {
   });
 
   app.get("/api/auth/user", async (req, res) => {
-    if (!req.session?.userId) {
-      res.status(401).json({ error: 'Not authenticated' });
-      return;
-    }
-
     try {
-      const user = await storage.getUser(req.session.userId.toString());
-      if (!user) {
-        res.status(401).json({ error: 'User not found' });
-        return;
+      if (!req.session?.userId) {
+        return res.status(401).json({ error: 'Not authenticated' });
       }
 
-      // If we have a stored access token, verify it still works
+      const user = await storage.getUser(req.session.userId.toString());
+      if (!user) {
+        req.session.destroy(() => {});
+        return res.status(401).json({ error: 'User not found' });
+      }
+
       if (user.accessToken) {
         const verifyResponse = await fetch(ANILIST_GRAPHQL_URL, {
           method: 'POST',
@@ -251,16 +228,15 @@ export function registerRoutes(app: Express) {
         });
 
         if (!verifyResponse.ok) {
-          // Token is invalid, clear it
           req.session.destroy(() => {});
           await storage.updateUserByAuth0Id(user.auth0Id, { accessToken: null });
-          res.status(401).json({ error: 'Session expired' });
-          return;
+          return res.status(401).json({ error: 'Session expired' });
         }
       }
 
       res.json(user);
     } catch (error) {
+      console.error('Error getting user:', error);
       res.status(500).json({ error: 'Failed to get user' });
     }
   });
@@ -275,79 +251,10 @@ export function registerRoutes(app: Express) {
     }
   });
 
-
-  app.post("/api/users", async (req, res) => {
-    try {
-      const userData = insertUserSchema.parse(req.body);
-      const user = await storage.createUser(userData);
-      res.json(user);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message || 'Invalid request' });
-    }
-  });
-
-  app.get("/api/users/:auth0Id", async (req, res) => {
-    const user = await storage.getUser(req.params.auth0Id);
-    if (!user) {
-      res.status(404).json({ error: "User not found" });
-      return;
-    }
-    res.json(user);
-  });
-
-  app.post("/api/watchlist", async (req, res) => {
-    try {
-      const item = insertWatchlistSchema.parse(req.body);
-      const watchlistItem = await storage.addToWatchlist(item);
-      res.json(watchlistItem);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message || 'Invalid request' });
-    }
-  });
-
-  app.post("/api/ai/recommend", async (req, res) => {
-    try {
-      const { shows } = req.body;
-      if (!Array.isArray(shows) || shows.length === 0) {
-        throw new Error('Shows array is required and must not be empty');
-      }
-
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: [
-          {
-            role: "system",
-            content: "You are an anime recommendation expert. Analyze the user's watchlist and provide personalized recommendations with explanations."
-          },
-          {
-            role: "user",
-            content: `Based on these shows: ${shows.join(", ")}, suggest 3 anime with explanations.`
-          }
-        ],
-        response_format: { type: "json_object" }
-      });
-
-      const content = response.choices[0].message.content;
-      if (!content) {
-        throw new Error('No recommendations generated');
-      }
-
-      res.json(JSON.parse(content));
-    } catch (error: any) {
-      console.error('AI recommendation error:', error);
-      res.status(500).json({
-        error: error.message || 'Failed to generate recommendations'
-      });
-    }
-  });
-
   return httpServer;
 }
 
-// Placeholder function - needs actual implementation
 async function fetchUserAnime(anilistId: number): Promise<any[]> {
-  // Replace with your actual Anilist API call to fetch user's anime list
-  // This example returns a mock array
   return [
     { id: 1, title: "Anime A", status: "RELEASING", nextAiringEpisode: { timeUntilAiring: 1234567 } },
     { id: 2, title: "Anime B", status: "FINISHED" },
