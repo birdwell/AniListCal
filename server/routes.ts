@@ -121,12 +121,11 @@ export function registerRoutes(app: Express) {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'Authorization': `Basic ${Buffer.from(
-            `${process.env.ANILIST_CLIENT_ID}:${process.env.ANILIST_CLIENT_SECRET}`
-          ).toString('base64')}`,
         },
         body: JSON.stringify({
           grant_type: 'authorization_code',
+          client_id: process.env.ANILIST_CLIENT_ID,
+          client_secret: process.env.ANILIST_CLIENT_SECRET,
           redirect_uri: `${req.protocol}://${req.get('host')}/auth/callback`,
           code: code,
         }),
