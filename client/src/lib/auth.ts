@@ -9,7 +9,7 @@ export async function login() {
   }
 
   console.log('Starting Anilist OAuth flow');
-  const redirectUri = `${window.location.origin}/api/auth/callback`;
+  const redirectUri = `${window.location.origin}/auth/callback`;
   console.log('Using redirect URI:', redirectUri);
 
   const params = new URLSearchParams({

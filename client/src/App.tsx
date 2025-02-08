@@ -15,7 +15,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 
-
 function AuthCallback() {
   const [error, setError] = useState<string | null>(null);
   const [, setLocation] = useLocation();
@@ -27,20 +26,8 @@ function AuthCallback() {
       return;
     }
 
-    // Make the API call to exchange the code
-    fetch('/api/auth/callback', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ code }),
-    })
-      .then(async (response) => {
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Authentication failed');
-        }
-        // On success, invalidate the auth query and redirect
+    handleAuthCallback(code)
+      .then(() => {
         queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
         setLocation("/");
       })
@@ -104,12 +91,12 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
 
 function Router() {
   const [location] = useLocation();
-  const showLayout = !["/login", "/api/auth/callback"].includes(location);
+  const showLayout = !["/login", "/auth/callback"].includes(location);
 
   const content = (
     <Switch>
       <Route path="/login" component={Login} />
-      <Route path="/api/auth/callback" component={AuthCallback} />
+      <Route path="/auth/callback" component={AuthCallback} />
       <Route path="/" component={() => <ProtectedRoute component={Home} />} />
       <Route path="/calendar" component={() => <ProtectedRoute component={Calendar} />} />
       <Route path="/profile" component={() => <ProtectedRoute component={Profile} />} />
