@@ -111,7 +111,7 @@ export function registerRoutes(app: Express) {
   // Update the callback section in the post handler
   app.post("/api/auth/callback", async (req, res) => {
     try {
-      const { code } = req.body;
+      const { code, redirectUri } = req.body;
       if (!code) {
         throw new Error('Authorization code is required');
       }
@@ -125,7 +125,7 @@ export function registerRoutes(app: Express) {
         throw new Error('Anilist client credentials are not properly configured');
       }
 
-      const redirectUri = `${req.protocol}://${req.get('host')}/auth/callback`;
+      // Use the redirect URI provided by the client to ensure consistency
       console.log('Auth callback - Starting token exchange');
       console.log('Using redirect URI:', redirectUri);
 

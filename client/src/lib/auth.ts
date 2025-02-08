@@ -8,8 +8,11 @@ export async function login() {
     throw new Error('Anilist client ID is not configured');
   }
 
+  // Ensure consistent redirect URI format
+  const currentUrl = new URL(window.location.href);
+  const redirectUri = `${currentUrl.protocol}//${currentUrl.host}/auth/callback`;
+
   console.log('Starting Anilist OAuth flow');
-  const redirectUri = `${window.location.origin}/auth/callback`;
   console.log('Using redirect URI:', redirectUri);
   console.log('Client ID exists:', !!clientId);
 
@@ -21,7 +24,6 @@ export async function login() {
 
   console.log('Authorization URL:', `${ANILIST_AUTH_URL}?${params.toString()}`);
 
-  // Changed to directly set window.location.href instead of window.open
   window.location.href = `${ANILIST_AUTH_URL}?${params.toString()}`;
 }
 
@@ -32,7 +34,10 @@ export async function handleAuthCallback(code: string): Promise<void> {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ code }),
+      body: JSON.stringify({ 
+        code,
+        redirectUri: `${window.location.protocol}//${window.location.host}/auth/callback`
+      }),
     });
 
     if (!response.ok) {
@@ -40,8 +45,7 @@ export async function handleAuthCallback(code: string): Promise<void> {
       throw new Error(errorData.error || 'Authentication failed');
     }
 
-    // After successful authentication, redirect to home page
-    window.location.href = '/';
+    await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
   } catch (error) {
     console.error('Auth callback error:', error);
     throw error;
