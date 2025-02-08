@@ -8,6 +8,11 @@ import session from "express-session";
 import MemoryStore from "memorystore";
 import { WebSocketServer } from 'ws';
 import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const MemoryStoreSession = MemoryStore(session);
 
