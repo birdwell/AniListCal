@@ -10,11 +10,11 @@ import { useState, useEffect } from "react";
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 export default function CalendarPage() {
-  // Initialize selected day to current day
-  const [selectedDay, setSelectedDay] = useState<number>(new Date().getDay());
+  const today = new Date().getDay();
+  const [selectedDay, setSelectedDay] = useState<number>(today);
 
-  // Get ordered days starting from today
-  const orderedDays = DAYS.slice(selectedDay).concat(DAYS.slice(0, selectedDay));
+  // Get ordered days starting from current day (fixed order)
+  const orderedDays = DAYS.slice(today).concat(DAYS.slice(0, today));
 
   const { data: user } = useQuery({
     queryKey: ["/api/users/current"],
@@ -54,12 +54,12 @@ export default function CalendarPage() {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto px-4 sm:px-6">
-      {/* Day selector - now showing next 7 days */}
+      {/* Day selector - fixed order based on current day */}
       <Card className="overflow-x-auto -mx-4 sm:mx-0 rounded-none sm:rounded-lg">
         <CardContent className="p-4 sm:p-6">
           <div className="flex gap-2 sm:gap-3 min-w-max">
             {orderedDays.slice(0, 7).map((day, index) => {
-              const dayIndex = (selectedDay + index) % 7;
+              const dayIndex = (today + index) % 7;
               return (
                 <Button
                   key={day}
