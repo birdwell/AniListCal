@@ -93,7 +93,7 @@ export default function Home() {
       <section>
         <h2 className="text-2xl font-bold mb-4">Currently Watching</h2>
         {currentlyWatching.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6">
             {currentlyWatching.map(show => (
               <AnimeCard
                 key={show.id}
