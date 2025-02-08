@@ -49,10 +49,10 @@ export default function CalendarPage() {
       const key = date.toISOString().split('T')[0];
       if (!acc[key]) acc[key] = [];
       acc[key].push({
-        title: show.title.english || show.title.romaji,
+        title: show.title.english || show.title.romaji || "",
         episode: show.nextAiringEpisode!.episode,
         currentEpisode: show.mediaListEntry?.progress || 0,
-        status: show.mediaListEntry?.status
+        status: show.mediaListEntry?.status || ""
       });
       return acc;
     }, {} as Record<string, Array<{ 
@@ -82,7 +82,6 @@ export default function CalendarPage() {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto px-4 sm:px-6">
-      {/* Day selector - fixed order based on current day */}
       <Card className="overflow-x-auto -mx-4 sm:mx-0 rounded-none sm:rounded-lg">
         <CardContent className="p-4 sm:p-6 space-y-4">
           <div className="flex gap-2 sm:gap-3 min-w-max">
@@ -104,26 +103,29 @@ export default function CalendarPage() {
             <Filter className="h-4 w-4" />
             <span>Show:</span>
             <div className="flex gap-2">
-              {WATCH_STATUSES.map((status) => (
-                <Button
-                  key={status}
-                  variant="outline"
-                  size="sm"
-                  className={cn(
-                    "h-8",
-                    selectedStatuses.includes(status) && "bg-primary text-primary-foreground hover:bg-primary/90"
-                  )}
-                  onClick={() => {
-                    setSelectedStatuses(prev => 
-                      prev.includes(status)
-                        ? prev.filter(s => s !== status)
-                        : [...prev, status]
-                    );
-                  }}
-                >
-                  {status.charAt(0) + status.slice(1).toLowerCase()}
-                </Button>
-              ))}
+              {WATCH_STATUSES.map((status) => {
+                const isSelected = selectedStatuses.includes(status);
+                return (
+                  <Button
+                    key={status}
+                    variant="outline"
+                    size="sm"
+                    className={cn(
+                      "h-8 transition-colors",
+                      isSelected && "bg-primary text-primary-foreground hover:bg-primary/90"
+                    )}
+                    onClick={() => {
+                      setSelectedStatuses(prev => 
+                        prev.includes(status)
+                          ? prev.filter(s => s !== status)
+                          : [...prev, status]
+                      );
+                    }}
+                  >
+                    {status === "CURRENT" ? "Watching" : "Plan to Watch"}
+                  </Button>
+                );
+              })}
             </div>
           </div>
         </CardContent>
@@ -162,7 +164,7 @@ export default function CalendarPage() {
                             {show.title}
                           </span>
                           <span className="text-sm text-muted-foreground">
-                            {show.status.charAt(0) + show.status.slice(1).toLowerCase()}
+                            {show.status === "CURRENT" ? "Watching" : "Plan to Watch"}
                           </span>
                         </div>
                         <div className="flex items-center gap-4 text-sm">
