@@ -207,6 +207,13 @@ export function registerRoutes(app: Express) {
           username: anilistUser.name,
           anilistId: anilistUser.id.toString(),
           lastSync: new Date(),
+          accessToken: tokenData.access_token,
+        });
+      } else {
+        // Update existing user with new token and sync time
+        user = await storage.updateUserByAuth0Id(anilistUser.id.toString(), {
+          lastSync: new Date(),
+          accessToken: tokenData.access_token,
         });
       }
 
@@ -214,16 +221,6 @@ export function registerRoutes(app: Express) {
     } catch (error: any) {
       console.error('Auth callback error:', error);
       res.status(500).json({ error: error.message || 'Authentication failed' });
-    }
-  });
-
-  app.post("/api/auth/logout", (req, res) => {
-    if (req.session) {
-      req.session.destroy(() => {
-        res.json({ success: true });
-      });
-    } else {
-      res.json({ success: true });
     }
   });
 
@@ -239,11 +236,45 @@ export function registerRoutes(app: Express) {
         res.status(401).json({ error: 'User not found' });
         return;
       }
+
+      // If we have a stored access token, verify it still works
+      if (user.accessToken) {
+        const verifyResponse = await fetch(ANILIST_GRAPHQL_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${user.accessToken}`,
+          },
+          body: JSON.stringify({
+            query: `{ Viewer { id } }`,
+          }),
+        });
+
+        if (!verifyResponse.ok) {
+          // Token is invalid, clear it
+          req.session.destroy(() => {});
+          await storage.updateUserByAuth0Id(user.auth0Id, { accessToken: null });
+          res.status(401).json({ error: 'Session expired' });
+          return;
+        }
+      }
+
       res.json(user);
     } catch (error) {
       res.status(500).json({ error: 'Failed to get user' });
     }
   });
+
+  app.post("/api/auth/logout", (req, res) => {
+    if (req.session) {
+      req.session.destroy(() => {
+        res.json({ success: true });
+      });
+    } else {
+      res.json({ success: true });
+    }
+  });
+
 
   app.post("/api/users", async (req, res) => {
     try {

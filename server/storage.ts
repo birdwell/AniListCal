@@ -6,6 +6,7 @@ export interface IStorage {
   getUser(auth0Id: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, data: Partial<User>): Promise<User>;
+  updateUserByAuth0Id(auth0Id: string, data: Partial<User>): Promise<User>;
 
   getWatchlist(userId: number): Promise<WatchlistItem[]>;
   addToWatchlist(item: InsertWatchlistItem): Promise<WatchlistItem>;
@@ -35,6 +36,15 @@ export class DatabaseStorage implements IStorage {
       .update(users)
       .set(data)
       .where(eq(users.id, id))
+      .returning();
+    return user;
+  }
+
+  async updateUserByAuth0Id(auth0Id: string, data: Partial<User>): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set(data)
+      .where(eq(users.auth0Id, auth0Id))
       .returning();
     return user;
   }
@@ -70,5 +80,4 @@ export class DatabaseStorage implements IStorage {
   }
 }
 
-// Replace MemStorage with DatabaseStorage
 export const storage = new DatabaseStorage();

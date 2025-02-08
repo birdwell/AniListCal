@@ -8,6 +8,7 @@ export const users = pgTable("users", {
   anilistId: text("anilist_id"),
   username: text("username").notNull(),
   lastSync: timestamp("last_sync"),
+  accessToken: text("access_token"),
 });
 
 export const watchlist = pgTable("watchlist", {
