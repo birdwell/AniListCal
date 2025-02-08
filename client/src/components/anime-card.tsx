@@ -44,12 +44,18 @@ export function AnimeCard({ title, imageUrl, status, nextEpisode }: AnimeCardPro
       </CardHeader>
       {nextEpisode && (
         <CardContent className="p-3 sm:p-4 pt-0">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Calendar className="h-4 w-4 flex-shrink-0" />
-            <span className="line-clamp-1">
-              Ep. {nextEpisode.episode} airs{" "}
-              {formatDate(nextEpisode.airingAt)}
-            </span>
+          <div className="flex flex-col gap-1 text-sm">
+            <div className="flex items-center gap-2">
+              <span className="font-medium">
+                Episode {nextEpisode.episode}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Calendar className="h-4 w-4 flex-shrink-0" />
+              <span className="line-clamp-1">
+                {formatDate(nextEpisode.airingAt)}
+              </span>
+            </div>
           </div>
         </CardContent>
       )}
