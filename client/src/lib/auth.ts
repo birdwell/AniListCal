@@ -4,7 +4,7 @@ const ANILIST_AUTH_URL = 'https://anilist.co/api/v2/oauth/authorize';
 
 export async function login() {
   const clientId = import.meta.env.VITE_ANILIST_CLIENT_ID;
-  const redirectUri = `${window.location.origin}/callback`;
+  const redirectUri = `${window.location.origin}/auth/callback`;
 
   const params = new URLSearchParams({
     client_id: clientId,

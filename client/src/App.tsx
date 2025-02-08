@@ -46,12 +46,12 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
 
 function Router() {
   const [location] = useLocation();
-  const showLayout = !["/login", "/callback"].includes(location);
+  const showLayout = !["/login", "/auth/callback"].includes(location);
 
   const content = (
     <Switch>
       <Route path="/login" component={Login} />
-      <Route path="/callback" component={AuthCallback} />
+      <Route path="/auth/callback" component={AuthCallback} />
       <Route path="/" component={() => <ProtectedRoute component={Home} />} />
       <Route path="/calendar" component={() => <ProtectedRoute component={Calendar} />} />
       <Route path="/profile" component={() => <ProtectedRoute component={Profile} />} />

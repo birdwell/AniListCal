@@ -6,16 +6,18 @@ import OpenAI from "openai";
 import express from "express";
 import session from "express-session";
 import MemoryStore from "memorystore";
+import { WebSocketServer } from 'ws';
 
 const MemoryStoreSession = MemoryStore(session);
 
 // Initialize OpenAI with error handling for missing API key
-const openai = new OpenAI({ 
+const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || '' // Empty string fallback for type safety
 });
 
 const ANILIST_TOKEN_URL = 'https://anilist.co/api/v2/oauth/token';
 const ANILIST_GRAPHQL_URL = 'https://graphql.anilist.co';
+const UPDATE_INTERVAL = 60000; // Check for updates every minute
 
 export function registerRoutes(app: Express) {
   const httpServer = createServer(app);
@@ -32,6 +34,73 @@ export function registerRoutes(app: Express) {
       cookie: { secure: false }, // Set to true if using HTTPS
     })
   );
+
+  // Set up WebSocket server
+  const wss = new WebSocketServer({
+    server: httpServer,
+    path: '/ws/airing'
+  });
+
+  // Track connected clients
+  const clients = new Set<WebSocket>();
+
+  wss.on('connection', (ws) => {
+    clients.add(ws);
+
+    ws.on('close', () => {
+      clients.delete(ws);
+    });
+  });
+
+  // Broadcast updates to all connected clients
+  async function broadcastAiringUpdates() {
+    // Only proceed if there are connected clients
+    if (clients.size === 0) return;
+
+    try {
+      // Get all users with their Anilist IDs
+      const userList = await Promise.all(
+        Array.from(clients).map(async () => {
+          // This is a placeholder - we'll implement proper user tracking
+          return { anilistId: null };
+        })
+      );
+
+      // Filter out users without Anilist IDs
+      const activeUsers = userList.filter(u => u.anilistId);
+
+      if (activeUsers.length === 0) return;
+
+      // Update each user's airing shows
+      for (const user of activeUsers) {
+        try {
+          const shows = await fetchUserAnime(parseInt(user.anilistId));
+          const airingShows = shows.filter(show =>
+            show.status === "RELEASING" && show.nextAiringEpisode
+          );
+
+          // Broadcast to all clients
+          const message = JSON.stringify({
+            type: 'airing_update',
+            data: airingShows
+          });
+
+          for (const client of clients) {
+            if (client.readyState === WebSocket.OPEN) {
+              client.send(message);
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching user anime:', error);
+        }
+      }
+    } catch (error) {
+      console.error('Error in broadcast:', error);
+    }
+  }
+
+  // Start the update interval
+  setInterval(broadcastAiringUpdates, UPDATE_INTERVAL);
 
   app.post("/api/auth/callback", async (req, res) => {
     try {
@@ -51,9 +120,9 @@ export function registerRoutes(app: Express) {
         },
         body: JSON.stringify({
           grant_type: 'authorization_code',
-          client_id: process.env.ANILIST_CLIENT_ID, // Use server-side env var
-          client_secret: process.env.ANILIST_CLIENT_SECRET, // Will ask for this secret
-          redirect_uri: `${process.env.APP_URL || 'http://localhost:5000'}/callback`,
+          client_id: process.env.ANILIST_CLIENT_ID,
+          client_secret: process.env.ANILIST_CLIENT_SECRET,
+          redirect_uri: `${req.protocol}://${req.get('host')}/auth/callback`,
           code: code,
         }),
       });
@@ -208,11 +277,22 @@ export function registerRoutes(app: Express) {
       res.json(JSON.parse(content));
     } catch (error: any) {
       console.error('AI recommendation error:', error);
-      res.status(500).json({ 
-        error: error.message || 'Failed to generate recommendations' 
+      res.status(500).json({
+        error: error.message || 'Failed to generate recommendations'
       });
     }
   });
 
   return httpServer;
+}
+
+// Placeholder function - needs actual implementation
+async function fetchUserAnime(anilistId: number): Promise<any[]> {
+  // Replace with your actual Anilist API call to fetch user's anime list
+  // This example returns a mock array
+  return [
+    { id: 1, title: "Anime A", status: "RELEASING", nextAiringEpisode: { timeUntilAiring: 1234567 } },
+    { id: 2, title: "Anime B", status: "FINISHED" },
+    { id: 3, title: "Anime C", status: "RELEASING", nextAiringEpisode: { timeUntilAiring: 7654321 } }
+  ];
 }
