@@ -2,7 +2,7 @@ import { Switch, Route, useLocation, useRouter } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
-import { useEffect, ReactElement } from "react";
+import { useEffect, ReactElement, useState } from "react";
 import { handleAuthCallback, getUser } from "./lib/auth";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
@@ -11,17 +11,55 @@ import Profile from "@/pages/profile";
 import Login from "@/pages/login";
 import { Layout } from "@/components/layout";
 import { useQuery } from "@tanstack/react-query";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
 
 
 function AuthCallback() {
+  const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
     const code = new URLSearchParams(window.location.search).get('code');
     if (code) {
-      handleAuthCallback(code).catch(console.error);
+      handleAuthCallback(code)
+        .catch(err => {
+          console.error('Auth error:', err);
+          setError(err.message);
+        });
     }
   }, []);
 
-  return <div>Authenticating...</div>;
+  if (error) {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center bg-background">
+        <Card className="w-full max-w-md mx-4">
+          <CardHeader>
+            <CardTitle className="text-destructive">Authentication Failed</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p>{error}</p>
+            <Button className="mt-4" onClick={() => window.location.href = '/login'}>
+              Try Again
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen w-full flex items-center justify-center bg-background">
+      <Card className="w-full max-w-md mx-4">
+        <CardHeader>
+          <CardTitle>Completing Authentication</CardTitle>
+        </CardHeader>
+        <CardContent className="flex items-center justify-center p-6">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </CardContent>
+      </Card>
+    </div>
+  );
 }
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {

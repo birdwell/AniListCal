@@ -9,9 +9,8 @@ export async function login() {
   }
 
   console.log('Starting Anilist OAuth flow');
-  console.log('Using redirect URI:', `${window.location.origin}/auth/callback`);
-
   const redirectUri = `${window.location.origin}/auth/callback`;
+  console.log('Using redirect URI:', redirectUri);
 
   const params = new URLSearchParams({
     client_id: clientId,
@@ -19,6 +18,7 @@ export async function login() {
     response_type: 'code',
   });
 
+  // Changed to directly set window.location.href instead of window.open
   window.location.href = `${ANILIST_AUTH_URL}?${params.toString()}`;
 }
 
@@ -37,7 +37,7 @@ export async function handleAuthCallback(code: string): Promise<void> {
       throw new Error(errorData.error || 'Authentication failed');
     }
 
-    // Redirect to home page after successful authentication
+    // After successful authentication, redirect to home page
     window.location.href = '/';
   } catch (error) {
     console.error('Auth callback error:', error);
