@@ -112,7 +112,7 @@ export default function CalendarPage() {
                     size="sm"
                     className={cn(
                       "h-8 transition-colors",
-                      isSelected && "bg-primary text-primary-foreground hover:bg-primary/90"
+                      isSelected ? "bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground" : "hover:text-foreground"
                     )}
                     onClick={() => {
                       setSelectedStatuses(prev => 
