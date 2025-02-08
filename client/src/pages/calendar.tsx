@@ -41,28 +41,35 @@ export default function CalendarPage() {
     return dayOfWeek === selectedDay;
   });
 
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const day = date.getDate();
+    const suffix = ['th', 'st', 'nd', 'rd'][day % 10 - 1] || 'th';
+    return `${DAYS[date.getDay()]}, ${day}${suffix}`;
+  };
+
   return (
-    <div className="space-y-6">
-      {/* Day selector */}
-      <Card className="overflow-x-auto">
-        <CardContent className="p-4">
-          <div className="flex gap-2 min-w-max">
+    <div className="space-y-4">
+      {/* Day selector - now more compact on mobile */}
+      <Card className="overflow-x-auto -mx-4 sm:mx-0 rounded-none sm:rounded-lg">
+        <CardContent className="p-2 sm:p-4">
+          <div className="flex gap-1 sm:gap-2 min-w-max">
             {DAYS.map((day, index) => (
               <Button
                 key={day}
                 variant={selectedDay === index ? "default" : "outline"}
                 onClick={() => setSelectedDay(index)}
-                className="px-4 py-2"
+                className="px-2 sm:px-4 py-2 text-sm sm:text-base"
               >
-                {day.slice(0, 3)}
+                {window.innerWidth < 640 ? day.slice(0, 3) : day}
               </Button>
             ))}
           </div>
         </CardContent>
       </Card>
 
-      <div className="grid md:grid-cols-[300px_1fr] gap-6">
-        <Card className="h-fit">
+      <div className="grid lg:grid-cols-[300px_1fr] gap-4">
+        <Card className="hidden lg:block">
           <CardContent className="p-4">
             <Calendar
               mode="single"
@@ -80,22 +87,19 @@ export default function CalendarPage() {
                   <div className="flex items-center gap-2 mb-4">
                     <CalendarIcon className="h-5 w-5 text-primary" />
                     <h3 className="font-semibold">
-                      {new Date(date).toLocaleDateString(undefined, { 
-                        weekday: 'long',
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                      })}
+                      {formatDate(date)}
                     </h3>
                   </div>
                   <div className="space-y-2">
                     {shows.map((show, i) => (
                       <div
                         key={i}
-                        className="p-3 rounded-lg bg-accent/50 hover:bg-accent transition-colors flex justify-between items-center"
+                        className="p-3 rounded-lg bg-accent/50 hover:bg-accent transition-colors flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2"
                       >
-                        <span className="font-medium">{show.title}</span>
-                        <span className="text-sm text-muted-foreground">
+                        <span className="font-medium line-clamp-2 sm:line-clamp-1">
+                          {show.title}
+                        </span>
+                        <span className="text-sm text-muted-foreground whitespace-nowrap">
                           Episode {show.episode}
                         </span>
                       </div>

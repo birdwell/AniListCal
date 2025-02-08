@@ -13,6 +13,18 @@ interface AnimeCardProps {
 }
 
 export function AnimeCard({ title, imageUrl, status, nextEpisode }: AnimeCardProps) {
+  const formatDate = (timestamp: number) => {
+    const date = new Date(timestamp * 1000);
+    return date.toLocaleDateString('en-US', {
+      weekday: 'long',
+      day: 'numeric'
+    }).replace(/(\d+)$/, (_, num) => {
+      const suffix = ['th', 'st', 'nd', 'rd'];
+      const lastDigit = num % 10;
+      return num + (suffix[lastDigit] || suffix[0]);
+    });
+  };
+
   return (
     <Card className="group overflow-hidden hover:shadow-lg transition-all duration-300 h-full">
       <div className="aspect-[2/3] relative overflow-hidden">
@@ -36,7 +48,7 @@ export function AnimeCard({ title, imageUrl, status, nextEpisode }: AnimeCardPro
             <Calendar className="h-4 w-4 flex-shrink-0" />
             <span className="line-clamp-1">
               Ep. {nextEpisode.episode} airs{" "}
-              {new Date(nextEpisode.airingAt * 1000).toLocaleDateString()}
+              {formatDate(nextEpisode.airingAt)}
             </span>
           </div>
         </CardContent>
