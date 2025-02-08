@@ -82,49 +82,49 @@ export default function CalendarPage() {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto px-4 sm:px-6">
-      {/* Day selector and filter - fixed order based on current day */}
+      {/* Day selector - fixed order based on current day */}
       <Card className="overflow-x-auto -mx-4 sm:mx-0 rounded-none sm:rounded-lg">
-        <CardContent className="p-4 sm:p-6">
-          <div className="flex justify-between items-center mb-4">
-            <div className="flex gap-2 sm:gap-3 min-w-max">
-              {orderedDays.slice(0, 7).map((day, index) => {
-                const dayIndex = (today + index) % 7;
-                return (
-                  <Button
-                    key={day}
-                    variant={selectedDay === dayIndex ? "default" : "outline"}
-                    onClick={() => setSelectedDay(dayIndex)}
-                    className="px-3 sm:px-5 py-2 text-sm sm:text-base"
-                  >
-                    {window.innerWidth < 640 ? day.slice(0, 3) : day}
-                  </Button>
-                );
-              })}
-            </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon">
-                  <Filter className="h-4 w-4" />
+        <CardContent className="p-4 sm:p-6 space-y-4">
+          <div className="flex gap-2 sm:gap-3 min-w-max">
+            {orderedDays.slice(0, 7).map((day, index) => {
+              const dayIndex = (today + index) % 7;
+              return (
+                <Button
+                  key={day}
+                  variant={selectedDay === dayIndex ? "default" : "outline"}
+                  onClick={() => setSelectedDay(dayIndex)}
+                  className="px-3 sm:px-5 py-2 text-sm sm:text-base"
+                >
+                  {window.innerWidth < 640 ? day.slice(0, 3) : day}
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {WATCH_STATUSES.map((status) => (
-                  <DropdownMenuCheckboxItem
-                    key={status}
-                    checked={selectedStatuses.includes(status)}
-                    onCheckedChange={(checked) => {
-                      setSelectedStatuses(prev => 
-                        checked 
-                          ? [...prev, status]
-                          : prev.filter(s => s !== status)
-                      );
-                    }}
-                  >
-                    {status.charAt(0) + status.slice(1).toLowerCase()}
-                  </DropdownMenuCheckboxItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
+              );
+            })}
+          </div>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Filter className="h-4 w-4" />
+            <span>Show:</span>
+            <div className="flex gap-2">
+              {WATCH_STATUSES.map((status) => (
+                <Button
+                  key={status}
+                  variant="outline"
+                  size="sm"
+                  className={cn(
+                    "h-8",
+                    selectedStatuses.includes(status) && "bg-primary text-primary-foreground hover:bg-primary/90"
+                  )}
+                  onClick={() => {
+                    setSelectedStatuses(prev => 
+                      prev.includes(status)
+                        ? prev.filter(s => s !== status)
+                        : [...prev, status]
+                    );
+                  }}
+                >
+                  {status.charAt(0) + status.slice(1).toLowerCase()}
+                </Button>
+              ))}
+            </div>
           </div>
         </CardContent>
       </Card>

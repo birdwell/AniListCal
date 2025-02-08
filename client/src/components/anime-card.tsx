@@ -55,21 +55,16 @@ export function AnimeCard({
               className="object-cover w-full h-full"
             />
           </div>
-          <div className="flex flex-col justify-between flex-grow min-w-0">
-            <div className="space-y-1">
-              <div className="flex items-center justify-between gap-2">
-                <h3 className="font-medium line-clamp-1">{title}</h3>
-                <Badge className="flex-shrink-0">{status}</Badge>
-              </div>
-              <div className="flex items-center gap-2">
-                <PlayCircle className={cn("h-4 w-4 flex-shrink-0", getProgressColor())} />
-                <span className={cn("text-sm", getProgressColor())}>
-                  {currentEpisode || 0}{totalEpisodes && ` / ${totalEpisodes}`}
-                </span>
-              </div>
+          <div className="flex flex-col justify-center flex-grow min-w-0">
+            <h3 className="font-medium line-clamp-1 mb-2">{title}</h3>
+            <div className="flex items-center gap-2">
+              <PlayCircle className={cn("h-4 w-4 flex-shrink-0", getProgressColor())} />
+              <span className={cn("text-sm", getProgressColor())}>
+                {currentEpisode || 0}{totalEpisodes && ` / ${totalEpisodes}`}
+              </span>
             </div>
             {nextEpisode && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
                 <Calendar className="h-4 w-4 flex-shrink-0" />
                 <span className="line-clamp-1">
                   {formatDate(nextEpisode.airingAt)}
