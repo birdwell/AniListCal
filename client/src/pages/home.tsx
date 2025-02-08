@@ -6,7 +6,10 @@ import { getRecommendations } from "@/lib/ai";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, LayoutGrid, LayoutList } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useState } from "react";
+import { cn } from "@/lib/utils";
 
 function LoadingGrid() {
   return (
@@ -26,6 +29,8 @@ function LoadingGrid() {
 }
 
 export default function Home() {
+  const [isCompact, setIsCompact] = useState(false);
+
   const { data: user, isLoading: isLoadingUser } = useQuery({
     queryKey: ["/api/users/current"],
     queryFn: getUser
@@ -55,7 +60,7 @@ export default function Home() {
 
   if (isLoadingUser || isLoadingAnime) {
     return (
-      <div className="space-y-8">
+      <div className="space-y-8 container mx-auto px-4 sm:px-6 lg:px-8">
         <section>
           <h2 className="text-2xl font-bold mb-4">Currently Watching</h2>
           <LoadingGrid />
@@ -66,23 +71,27 @@ export default function Home() {
 
   if (!user?.anilistId) {
     return (
-      <Alert variant="destructive">
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription>
-          Please set your Anilist ID in your profile to view your anime list.
-        </AlertDescription>
-      </Alert>
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Please set your Anilist ID in your profile to view your anime list.
+          </AlertDescription>
+        </Alert>
+      </div>
     );
   }
 
   if (animeError) {
     return (
-      <Alert variant="destructive">
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription>
-          Failed to fetch your anime list. Please try again later.
-        </AlertDescription>
-      </Alert>
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Failed to fetch your anime list. Please try again later.
+          </AlertDescription>
+        </Alert>
+      </div>
     );
   }
 
@@ -94,11 +103,30 @@ export default function Home() {
   ) || [];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 container mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="flex justify-end">
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => setIsCompact(!isCompact)}
+          title={isCompact ? "Grid View" : "List View"}
+        >
+          {isCompact ? (
+            <LayoutGrid className="h-4 w-4" />
+          ) : (
+            <LayoutList className="h-4 w-4" />
+          )}
+        </Button>
+      </div>
+
       <section>
         <h2 className="text-2xl font-bold mb-4">Currently Airing</h2>
         {currentlyAiring.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6">
+          <div className={cn(
+            isCompact
+              ? "space-y-2"
+              : "grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6"
+          )}>
             {currentlyAiring.map(show => (
               <AnimeCard
                 key={show.id}
@@ -108,6 +136,7 @@ export default function Home() {
                 currentEpisode={show.mediaListEntry?.progress}
                 totalEpisodes={show.episodes}
                 nextEpisode={show.nextAiringEpisode}
+                isCompact={isCompact}
               />
             ))}
           </div>
@@ -119,7 +148,11 @@ export default function Home() {
       <section>
         <h2 className="text-2xl font-bold mb-4">Other Shows You're Watching</h2>
         {nonAiring.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6">
+          <div className={cn(
+            isCompact
+              ? "space-y-2"
+              : "grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6"
+          )}>
             {nonAiring.map(show => (
               <AnimeCard
                 key={show.id}
@@ -128,6 +161,7 @@ export default function Home() {
                 status={show.status}
                 currentEpisode={show.mediaListEntry?.progress}
                 totalEpisodes={show.episodes}
+                isCompact={isCompact}
               />
             ))}
           </div>

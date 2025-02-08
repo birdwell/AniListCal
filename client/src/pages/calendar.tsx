@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Calendar as CalendarIcon, PlayCircle } from "lucide-react";
+import { Calendar as CalendarIcon, PlayCircle, Filter } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,12 +7,22 @@ import { fetchUserAnime } from "@/lib/anilist";
 import { getUser } from "@/lib/auth";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuCheckboxItem,
+} from "@/components/ui/dropdown-menu";
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const WATCH_STATUSES = ["CURRENT", "PLANNING"] as const;
+type WatchStatus = typeof WATCH_STATUSES[number];
 
 export default function CalendarPage() {
   const today = new Date().getDay();
   const [selectedDay, setSelectedDay] = useState<number>(today);
+  const [selectedStatuses, setSelectedStatuses] = useState<WatchStatus[]>(["CURRENT"]);
 
   // Get ordered days starting from current day (fixed order)
   const orderedDays = DAYS.slice(today).concat(DAYS.slice(0, today));
@@ -29,7 +39,11 @@ export default function CalendarPage() {
   });
 
   const airingDates = anime
-    ?.filter(show => show.nextAiringEpisode)
+    ?.filter(show => 
+      show.nextAiringEpisode && 
+      show.mediaListEntry &&
+      selectedStatuses.includes(show.mediaListEntry.status as WatchStatus)
+    )
     .reduce((acc, show) => {
       const date = new Date(show.nextAiringEpisode!.airingAt * 1000);
       const key = date.toISOString().split('T')[0];
@@ -37,13 +51,15 @@ export default function CalendarPage() {
       acc[key].push({
         title: show.title.english || show.title.romaji,
         episode: show.nextAiringEpisode!.episode,
-        currentEpisode: show.mediaListEntry?.progress || 0
+        currentEpisode: show.mediaListEntry?.progress || 0,
+        status: show.mediaListEntry?.status
       });
       return acc;
     }, {} as Record<string, Array<{ 
       title: string; 
       episode: number;
       currentEpisode: number;
+      status: string;
     }>>);
 
   const filteredDates = Object.entries(airingDates || {}).filter(([date]) => {
@@ -66,23 +82,49 @@ export default function CalendarPage() {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto px-4 sm:px-6">
-      {/* Day selector - fixed order based on current day */}
+      {/* Day selector and filter - fixed order based on current day */}
       <Card className="overflow-x-auto -mx-4 sm:mx-0 rounded-none sm:rounded-lg">
         <CardContent className="p-4 sm:p-6">
-          <div className="flex gap-2 sm:gap-3 min-w-max">
-            {orderedDays.slice(0, 7).map((day, index) => {
-              const dayIndex = (today + index) % 7;
-              return (
-                <Button
-                  key={day}
-                  variant={selectedDay === dayIndex ? "default" : "outline"}
-                  onClick={() => setSelectedDay(dayIndex)}
-                  className="px-3 sm:px-5 py-2 text-sm sm:text-base"
-                >
-                  {window.innerWidth < 640 ? day.slice(0, 3) : day}
+          <div className="flex justify-between items-center mb-4">
+            <div className="flex gap-2 sm:gap-3 min-w-max">
+              {orderedDays.slice(0, 7).map((day, index) => {
+                const dayIndex = (today + index) % 7;
+                return (
+                  <Button
+                    key={day}
+                    variant={selectedDay === dayIndex ? "default" : "outline"}
+                    onClick={() => setSelectedDay(dayIndex)}
+                    className="px-3 sm:px-5 py-2 text-sm sm:text-base"
+                  >
+                    {window.innerWidth < 640 ? day.slice(0, 3) : day}
+                  </Button>
+                );
+              })}
+            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon">
+                  <Filter className="h-4 w-4" />
                 </Button>
-              );
-            })}
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {WATCH_STATUSES.map((status) => (
+                  <DropdownMenuCheckboxItem
+                    key={status}
+                    checked={selectedStatuses.includes(status)}
+                    onCheckedChange={(checked) => {
+                      setSelectedStatuses(prev => 
+                        checked 
+                          ? [...prev, status]
+                          : prev.filter(s => s !== status)
+                      );
+                    }}
+                  >
+                    {status.charAt(0) + status.slice(1).toLowerCase()}
+                  </DropdownMenuCheckboxItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </CardContent>
       </Card>
@@ -115,9 +157,14 @@ export default function CalendarPage() {
                         key={i}
                         className="p-4 rounded-lg bg-accent/50 hover:bg-accent transition-colors flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3"
                       >
-                        <span className="font-medium line-clamp-2 sm:line-clamp-1">
-                          {show.title}
-                        </span>
+                        <div className="flex flex-col gap-1">
+                          <span className="font-medium line-clamp-2 sm:line-clamp-1">
+                            {show.title}
+                          </span>
+                          <span className="text-sm text-muted-foreground">
+                            {show.status.charAt(0) + show.status.slice(1).toLowerCase()}
+                          </span>
+                        </div>
                         <div className="flex items-center gap-4 text-sm">
                           <div className="flex items-center gap-2">
                             <PlayCircle className={cn(

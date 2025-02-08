@@ -13,6 +13,7 @@ interface AnimeCardProps {
     airingAt: number;
     episode: number;
   };
+  isCompact?: boolean;
 }
 
 export function AnimeCard({ 
@@ -21,7 +22,8 @@ export function AnimeCard({
   status, 
   currentEpisode,
   totalEpisodes,
-  nextEpisode 
+  nextEpisode,
+  isCompact = false
 }: AnimeCardProps) {
   const formatDate = (timestamp: number) => {
     const date = new Date(timestamp * 1000);
@@ -41,6 +43,44 @@ export function AnimeCard({
       ? "text-yellow-500 dark:text-yellow-400"
       : "text-green-500 dark:text-green-400";
   };
+
+  if (isCompact) {
+    return (
+      <Card className="overflow-hidden hover:bg-accent/50 transition-colors">
+        <div className="flex gap-4 p-4">
+          <div className="h-24 w-16 flex-shrink-0 overflow-hidden rounded-sm">
+            <img
+              src={imageUrl}
+              alt={title}
+              className="object-cover w-full h-full"
+            />
+          </div>
+          <div className="flex flex-col justify-between flex-grow min-w-0">
+            <div className="space-y-1">
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="font-medium line-clamp-1">{title}</h3>
+                <Badge className="flex-shrink-0">{status}</Badge>
+              </div>
+              <div className="flex items-center gap-2">
+                <PlayCircle className={cn("h-4 w-4 flex-shrink-0", getProgressColor())} />
+                <span className={cn("text-sm", getProgressColor())}>
+                  {currentEpisode || 0}{totalEpisodes && ` / ${totalEpisodes}`}
+                </span>
+              </div>
+            </div>
+            {nextEpisode && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Calendar className="h-4 w-4 flex-shrink-0" />
+                <span className="line-clamp-1">
+                  {formatDate(nextEpisode.airingAt)}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      </Card>
+    );
+  }
 
   return (
     <Card className="group overflow-hidden hover:shadow-lg transition-all duration-300 h-full">
