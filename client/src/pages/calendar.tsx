@@ -3,17 +3,11 @@ import { Calendar as CalendarIcon, PlayCircle, Filter } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { fetchUserAnime } from "@/lib/anilist";
 import { getUser } from "@/lib/auth";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuCheckboxItem,
-} from "@/components/ui/dropdown-menu";
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const WATCH_STATUSES = ["CURRENT", "PLANNING"] as const;
@@ -27,16 +21,22 @@ export default function CalendarPage() {
   // Get ordered days starting from current day (fixed order)
   const orderedDays = DAYS.slice(today).concat(DAYS.slice(0, today));
 
-  const { data: user } = useQuery({
+  const { data: user, isLoading: isUserLoading } = useQuery({
     queryKey: ["/api/users/current"],
-    queryFn: getUser
+    queryFn: getUser,
+    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
+    cacheTime: 30 * 60 * 1000 // Keep in cache for 30 minutes
   });
 
-  const { data: anime } = useQuery({
+  const { data: anime, isLoading: isAnimeLoading } = useQuery({
     queryKey: ["/anilist/anime", user?.sub],
     queryFn: () => fetchUserAnime(parseInt(user?.anilistId || "")),
-    enabled: !!user?.anilistId
+    enabled: !!user?.anilistId,
+    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
+    cacheTime: 30 * 60 * 1000 // Keep in cache for 30 minutes
   });
+
+  const isLoading = isUserLoading || isAnimeLoading;
 
   const airingDates = anime
     ?.filter(show => 
@@ -80,8 +80,59 @@ export default function CalendarPage() {
       : "text-green-500 dark:text-green-400";
   };
 
+  if (isLoading) {
+    return (
+      <div className="space-y-6 max-w-7xl mx-auto px-4 sm:px-6 animate-in fade-in duration-500">
+        <Card className="overflow-x-auto -mx-4 sm:mx-0 rounded-none sm:rounded-lg">
+          <CardContent className="p-4 sm:p-6 space-y-4">
+            <div className="flex gap-2 sm:gap-3 min-w-max">
+              {[...Array(7)].map((_, i) => (
+                <Skeleton key={i} className="h-8 w-24" />
+              ))}
+            </div>
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-4 w-4" />
+              <Skeleton className="h-4 w-16" />
+              <div className="flex gap-2">
+                {[...Array(2)].map((_, i) => (
+                  <Skeleton key={i} className="h-8 w-24" />
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="grid lg:grid-cols-[300px_1fr] gap-6">
+          <Card className="hidden lg:block">
+            <CardContent className="p-4">
+              <Skeleton className="h-[300px] w-full" />
+            </CardContent>
+          </Card>
+
+          <div className="space-y-6">
+            {[...Array(3)].map((_, i) => (
+              <Card key={i}>
+                <CardContent className="p-6 space-y-4">
+                  <div className="flex items-center gap-3">
+                    <Skeleton className="h-5 w-5" />
+                    <Skeleton className="h-6 w-48" />
+                  </div>
+                  <div className="space-y-3">
+                    {[...Array(2)].map((_, j) => (
+                      <Skeleton key={j} className="h-20 w-full" />
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6 max-w-7xl mx-auto px-4 sm:px-6">
+    <div className="space-y-6 max-w-7xl mx-auto px-4 sm:px-6 animate-in fade-in duration-500">
       <Card className="overflow-x-auto -mx-4 sm:mx-0 rounded-none sm:rounded-lg">
         <CardContent className="p-4 sm:p-6 space-y-4">
           <div className="flex gap-2 sm:gap-3 min-w-max">
@@ -145,7 +196,7 @@ export default function CalendarPage() {
         <div className="space-y-6">
           {filteredDates.length > 0 ? (
             filteredDates.map(([date, shows]) => (
-              <Card key={date}>
+              <Card key={date} className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <CardContent className="p-6">
                   <div className="flex items-center gap-3 mb-6">
                     <CalendarIcon className="h-5 w-5 text-primary" />
@@ -188,7 +239,7 @@ export default function CalendarPage() {
               </Card>
             ))
           ) : (
-            <Card>
+            <Card className="animate-in fade-in slide-in-from-bottom-4 duration-500">
               <CardContent className="p-6 text-center text-muted-foreground">
                 No shows airing on {DAYS[selectedDay]}
               </CardContent>

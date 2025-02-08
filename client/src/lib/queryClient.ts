@@ -41,17 +41,28 @@ export const getQueryFn: <T>(options: {
     return await res.json();
   };
 
+// Configure the QueryClient with improved caching
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       queryFn: getQueryFn({ on401: "throw" }),
-      refetchInterval: false,
+      // Don't refetch on window focus for better UX
       refetchOnWindowFocus: false,
-      staleTime: Infinity,
+      // Consider data fresh for 5 minutes by default
+      staleTime: 5 * 60 * 1000,
+      // Keep unused data in cache for 30 minutes
+      cacheTime: 30 * 60 * 1000,
+      // Don't retry failed requests automatically
       retry: false,
+      // Show loading state immediately for better UX
+      useErrorBoundary: true,
+      suspense: false,
     },
     mutations: {
+      // Don't retry failed mutations
       retry: false,
+      // Show error states immediately
+      useErrorBoundary: true,
     },
   },
 });
