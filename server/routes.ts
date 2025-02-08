@@ -10,11 +10,14 @@ import { WebSocketServer } from 'ws';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import passport from 'passport';
+import connectPgSimple from 'connect-pg-simple';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const MemoryStoreSession = MemoryStore(session);
+const PostgresStore = connectPgSimple(session);
 
 // Initialize OpenAI with error handling for missing API key
 const openai = new OpenAI({
@@ -28,18 +31,42 @@ const UPDATE_INTERVAL = 60000; // Check for updates every minute
 export function registerRoutes(app: Express) {
   const httpServer = createServer(app);
 
-  // Set up session middleware
+  // Set up session middleware with PostgreSQL store
   app.use(
     session({
-      store: new MemoryStoreSession({
-        checkPeriod: 86400000, // prune expired entries every 24h
+      store: new PostgresStore({
+        conObject: {
+          connectionString: process.env.DATABASE_URL,
+        },
+        createTableIfMissing: true,
       }),
-      secret: 'your-secret-key', // In production, use a proper secret from environment variables
+      secret: process.env.REPL_ID!, // Using REPL_ID as the session secret
       resave: false,
       saveUninitialized: false,
-      cookie: { secure: false }, // Set to true if using HTTPS
+      cookie: {
+        secure: app.get('env') === 'production',
+        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      }
     })
   );
+
+  // Initialize Passport middleware
+  app.use(passport.initialize());
+  app.use(passport.session());
+
+  // Passport serialization
+  passport.serializeUser((user: any, done) => {
+    done(null, user.anilistId);
+  });
+
+  passport.deserializeUser(async (id: string, done) => {
+    try {
+      const user = await storage.getUser(id);
+      done(null, user);
+    } catch (err) {
+      done(err);
+    }
+  });
 
   // Set up WebSocket server
   const wss = new WebSocketServer({
@@ -116,20 +143,10 @@ export function registerRoutes(app: Express) {
         throw new Error('Authorization code is required');
       }
 
-      // Log the credentials we're using (without exposing sensitive data)
-      console.log('Checking client credentials...');
-      console.log('Client ID exists:', !!process.env.ANILIST_CLIENT_ID);
-      console.log('Client Secret exists:', !!process.env.ANILIST_CLIENT_SECRET);
-
       if (!process.env.ANILIST_CLIENT_ID || !process.env.ANILIST_CLIENT_SECRET) {
         throw new Error('Anilist client credentials are not properly configured');
       }
 
-      // Use the redirect URI provided by the client to ensure consistency
-      console.log('Auth callback - Starting token exchange');
-      console.log('Using redirect URI:', redirectUri);
-
-      // Create the token request payload
       const tokenPayload = {
         grant_type: 'authorization_code',
         client_id: process.env.ANILIST_CLIENT_ID,
@@ -137,12 +154,6 @@ export function registerRoutes(app: Express) {
         redirect_uri: redirectUri,
         code: code,
       };
-
-      console.log('Token request payload (excluding sensitive data):', {
-        ...tokenPayload,
-        client_secret: '[REDACTED]',
-        code: '[REDACTED]'
-      });
 
       const tokenResponse = await fetch(ANILIST_TOKEN_URL, {
         method: 'POST',
@@ -156,13 +167,10 @@ export function registerRoutes(app: Express) {
       if (!tokenResponse.ok) {
         const errorData = await tokenResponse.json();
         console.error('Token exchange failed:', errorData);
-        console.error('Response status:', tokenResponse.status);
-        console.error('Response headers:', Object.fromEntries(tokenResponse.headers.entries()));
         throw new Error(`Failed to get access token: ${errorData.message || tokenResponse.statusText}`);
       }
 
       const tokenData = await tokenResponse.json();
-      console.log('Successfully obtained access token');
 
       // Get user info from Anilist
       const userResponse = await fetch(ANILIST_GRAPHQL_URL, {
@@ -185,19 +193,11 @@ export function registerRoutes(app: Express) {
       });
 
       if (!userResponse.ok) {
-        console.error('User info fetch failed:', await userResponse.text());
         throw new Error('Failed to get user info');
       }
 
       const userData = await userResponse.json();
       const anilistUser = userData.data.Viewer;
-      console.log('Successfully fetched user info:', anilistUser.name);
-
-      // Store user session
-      if (req.session) {
-        req.session.userId = anilistUser.id;
-        req.session.accessToken = tokenData.access_token;
-      }
 
       // Create or update user in our database
       let user = await storage.getUser(anilistUser.id.toString());
@@ -210,71 +210,44 @@ export function registerRoutes(app: Express) {
           accessToken: tokenData.access_token,
         });
       } else {
-        // Update existing user with new token and sync time
         user = await storage.updateUserByAuth0Id(anilistUser.id.toString(), {
           lastSync: new Date(),
           accessToken: tokenData.access_token,
         });
       }
 
-      res.json({ success: true });
+      // Log the user in by establishing a session
+      req.login(user, (err) => {
+        if (err) {
+          console.error('Login error:', err);
+          return res.status(500).json({ error: 'Failed to establish session' });
+        }
+        res.json({ success: true });
+      });
+
     } catch (error: any) {
       console.error('Auth callback error:', error);
       res.status(500).json({ error: error.message || 'Authentication failed' });
     }
   });
 
-  app.get("/api/auth/user", async (req, res) => {
-    if (!req.session?.userId) {
+  app.get("/api/auth/user", (req, res) => {
+    if (!req.user) {
       res.status(401).json({ error: 'Not authenticated' });
       return;
     }
-
-    try {
-      const user = await storage.getUser(req.session.userId.toString());
-      if (!user) {
-        res.status(401).json({ error: 'User not found' });
-        return;
-      }
-
-      // If we have a stored access token, verify it still works
-      if (user.accessToken) {
-        const verifyResponse = await fetch(ANILIST_GRAPHQL_URL, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${user.accessToken}`,
-          },
-          body: JSON.stringify({
-            query: `{ Viewer { id } }`,
-          }),
-        });
-
-        if (!verifyResponse.ok) {
-          // Token is invalid, clear it
-          req.session.destroy(() => {});
-          await storage.updateUserByAuth0Id(user.auth0Id, { accessToken: null });
-          res.status(401).json({ error: 'Session expired' });
-          return;
-        }
-      }
-
-      res.json(user);
-    } catch (error) {
-      res.status(500).json({ error: 'Failed to get user' });
-    }
+    res.json(req.user);
   });
 
   app.post("/api/auth/logout", (req, res) => {
-    if (req.session) {
-      req.session.destroy(() => {
-        res.json({ success: true });
-      });
-    } else {
+    req.logout((err) => {
+      if (err) {
+        console.error('Logout error:', err);
+        return res.status(500).json({ error: 'Failed to logout' });
+      }
       res.json({ success: true });
-    }
+    });
   });
-
 
   app.post("/api/users", async (req, res) => {
     try {

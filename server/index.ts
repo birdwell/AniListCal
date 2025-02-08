@@ -2,7 +2,16 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { db } from "./db";
-import { users } from "@shared/schema";
+import { users, User } from "@shared/schema";
+
+// Extend Express Request type to include our User type
+declare global {
+  namespace Express {
+    interface Request {
+      user?: User; // Add user property to Request interface
+    }
+  }
+}
 
 const app = express();
 app.use(express.json());
