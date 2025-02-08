@@ -108,12 +108,6 @@ export function registerRoutes(app: Express) {
   // Start the update interval
   setInterval(broadcastAiringUpdates, UPDATE_INTERVAL);
 
-  // Add this before your existing routes
-  app.get("/auth/callback", (req, res) => {
-    // Serve the client app, let the client handle the code
-    res.sendFile(path.resolve(__dirname, "../dist/public/index.html"));
-  });
-
   app.post("/api/auth/callback", async (req, res) => {
     try {
       const { code } = req.body;
@@ -126,7 +120,7 @@ export function registerRoutes(app: Express) {
       }
 
       console.log('Auth callback - Starting token exchange');
-      const redirectUri = `${req.protocol}://${req.get('host')}/auth/callback`;
+      const redirectUri = `${req.protocol}://${req.get('host')}/api/auth/callback`;
       console.log('Using redirect URI:', redirectUri);
 
       const tokenResponse = await fetch(ANILIST_TOKEN_URL, {
