@@ -7,6 +7,7 @@ import express from "express";
 import session from "express-session";
 import MemoryStore from "memorystore";
 import { WebSocketServer } from 'ws';
+import path from 'path';
 
 const MemoryStoreSession = MemoryStore(session);
 
@@ -102,6 +103,12 @@ export function registerRoutes(app: Express) {
   // Start the update interval
   setInterval(broadcastAiringUpdates, UPDATE_INTERVAL);
 
+  // Add this before your existing routes
+  app.get("/auth/callback", (req, res) => {
+    // Serve the client app, let the client handle the code
+    res.sendFile(path.resolve(__dirname, "../dist/public/index.html"));
+  });
+
   app.post("/api/auth/callback", async (req, res) => {
     try {
       const { code } = req.body;
@@ -114,7 +121,8 @@ export function registerRoutes(app: Express) {
       }
 
       console.log('Auth callback - Starting token exchange');
-      console.log('Using redirect URI:', `${req.protocol}://${req.get('host')}/auth/callback`);
+      const redirectUri = `${req.protocol}://${req.get('host')}/auth/callback`;
+      console.log('Using redirect URI:', redirectUri);
 
       const tokenResponse = await fetch(ANILIST_TOKEN_URL, {
         method: 'POST',
@@ -126,7 +134,7 @@ export function registerRoutes(app: Express) {
           grant_type: 'authorization_code',
           client_id: process.env.ANILIST_CLIENT_ID,
           client_secret: process.env.ANILIST_CLIENT_SECRET,
-          redirect_uri: `${req.protocol}://${req.get('host')}/auth/callback`,
+          redirect_uri: redirectUri,
           code: code,
         }),
       });

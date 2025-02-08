@@ -18,17 +18,37 @@ import { Loader2 } from "lucide-react";
 
 function AuthCallback() {
   const [error, setError] = useState<string | null>(null);
+  const [, setLocation] = useLocation();
 
   useEffect(() => {
     const code = new URLSearchParams(window.location.search).get('code');
-    if (code) {
-      handleAuthCallback(code)
-        .catch(err => {
-          console.error('Auth error:', err);
-          setError(err.message);
-        });
+    if (!code) {
+      setError('No authorization code received');
+      return;
     }
-  }, []);
+
+    // Make the API call to exchange the code
+    fetch('/api/auth/callback', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ code }),
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Authentication failed');
+        }
+        // On success, invalidate the auth query and redirect
+        queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+        setLocation("/");
+      })
+      .catch(err => {
+        console.error('Auth error:', err);
+        setError(err.message);
+      });
+  }, [setLocation]);
 
   if (error) {
     return (
