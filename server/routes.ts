@@ -3,6 +3,11 @@ import { createServer } from "http";
 import { storage } from "./storage";
 import { insertUserSchema, insertWatchlistSchema } from "@shared/schema";
 import OpenAI from "openai";
+import express from "express";
+import session from "express-session";
+import MemoryStore from "memorystore";
+
+const MemoryStoreSession = MemoryStore(session);
 
 // Initialize OpenAI with error handling for missing API key
 const openai = new OpenAI({ 
@@ -11,6 +16,123 @@ const openai = new OpenAI({
 
 export function registerRoutes(app: Express) {
   const httpServer = createServer(app);
+
+  // Set up session middleware
+  app.use(
+    session({
+      store: new MemoryStoreSession({
+        checkPeriod: 86400000, // prune expired entries every 24h
+      }),
+      secret: 'your-secret-key', // In production, use a proper secret from environment variables
+      resave: false,
+      saveUninitialized: false,
+      cookie: { secure: false }, // Set to true if using HTTPS
+    })
+  );
+
+  app.post("/api/auth/callback", async (req, res) => {
+    try {
+      const { code } = req.body;
+
+      // Exchange the authorization code for an access token
+      const tokenResponse = await fetch('https://anilist.co/api/v2/oauth/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          grant_type: 'authorization_code',
+          client_id: process.env.VITE_ANILIST_CLIENT_ID,
+          redirect_uri: `${req.protocol}://${req.get('host')}/callback`,
+          code: code,
+        }),
+      });
+
+      if (!tokenResponse.ok) {
+        throw new Error('Failed to get access token');
+      }
+
+      const tokenData = await tokenResponse.json();
+
+      // Get user info from Anilist
+      const userResponse = await fetch('https://graphql.anilist.co', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${tokenData.access_token}`,
+        },
+        body: JSON.stringify({
+          query: `
+            query {
+              Viewer {
+                id
+                name
+              }
+            }
+          `,
+        }),
+      });
+
+      if (!userResponse.ok) {
+        throw new Error('Failed to get user info');
+      }
+
+      const userData = await userResponse.json();
+      const anilistUser = userData.data.Viewer;
+
+      // Store user session
+      if (req.session) {
+        req.session.userId = anilistUser.id;
+        req.session.accessToken = tokenData.access_token;
+      }
+
+      // Create or update user in our database
+      let user = await storage.getUser(anilistUser.id.toString());
+      if (!user) {
+        user = await storage.createUser({
+          auth0Id: anilistUser.id.toString(), // We'll use this field for Anilist ID
+          username: anilistUser.name,
+          anilistId: anilistUser.id.toString(),
+          lastSync: new Date(),
+        });
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Auth callback error:', error);
+      res.status(500).json({ error: 'Authentication failed' });
+    }
+  });
+
+  app.post("/api/auth/logout", (req, res) => {
+    if (req.session) {
+      req.session.destroy(() => {
+        res.json({ success: true });
+      });
+    } else {
+      res.json({ success: true });
+    }
+  });
+
+  app.get("/api/auth/user", async (req, res) => {
+    if (!req.session?.userId) {
+      res.status(401).json({ error: 'Not authenticated' });
+      return;
+    }
+
+    try {
+      const user = await storage.getUser(req.session.userId.toString());
+      if (!user) {
+        res.status(401).json({ error: 'User not found' });
+        return;
+      }
+      res.json(user);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get user' });
+    }
+  });
 
   app.post("/api/users", async (req, res) => {
     try {
@@ -31,10 +153,6 @@ export function registerRoutes(app: Express) {
     res.json(user);
   });
 
-  app.get("/api/watchlist/:userId", async (req, res) => {
-    const items = await storage.getWatchlist(parseInt(req.params.userId));
-    res.json(items);
-  });
 
   app.post("/api/watchlist", async (req, res) => {
     try {
@@ -54,7 +172,6 @@ export function registerRoutes(app: Express) {
       }
 
       const response = await openai.chat.completions.create({
-        // the newest OpenAI model is "gpt-4o" which was released May 13, 2024
         model: "gpt-4o",
         messages: [
           {
