@@ -4,6 +4,13 @@ const ANILIST_AUTH_URL = 'https://anilist.co/api/v2/oauth/authorize';
 
 export async function login() {
   const clientId = import.meta.env.VITE_ANILIST_CLIENT_ID;
+  if (!clientId) {
+    throw new Error('Anilist client ID is not configured');
+  }
+
+  console.log('Starting Anilist OAuth flow');
+  console.log('Using redirect URI:', `${window.location.origin}/auth/callback`);
+
   const redirectUri = `${window.location.origin}/auth/callback`;
 
   const params = new URLSearchParams({
@@ -26,7 +33,8 @@ export async function handleAuthCallback(code: string): Promise<void> {
     });
 
     if (!response.ok) {
-      throw new Error('Authentication failed');
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Authentication failed');
     }
 
     // Redirect to home page after successful authentication

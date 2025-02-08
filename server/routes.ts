@@ -109,9 +109,14 @@ export function registerRoutes(app: Express) {
         throw new Error('Authorization code is required');
       }
 
-      console.log('Attempting to exchange authorization code for token');
+      if (!process.env.ANILIST_CLIENT_ID || !process.env.ANILIST_CLIENT_SECRET) {
+        throw new Error('Anilist client credentials are not properly configured');
+      }
 
-      // Exchange the authorization code for an access token
+      console.log('Auth callback - Starting token exchange');
+      console.log('Client ID:', process.env.ANILIST_CLIENT_ID); 
+      console.log('Redirect URI:', `${req.protocol}://${req.get('host')}/auth/callback`);
+
       const tokenResponse = await fetch(ANILIST_TOKEN_URL, {
         method: 'POST',
         headers: {
@@ -183,7 +188,7 @@ export function registerRoutes(app: Express) {
       }
 
       res.json({ success: true });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Auth callback error:', error);
       res.status(500).json({ error: error.message || 'Authentication failed' });
     }
@@ -235,7 +240,6 @@ export function registerRoutes(app: Express) {
     }
     res.json(user);
   });
-
 
   app.post("/api/watchlist", async (req, res) => {
     try {
