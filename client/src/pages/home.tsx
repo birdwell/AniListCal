@@ -86,26 +86,53 @@ export default function Home() {
     );
   }
 
-  const currentlyWatching = anime?.filter(a => a.status === "RELEASING") || [];
+  const currentlyAiring = anime?.filter(a => a.status === "RELEASING") || [];
+  const nonAiring = anime?.filter(a => 
+    a.status !== "RELEASING" && 
+    a.status !== "NOT_YET_RELEASED" &&
+    a.mediaListEntry?.status === "CURRENT"
+  ) || [];
 
   return (
     <div className="space-y-8">
       <section>
-        <h2 className="text-2xl font-bold mb-4">Currently Watching</h2>
-        {currentlyWatching.length > 0 ? (
+        <h2 className="text-2xl font-bold mb-4">Currently Airing</h2>
+        {currentlyAiring.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6">
-            {currentlyWatching.map(show => (
+            {currentlyAiring.map(show => (
               <AnimeCard
                 key={show.id}
                 title={show.title.english || show.title.romaji}
                 imageUrl={show.coverImage.large}
                 status={show.status}
+                currentEpisode={show.mediaListEntry?.progress}
+                totalEpisodes={show.episodes}
                 nextEpisode={show.nextAiringEpisode}
               />
             ))}
           </div>
         ) : (
           <p className="text-muted-foreground">No currently airing shows in your list.</p>
+        )}
+      </section>
+
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Other Shows You're Watching</h2>
+        {nonAiring.length > 0 ? (
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6">
+            {nonAiring.map(show => (
+              <AnimeCard
+                key={show.id}
+                title={show.title.english || show.title.romaji}
+                imageUrl={show.coverImage.large}
+                status={show.status}
+                currentEpisode={show.mediaListEntry?.progress}
+                totalEpisodes={show.episodes}
+              />
+            ))}
+          </div>
+        ) : (
+          <p className="text-muted-foreground">No other shows in your watching list.</p>
         )}
       </section>
 
@@ -119,7 +146,7 @@ export default function Home() {
             <CardContent>
               <div className="space-y-4">
                 {recommendations.recommendations.map((rec: any, i: number) => (
-                  <div key={i} className="p-4 rounded-lg bg-accent">
+                  <div key={i} className="p-4 rounded-lg bg-accent/50">
                     <h3 className="font-bold">{rec.title}</h3>
                     <p className="text-sm text-muted-foreground">{rec.reason}</p>
                   </div>

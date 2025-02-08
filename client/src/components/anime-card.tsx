@@ -1,18 +1,28 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar } from "lucide-react";
+import { Calendar, PlayCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface AnimeCardProps {
   title: string;
   imageUrl: string;
   status: string;
+  currentEpisode?: number;
+  totalEpisodes?: number;
   nextEpisode?: {
     airingAt: number;
     episode: number;
   };
 }
 
-export function AnimeCard({ title, imageUrl, status, nextEpisode }: AnimeCardProps) {
+export function AnimeCard({ 
+  title, 
+  imageUrl, 
+  status, 
+  currentEpisode,
+  totalEpisodes,
+  nextEpisode 
+}: AnimeCardProps) {
   const formatDate = (timestamp: number) => {
     const date = new Date(timestamp * 1000);
     return date.toLocaleDateString('en-US', {
@@ -23,6 +33,13 @@ export function AnimeCard({ title, imageUrl, status, nextEpisode }: AnimeCardPro
       const lastDigit = num % 10;
       return num + (suffix[lastDigit] || suffix[0]);
     });
+  };
+
+  const getProgressColor = () => {
+    if (!currentEpisode || !nextEpisode) return "text-muted-foreground";
+    return currentEpisode < nextEpisode.episode - 1 
+      ? "text-yellow-500 dark:text-yellow-400"
+      : "text-green-500 dark:text-green-400";
   };
 
   return (
@@ -42,23 +59,27 @@ export function AnimeCard({ title, imageUrl, status, nextEpisode }: AnimeCardPro
           {title}
         </CardTitle>
       </CardHeader>
-      {nextEpisode && (
-        <CardContent className="p-3 sm:p-4 pt-0">
-          <div className="flex flex-col gap-1 text-sm">
-            <div className="flex items-center gap-2">
-              <span className="font-medium">
-                Episode {nextEpisode.episode}
-              </span>
-            </div>
+      <CardContent className="p-3 sm:p-4 pt-0">
+        <div className="flex flex-col gap-1 text-sm">
+          {/* Episode Progress */}
+          <div className="flex items-center gap-2">
+            <PlayCircle className={cn("h-4 w-4 flex-shrink-0", getProgressColor())} />
+            <span className={cn("font-medium", getProgressColor())}>
+              Episode {currentEpisode || 0}
+              {totalEpisodes && ` / ${totalEpisodes}`}
+            </span>
+          </div>
+          {/* Next Episode Date */}
+          {nextEpisode && (
             <div className="flex items-center gap-2 text-muted-foreground">
               <Calendar className="h-4 w-4 flex-shrink-0" />
               <span className="line-clamp-1">
                 {formatDate(nextEpisode.airingAt)}
               </span>
             </div>
-          </div>
-        </CardContent>
-      )}
+          )}
+        </div>
+      </CardContent>
     </Card>
   );
 }

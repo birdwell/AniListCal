@@ -5,7 +5,12 @@ export interface AnimeMedia {
   title: { romaji: string; english: string };
   coverImage: { large: string };
   status: string;
+  episodes: number;
   nextAiringEpisode?: { airingAt: number; episode: number };
+  mediaListEntry?: {
+    progress: number;
+    status: string;
+  };
 }
 
 const MEDIA_QUERY = `
@@ -13,6 +18,8 @@ const MEDIA_QUERY = `
     MediaListCollection(userId: $userId, type: ANIME) {
       lists {
         entries {
+          progress
+          status
           media {
             id
             title {
@@ -23,6 +30,7 @@ const MEDIA_QUERY = `
               large
             }
             status
+            episodes
             nextAiringEpisode {
               airingAt
               episode
@@ -50,6 +58,12 @@ export async function fetchUserAnime(userId: number): Promise<AnimeMedia[]> {
 
   const data = await response.json();
   return data.data.MediaListCollection.lists.flatMap(
-    (list: any) => list.entries.map((entry: any) => entry.media)
+    (list: any) => list.entries.map((entry: any) => ({
+      ...entry.media,
+      mediaListEntry: {
+        progress: entry.progress,
+        status: entry.status
+      }
+    }))
   );
 }

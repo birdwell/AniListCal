@@ -1,11 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
-import { Calendar as CalendarIcon } from "lucide-react";
+import { Calendar as CalendarIcon, PlayCircle } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { fetchUserAnime } from "@/lib/anilist";
 import { getUser } from "@/lib/auth";
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { cn } from "@/lib/utils";
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -35,10 +36,15 @@ export default function CalendarPage() {
       if (!acc[key]) acc[key] = [];
       acc[key].push({
         title: show.title.english || show.title.romaji,
-        episode: show.nextAiringEpisode!.episode
+        episode: show.nextAiringEpisode!.episode,
+        currentEpisode: show.mediaListEntry?.progress || 0
       });
       return acc;
-    }, {} as Record<string, Array<{ title: string; episode: number }>>);
+    }, {} as Record<string, Array<{ 
+      title: string; 
+      episode: number;
+      currentEpisode: number;
+    }>>);
 
   const filteredDates = Object.entries(airingDates || {}).filter(([date]) => {
     const dayOfWeek = new Date(date).getDay();
@@ -50,6 +56,12 @@ export default function CalendarPage() {
     const day = date.getDate();
     const suffix = ['th', 'st', 'nd', 'rd'][day % 10 - 1] || 'th';
     return `${DAYS[date.getDay()]}, ${day}${suffix}`;
+  };
+
+  const getProgressColor = (currentEp: number, nextEp: number) => {
+    return currentEp < nextEp - 1
+      ? "text-yellow-500 dark:text-yellow-400"
+      : "text-green-500 dark:text-green-400";
   };
 
   return (
@@ -106,9 +118,20 @@ export default function CalendarPage() {
                         <span className="font-medium line-clamp-2 sm:line-clamp-1">
                           {show.title}
                         </span>
-                        <span className="text-sm text-muted-foreground whitespace-nowrap">
-                          Episode {show.episode}
-                        </span>
+                        <div className="flex items-center gap-4 text-sm">
+                          <div className="flex items-center gap-2">
+                            <PlayCircle className={cn(
+                              "h-4 w-4",
+                              getProgressColor(show.currentEpisode, show.episode)
+                            )} />
+                            <span className={cn(
+                              "whitespace-nowrap",
+                              getProgressColor(show.currentEpisode, show.episode)
+                            )}>
+                              {show.currentEpisode} / {show.episode}
+                            </span>
+                          </div>
+                        </div>
                       </div>
                     ))}
                   </div>
