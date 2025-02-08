@@ -116,13 +116,33 @@ export function registerRoutes(app: Express) {
         throw new Error('Authorization code is required');
       }
 
+      // Log the credentials we're using (without exposing sensitive data)
+      console.log('Checking client credentials...');
+      console.log('Client ID exists:', !!process.env.ANILIST_CLIENT_ID);
+      console.log('Client Secret exists:', !!process.env.ANILIST_CLIENT_SECRET);
+
       if (!process.env.ANILIST_CLIENT_ID || !process.env.ANILIST_CLIENT_SECRET) {
         throw new Error('Anilist client credentials are not properly configured');
       }
 
-      console.log('Auth callback - Starting token exchange');
       const redirectUri = `${req.protocol}://${req.get('host')}/auth/callback`;
+      console.log('Auth callback - Starting token exchange');
       console.log('Using redirect URI:', redirectUri);
+
+      // Create the token request payload
+      const tokenPayload = {
+        grant_type: 'authorization_code',
+        client_id: process.env.ANILIST_CLIENT_ID,
+        client_secret: process.env.ANILIST_CLIENT_SECRET,
+        redirect_uri: redirectUri,
+        code: code,
+      };
+
+      console.log('Token request payload (excluding sensitive data):', {
+        ...tokenPayload,
+        client_secret: '[REDACTED]',
+        code: '[REDACTED]'
+      });
 
       const tokenResponse = await fetch(ANILIST_TOKEN_URL, {
         method: 'POST',
@@ -130,18 +150,14 @@ export function registerRoutes(app: Express) {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        body: JSON.stringify({
-          grant_type: 'authorization_code',
-          client_id: process.env.ANILIST_CLIENT_ID,
-          client_secret: process.env.ANILIST_CLIENT_SECRET,
-          redirect_uri: redirectUri,
-          code: code,
-        }),
+        body: JSON.stringify(tokenPayload),
       });
 
       if (!tokenResponse.ok) {
         const errorData = await tokenResponse.json();
         console.error('Token exchange failed:', errorData);
+        console.error('Response status:', tokenResponse.status);
+        console.error('Response headers:', Object.fromEntries(tokenResponse.headers.entries()));
         throw new Error(`Failed to get access token: ${errorData.message || tokenResponse.statusText}`);
       }
 

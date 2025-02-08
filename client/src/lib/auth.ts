@@ -11,12 +11,15 @@ export async function login() {
   console.log('Starting Anilist OAuth flow');
   const redirectUri = `${window.location.origin}/auth/callback`;
   console.log('Using redirect URI:', redirectUri);
+  console.log('Client ID exists:', !!clientId);
 
   const params = new URLSearchParams({
     client_id: clientId,
     redirect_uri: redirectUri,
     response_type: 'code',
   });
+
+  console.log('Authorization URL:', `${ANILIST_AUTH_URL}?${params.toString()}`);
 
   // Changed to directly set window.location.href instead of window.open
   window.location.href = `${ANILIST_AUTH_URL}?${params.toString()}`;
