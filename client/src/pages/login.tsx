@@ -2,8 +2,45 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { login } from "@/lib/auth";
 import { SiAnilist } from "react-icons/si";
+import { useState } from "react";
+import { useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
+import { getUser } from "@/lib/auth";
+import { Loader2 } from "lucide-react";
 
 export default function Login() {
+  const [isLoading, setIsLoading] = useState(false);
+  const [, setLocation] = useLocation();
+
+  const { data: user, isLoading: isCheckingAuth } = useQuery({
+    queryKey: ["/api/auth/user"],
+    queryFn: getUser
+  });
+
+  // Redirect to home if already logged in
+  if (user) {
+    setLocation("/");
+    return null;
+  }
+
+  const handleLogin = async () => {
+    setIsLoading(true);
+    try {
+      await login();
+    } catch (error) {
+      console.error('Login error:', error);
+      setIsLoading(false);
+    }
+  };
+
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-background">
       <Card className="w-full max-w-md mx-4">
@@ -16,10 +53,15 @@ export default function Login() {
         <CardContent>
           <Button 
             className="w-full py-6 text-lg"
-            onClick={() => login()}
+            onClick={handleLogin}
+            disabled={isLoading}
           >
-            <SiAnilist className="mr-2 h-5 w-5" />
-            Continue with Anilist
+            {isLoading ? (
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+            ) : (
+              <SiAnilist className="mr-2 h-5 w-5" />
+            )}
+            {isLoading ? "Connecting..." : "Continue with Anilist"}
           </Button>
         </CardContent>
       </Card>

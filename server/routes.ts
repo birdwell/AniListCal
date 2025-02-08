@@ -14,6 +14,9 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || '' // Empty string fallback for type safety
 });
 
+const ANILIST_TOKEN_URL = 'https://anilist.co/api/v2/oauth/token';
+const ANILIST_GRAPHQL_URL = 'https://graphql.anilist.co';
+
 export function registerRoutes(app: Express) {
   const httpServer = createServer(app);
 
@@ -33,9 +36,14 @@ export function registerRoutes(app: Express) {
   app.post("/api/auth/callback", async (req, res) => {
     try {
       const { code } = req.body;
+      if (!code) {
+        throw new Error('Authorization code is required');
+      }
+
+      console.log('Attempting to exchange authorization code for token');
 
       // Exchange the authorization code for an access token
-      const tokenResponse = await fetch('https://anilist.co/api/v2/oauth/token', {
+      const tokenResponse = await fetch(ANILIST_TOKEN_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -43,20 +51,24 @@ export function registerRoutes(app: Express) {
         },
         body: JSON.stringify({
           grant_type: 'authorization_code',
-          client_id: process.env.VITE_ANILIST_CLIENT_ID,
-          redirect_uri: `${req.protocol}://${req.get('host')}/callback`,
+          client_id: process.env.ANILIST_CLIENT_ID, // Use server-side env var
+          client_secret: process.env.ANILIST_CLIENT_SECRET, // Will ask for this secret
+          redirect_uri: `${process.env.APP_URL || 'http://localhost:5000'}/callback`,
           code: code,
         }),
       });
 
       if (!tokenResponse.ok) {
-        throw new Error('Failed to get access token');
+        const errorData = await tokenResponse.json();
+        console.error('Token exchange failed:', errorData);
+        throw new Error(`Failed to get access token: ${errorData.message || tokenResponse.statusText}`);
       }
 
       const tokenData = await tokenResponse.json();
+      console.log('Successfully obtained access token');
 
       // Get user info from Anilist
-      const userResponse = await fetch('https://graphql.anilist.co', {
+      const userResponse = await fetch(ANILIST_GRAPHQL_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -76,11 +88,13 @@ export function registerRoutes(app: Express) {
       });
 
       if (!userResponse.ok) {
+        console.error('User info fetch failed:', await userResponse.text());
         throw new Error('Failed to get user info');
       }
 
       const userData = await userResponse.json();
       const anilistUser = userData.data.Viewer;
+      console.log('Successfully fetched user info:', anilistUser.name);
 
       // Store user session
       if (req.session) {
@@ -92,7 +106,7 @@ export function registerRoutes(app: Express) {
       let user = await storage.getUser(anilistUser.id.toString());
       if (!user) {
         user = await storage.createUser({
-          auth0Id: anilistUser.id.toString(), // We'll use this field for Anilist ID
+          auth0Id: anilistUser.id.toString(),
           username: anilistUser.name,
           anilistId: anilistUser.id.toString(),
           lastSync: new Date(),
@@ -102,7 +116,7 @@ export function registerRoutes(app: Express) {
       res.json({ success: true });
     } catch (error) {
       console.error('Auth callback error:', error);
-      res.status(500).json({ error: 'Authentication failed' });
+      res.status(500).json({ error: error.message || 'Authentication failed' });
     }
   });
 

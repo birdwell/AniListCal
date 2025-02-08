@@ -1,4 +1,4 @@
-import { Auth0Client } from "@auth0/auth0-spa-js"; // Keeping this import for now, might be removable later
+import { queryClient } from "./queryClient";
 
 const ANILIST_AUTH_URL = 'https://anilist.co/api/v2/oauth/authorize';
 
