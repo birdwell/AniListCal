@@ -5,12 +5,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { fetchUserAnime } from "@/lib/anilist";
 import { getUser } from "@/lib/auth";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 export default function CalendarPage() {
+  // Initialize selected day to current day
   const [selectedDay, setSelectedDay] = useState<number>(new Date().getDay());
+
+  // Get ordered days starting from today
+  const orderedDays = DAYS.slice(selectedDay).concat(DAYS.slice(0, selectedDay));
 
   const { data: user } = useQuery({
     queryKey: ["/api/users/current"],
@@ -49,26 +53,29 @@ export default function CalendarPage() {
   };
 
   return (
-    <div className="space-y-4">
-      {/* Day selector - now more compact on mobile */}
+    <div className="space-y-6 max-w-7xl mx-auto px-4 sm:px-6">
+      {/* Day selector - now showing next 7 days */}
       <Card className="overflow-x-auto -mx-4 sm:mx-0 rounded-none sm:rounded-lg">
-        <CardContent className="p-2 sm:p-4">
-          <div className="flex gap-1 sm:gap-2 min-w-max">
-            {DAYS.map((day, index) => (
-              <Button
-                key={day}
-                variant={selectedDay === index ? "default" : "outline"}
-                onClick={() => setSelectedDay(index)}
-                className="px-2 sm:px-4 py-2 text-sm sm:text-base"
-              >
-                {window.innerWidth < 640 ? day.slice(0, 3) : day}
-              </Button>
-            ))}
+        <CardContent className="p-4 sm:p-6">
+          <div className="flex gap-2 sm:gap-3 min-w-max">
+            {orderedDays.slice(0, 7).map((day, index) => {
+              const dayIndex = (selectedDay + index) % 7;
+              return (
+                <Button
+                  key={day}
+                  variant={selectedDay === dayIndex ? "default" : "outline"}
+                  onClick={() => setSelectedDay(dayIndex)}
+                  className="px-3 sm:px-5 py-2 text-sm sm:text-base"
+                >
+                  {window.innerWidth < 640 ? day.slice(0, 3) : day}
+                </Button>
+              );
+            })}
           </div>
         </CardContent>
       </Card>
 
-      <div className="grid lg:grid-cols-[300px_1fr] gap-4">
+      <div className="grid lg:grid-cols-[300px_1fr] gap-6">
         <Card className="hidden lg:block">
           <CardContent className="p-4">
             <Calendar
@@ -79,22 +86,22 @@ export default function CalendarPage() {
           </CardContent>
         </Card>
 
-        <div className="space-y-4">
+        <div className="space-y-6">
           {filteredDates.length > 0 ? (
             filteredDates.map(([date, shows]) => (
               <Card key={date}>
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-2 mb-4">
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-3 mb-6">
                     <CalendarIcon className="h-5 w-5 text-primary" />
-                    <h3 className="font-semibold">
+                    <h3 className="font-semibold text-lg">
                       {formatDate(date)}
                     </h3>
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {shows.map((show, i) => (
                       <div
                         key={i}
-                        className="p-3 rounded-lg bg-accent/50 hover:bg-accent transition-colors flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2"
+                        className="p-4 rounded-lg bg-accent/50 hover:bg-accent transition-colors flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3"
                       >
                         <span className="font-medium line-clamp-2 sm:line-clamp-1">
                           {show.title}
@@ -110,7 +117,7 @@ export default function CalendarPage() {
             ))
           ) : (
             <Card>
-              <CardContent className="p-4 text-center text-muted-foreground">
+              <CardContent className="p-6 text-center text-muted-foreground">
                 No shows airing on {DAYS[selectedDay]}
               </CardContent>
             </Card>
