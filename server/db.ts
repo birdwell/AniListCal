@@ -16,12 +16,11 @@ if (!process.env.DATABASE_URL) {
 const pool = new Pool({ 
   connectionString: process.env.DATABASE_URL,
   connectionTimeoutMillis: 5000,
-  maxRetries: 3,
 });
 
 // Add event handlers for the pool
-pool.on('error', (err) => {
-  log('Unexpected error on idle client', err);
+pool.on('error', (err: Error) => {
+  log(`Unexpected error on idle client: ${err.message}`);
   process.exit(-1);
 });
 

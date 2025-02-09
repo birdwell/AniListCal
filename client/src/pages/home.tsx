@@ -114,8 +114,8 @@ export default function Home() {
   const planned = filterAnimeByStatus("PLANNING");
 
   const renderSection = (
-    title: string, 
-    shows: typeof anime, 
+    title: string,
+    shows: typeof anime,
     stateKey: keyof typeof sectionStates
   ) => (
     <section key={title}>
@@ -124,18 +124,21 @@ export default function Home() {
         onOpenChange={() => toggleSection(stateKey)}
         className="space-y-1"
       >
-        <div className="flex items-center justify-between py-1">
-          <h2 className="text-sm font-medium text-muted-foreground">{title}</h2>
-          <CollapsibleTrigger asChild>
-            <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+        <CollapsibleTrigger asChild>
+          <div
+            className="flex items-center justify-between py-1 cursor-pointer hover:text-primary transition-colors"
+            role="button"
+          >
+            <h2 className="text-sm font-medium text-muted-foreground">{title}</h2>
+            <Button variant="ghost" size="sm" className="h-6 w-6 p-0 pointer-events-none">
               {sectionStates[stateKey] ? (
                 <ChevronUp className="h-3 w-3" />
               ) : (
                 <ChevronDown className="h-3 w-3" />
               )}
             </Button>
-          </CollapsibleTrigger>
-        </div>
+          </div>
+        </CollapsibleTrigger>
         <CollapsibleContent className="space-y-2">
           {shows && shows.length > 0 ? (
             <div className={cn(
