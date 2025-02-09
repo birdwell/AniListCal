@@ -163,5 +163,14 @@ export async function fetchAnimeDetails(id: number): Promise<AnimeDetails> {
   }
 
   const data = await response.json();
+
+  if (data.errors) {
+    throw new Error(data.errors[0]?.message || "Failed to fetch anime details");
+  }
+
+  if (!data.data?.Media) {
+    throw new Error("Anime not found");
+  }
+
   return data.data.Media;
 }

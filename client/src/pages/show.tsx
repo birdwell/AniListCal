@@ -71,16 +71,22 @@ function LoadingSkeleton() {
 
 export default function ShowPage() {
   const { id } = useParams();
+  const animeId = id ? parseInt(id) : undefined;
 
   const { data: user } = useQuery({
     queryKey: ["/api/users/current"],
     queryFn: getUser
   });
 
-  const { data: show, isLoading } = useQuery({
-    queryKey: ["/anilist/anime", id],
-    queryFn: () => fetchAnimeDetails(parseInt(id || "")),
-    enabled: !!id
+  const { data: show, isLoading, error } = useQuery({
+    queryKey: ["/anilist/anime", animeId],
+    queryFn: () => {
+      if (!animeId || isNaN(animeId)) {
+        throw new Error("Invalid anime ID");
+      }
+      return fetchAnimeDetails(animeId);
+    },
+    enabled: !!animeId && !isNaN(animeId)
   });
 
   if (isLoading) {
@@ -91,12 +97,14 @@ export default function ShowPage() {
     );
   }
 
-  if (!show) {
+  if (error || !show) {
     return (
       <div className="container mx-auto px-4 sm:px-6 py-6 max-w-7xl">
         <Card>
           <CardContent className="p-6 text-center">
-            <p className="text-muted-foreground">Show not found</p>
+            <p className="text-muted-foreground">
+              {error?.message || "Show not found"}
+            </p>
           </CardContent>
         </Card>
       </div>
