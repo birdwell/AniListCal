@@ -3,10 +3,14 @@ const ANILIST_API = "https://graphql.anilist.co";
 export interface AnimeMedia {
   id: number;
   title: { romaji: string; english: string; native?: string };
-  coverImage: { large: string };
+  coverImage: { large: string; extraLarge?: string };
   status: string;
   episodes: number;
-  nextAiringEpisode?: { airingAt: number; episode: number };
+  nextAiringEpisode?: { 
+    airingAt: number; 
+    episode: number;
+    timeUntilAiring: number;
+  };
   mediaListEntry?: {
     progress: number;
     status: string;
@@ -61,6 +65,7 @@ const MEDIA_QUERY = `
             nextAiringEpisode {
               airingAt
               episode
+              timeUntilAiring
             }
           }
         }
@@ -83,12 +88,13 @@ const ANIME_DETAILS_QUERY = `
         extraLarge
       }
       bannerImage
-      description
+      description(asHtml: false)
       status
       episodes
       nextAiringEpisode {
         airingAt
         episode
+        timeUntilAiring
       }
       genres
       averageScore

@@ -8,6 +8,7 @@ import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import Calendar from "@/pages/calendar";
 import Profile from "@/pages/profile";
+import Show from "@/pages/show";
 import Login from "@/pages/login";
 import { Layout } from "@/components/layout";
 import { useQuery } from "@tanstack/react-query";
@@ -100,6 +101,7 @@ function Router() {
       <Route path="/" component={() => <ProtectedRoute component={Home} />} />
       <Route path="/calendar" component={() => <ProtectedRoute component={Calendar} />} />
       <Route path="/profile" component={() => <ProtectedRoute component={Profile} />} />
+      <Route path="/show/:id" component={() => <ProtectedRoute component={Show} />} />
       <Route component={NotFound} />
     </Switch>
   );

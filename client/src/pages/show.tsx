@@ -71,7 +71,7 @@ function LoadingSkeleton() {
 
 export default function ShowPage() {
   const { id } = useParams();
-  
+
   const { data: user } = useQuery({
     queryKey: ["/api/users/current"],
     queryFn: getUser
@@ -103,12 +103,25 @@ export default function ShowPage() {
     );
   }
 
+  const formatTimeUntilAiring = (timeUntilAiring: number) => {
+    const days = Math.floor(timeUntilAiring / 86400);
+    const hours = Math.floor((timeUntilAiring % 86400) / 3600);
+    const minutes = Math.floor((timeUntilAiring % 3600) / 60);
+
+    if (days > 0) {
+      return `${days} day${days > 1 ? 's' : ''} left`;
+    } else if (hours > 0) {
+      return `${hours}h ${minutes}m left`;
+    }
+    return `${minutes}m left`;
+  };
+
   return (
     <div className="container mx-auto px-4 sm:px-6 py-6 max-w-7xl space-y-8 animate-in fade-in duration-500">
       {/* Hero Section */}
       <div className="relative h-[300px] md:h-[400px] -mx-4 sm:mx-0 sm:rounded-lg overflow-hidden">
         <img
-          src={show.bannerImage || show.coverImage.extraLarge}
+          src={show.bannerImage || show.coverImage.large}
           alt={show.title.english || show.title.romaji}
           className="absolute inset-0 w-full h-full object-cover"
         />
@@ -151,7 +164,7 @@ export default function ShowPage() {
               <div className="flex items-center gap-3">
                 <Calendar className="h-4 w-4 text-primary" />
                 <span className="text-sm">
-                  Episode {show.nextAiringEpisode.episode} airing in {Math.ceil(show.nextAiringEpisode.timeUntilAiring / 86400)} days
+                  Episode {show.nextAiringEpisode.episode} airing in {formatTimeUntilAiring(show.nextAiringEpisode.timeUntilAiring)}
                 </span>
               </div>
             )}
