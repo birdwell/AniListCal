@@ -228,7 +228,7 @@ export default function CalendarPage() {
                               "whitespace-nowrap",
                               getProgressColor(show.currentEpisode, show.episode)
                             )}>
-                              {show.currentEpisode} / {show.episode}
+                              {show.currentEpisode} / {show.episode - 1}
                             </span>
                           </div>
                         </div>
