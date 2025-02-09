@@ -67,7 +67,7 @@ export function AnimeCard({
               <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
                 <Calendar className="h-4 w-4 flex-shrink-0" />
                 <span className="line-clamp-1">
-                  {formatDate(nextEpisode.airingAt)}
+                  Episode {nextEpisode.episode} on {formatDate(nextEpisode.airingAt)}
                 </span>
               </div>
             )}
@@ -109,7 +109,7 @@ export function AnimeCard({
             <div className="flex items-center gap-2 text-muted-foreground">
               <Calendar className="h-4 w-4 flex-shrink-0" />
               <span className="line-clamp-1">
-                {formatDate(nextEpisode.airingAt)}
+                Episode {nextEpisode.episode} on {formatDate(nextEpisode.airingAt)}
               </span>
             </div>
           )}
