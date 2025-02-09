@@ -38,10 +38,10 @@ type Status = "CURRENT" | "PAUSED" | "PLANNING";
 export default function Home() {
   const [isCompact, setIsCompact] = useState(true);
   const [sectionStates, setSectionStates] = useState({
-    airing: true,
-    watching: true,
-    onHold: true,
-    planned: true
+    airing: false,
+    watching: false,
+    onHold: false,
+    planned: false
   });
 
   const toggleSection = (section: keyof typeof sectionStates) => {
