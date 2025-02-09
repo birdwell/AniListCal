@@ -39,8 +39,8 @@ export default function CalendarPage() {
   const isLoading = isUserLoading || isAnimeLoading;
 
   const airingDates = anime
-    ?.filter(show => 
-      show.nextAiringEpisode && 
+    ?.filter(show =>
+      show.nextAiringEpisode &&
       show.mediaListEntry &&
       selectedStatuses.includes(show.mediaListEntry.status as WatchStatus)
     )
@@ -55,8 +55,8 @@ export default function CalendarPage() {
         status: show.mediaListEntry?.status || ""
       });
       return acc;
-    }, {} as Record<string, Array<{ 
-      title: string; 
+    }, {} as Record<string, Array<{
+      title: string;
       episode: number;
       currentEpisode: number;
       status: string;
@@ -166,7 +166,7 @@ export default function CalendarPage() {
                       isSelected ? "bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground" : "hover:text-foreground"
                     )}
                     onClick={() => {
-                      setSelectedStatuses(prev => 
+                      setSelectedStatuses(prev =>
                         prev.includes(status)
                           ? prev.filter(s => s !== status)
                           : [...prev, status]
@@ -215,7 +215,7 @@ export default function CalendarPage() {
                             {show.title}
                           </span>
                           <span className="text-sm text-muted-foreground">
-                            {show.status === "CURRENT" ? "Watching" : "Plan to Watch"}
+                            Episode {show.episode} - {show.status === "CURRENT" ? "Watching" : "Plan to Watch"}
                           </span>
                         </div>
                         <div className="flex items-center gap-4 text-sm">
