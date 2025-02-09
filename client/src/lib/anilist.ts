@@ -171,27 +171,40 @@ export async function fetchAnimeDetails(id: number): Promise<AnimeDetails> {
       throw new Error("Invalid anime ID provided");
     }
 
+    console.log("Fetching anime details for ID:", id);
+
+    const requestBody = {
+      query: ANIME_DETAILS_QUERY,
+      variables: { id }
+    };
+
+    console.log("Request body:", JSON.stringify(requestBody, null, 2));
+
     const response = await fetch(ANILIST_API, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "Accept": "application/json"
       },
-      body: JSON.stringify({
-        query: ANIME_DETAILS_QUERY,
-        variables: { id }
-      })
+      body: JSON.stringify(requestBody)
     });
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error("API Response error:", {
+        status: response.status,
+        statusText: response.statusText,
+        body: errorText
+      });
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
     const data = await response.json();
+    console.log("API Response:", JSON.stringify(data, null, 2));
 
     if (data.errors) {
       const errorMessage = data.errors[0]?.message || "Failed to fetch anime details";
-      console.error("Anilist API error:", data.errors);
+      console.error("Anilist API errors:", data.errors);
       throw new Error(errorMessage);
     }
 
