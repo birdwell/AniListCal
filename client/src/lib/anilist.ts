@@ -203,9 +203,8 @@ export async function fetchAnimeDetails(id: number): Promise<AnimeDetails> {
     console.log("API Response:", JSON.stringify(data, null, 2));
 
     if (data.errors) {
-      const errorMessage = data.errors[0]?.message || "Failed to fetch anime details";
       console.error("Anilist API errors:", data.errors);
-      throw new Error(errorMessage);
+      throw new Error(data.errors[0]?.message || "Failed to fetch anime details");
     }
 
     if (!data.data?.Media) {
