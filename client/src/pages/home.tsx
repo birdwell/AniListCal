@@ -149,6 +149,7 @@ export default function Home() {
               {shows.map(show => (
                 <AnimeCard
                   key={show.id}
+                  id={show.id}
                   title={show.title.english || show.title.romaji}
                   imageUrl={show.coverImage.large}
                   status={show.status}
