@@ -24,16 +24,14 @@ export default function CalendarPage() {
   const { data: user, isLoading: isUserLoading } = useQuery({
     queryKey: ["/api/users/current"],
     queryFn: getUser,
-    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
-    cacheTime: 30 * 60 * 1000 // Keep in cache for 30 minutes
+    staleTime: 5 * 60 * 1000 // Consider data fresh for 5 minutes
   });
 
   const { data: anime, isLoading: isAnimeLoading } = useQuery({
     queryKey: ["/anilist/anime", user?.sub],
     queryFn: () => fetchUserAnime(parseInt(user?.anilistId || "")),
     enabled: !!user?.anilistId,
-    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
-    cacheTime: 30 * 60 * 1000 // Keep in cache for 30 minutes
+    staleTime: 5 * 60 * 1000 // Consider data fresh for 5 minutes
   });
 
   const isLoading = isUserLoading || isAnimeLoading;
@@ -52,6 +50,7 @@ export default function CalendarPage() {
         title: show.title.english || show.title.romaji || "",
         episode: show.nextAiringEpisode!.episode,
         currentEpisode: show.mediaListEntry?.progress || 0,
+        totalEpisodes: show.episodes,
         status: show.mediaListEntry?.status || ""
       });
       return acc;
@@ -59,6 +58,7 @@ export default function CalendarPage() {
       title: string;
       episode: number;
       currentEpisode: number;
+      totalEpisodes: number;
       status: string;
     }>>);
 
@@ -74,8 +74,9 @@ export default function CalendarPage() {
     return `${DAYS[date.getDay()]}, ${day}${suffix}`;
   };
 
-  const getProgressColor = (currentEp: number, nextEp: number) => {
-    return currentEp < nextEp - 1
+  const getProgressColor = (currentEp: number, totalEp: number) => {
+    if (!totalEp) return "text-muted-foreground";
+    return currentEp < totalEp
       ? "text-yellow-500 dark:text-yellow-400"
       : "text-green-500 dark:text-green-400";
   };
@@ -90,43 +91,8 @@ export default function CalendarPage() {
                 <Skeleton key={i} className="h-8 w-24" />
               ))}
             </div>
-            <div className="flex items-center gap-2">
-              <Skeleton className="h-4 w-4" />
-              <Skeleton className="h-4 w-16" />
-              <div className="flex gap-2">
-                {[...Array(2)].map((_, i) => (
-                  <Skeleton key={i} className="h-8 w-24" />
-                ))}
-              </div>
-            </div>
           </CardContent>
         </Card>
-
-        <div className="grid lg:grid-cols-[300px_1fr] gap-6">
-          <Card className="hidden lg:block">
-            <CardContent className="p-4">
-              <Skeleton className="h-[300px] w-full" />
-            </CardContent>
-          </Card>
-
-          <div className="space-y-6">
-            {[...Array(3)].map((_, i) => (
-              <Card key={i}>
-                <CardContent className="p-6 space-y-4">
-                  <div className="flex items-center gap-3">
-                    <Skeleton className="h-5 w-5" />
-                    <Skeleton className="h-6 w-48" />
-                  </div>
-                  <div className="space-y-3">
-                    {[...Array(2)].map((_, j) => (
-                      <Skeleton key={j} className="h-20 w-full" />
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
       </div>
     );
   }
@@ -149,35 +115,6 @@ export default function CalendarPage() {
                 </Button>
               );
             })}
-          </div>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Filter className="h-4 w-4" />
-            <span>Show:</span>
-            <div className="flex gap-2">
-              {WATCH_STATUSES.map((status) => {
-                const isSelected = selectedStatuses.includes(status);
-                return (
-                  <Button
-                    key={status}
-                    variant="outline"
-                    size="sm"
-                    className={cn(
-                      "h-8 transition-colors",
-                      isSelected ? "bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground" : "hover:text-foreground"
-                    )}
-                    onClick={() => {
-                      setSelectedStatuses(prev =>
-                        prev.includes(status)
-                          ? prev.filter(s => s !== status)
-                          : [...prev, status]
-                      );
-                    }}
-                  >
-                    {status === "CURRENT" ? "Watching" : "Plan to Watch"}
-                  </Button>
-                );
-              })}
-            </div>
           </div>
         </CardContent>
       </Card>
@@ -222,13 +159,13 @@ export default function CalendarPage() {
                           <div className="flex items-center gap-2">
                             <PlayCircle className={cn(
                               "h-4 w-4",
-                              getProgressColor(show.currentEpisode, show.episode)
+                              getProgressColor(show.currentEpisode, show.totalEpisodes)
                             )} />
                             <span className={cn(
                               "whitespace-nowrap",
-                              getProgressColor(show.currentEpisode, show.episode)
+                              getProgressColor(show.currentEpisode, show.totalEpisodes)
                             )}>
-                              {show.currentEpisode} / {show.episode - 1}
+                              {show.currentEpisode} / {show.totalEpisodes}
                             </span>
                           </div>
                         </div>
