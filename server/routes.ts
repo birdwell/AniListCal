@@ -39,13 +39,16 @@ export function registerRoutes(app: Express) {
           connectionString: process.env.DATABASE_URL,
         },
         createTableIfMissing: true,
+        tableName: 'session'
       }),
       secret: process.env.REPL_ID!, // Using REPL_ID as the session secret
       resave: false,
       saveUninitialized: false,
       cookie: {
         secure: app.get('env') === 'production',
+        httpOnly: true,
         maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+        sameSite: 'lax'
       }
     })
   );
@@ -56,7 +59,7 @@ export function registerRoutes(app: Express) {
 
   // Passport serialization
   passport.serializeUser((user: any, done) => {
-    done(null, user.anilistId);
+    done(null, user.id);
   });
 
   passport.deserializeUser(async (id: string, done) => {
@@ -186,6 +189,9 @@ export function registerRoutes(app: Express) {
               Viewer {
                 id
                 name
+                avatar {
+                  medium
+                }
               }
             }
           `,
@@ -208,11 +214,13 @@ export function registerRoutes(app: Express) {
           anilistId: anilistUser.id.toString(),
           lastSync: new Date(),
           accessToken: tokenData.access_token,
+          avatar: anilistUser.avatar?.medium
         });
       } else {
         user = await storage.updateUserByAuth0Id(anilistUser.id.toString(), {
           lastSync: new Date(),
           accessToken: tokenData.access_token,
+          avatar: anilistUser.avatar?.medium
         });
       }
 
@@ -222,7 +230,15 @@ export function registerRoutes(app: Express) {
           console.error('Login error:', err);
           return res.status(500).json({ error: 'Failed to establish session' });
         }
-        res.json({ success: true });
+        res.json({
+          success: true,
+          user: {
+            id: user.id,
+            username: user.username,
+            anilistId: user.anilistId,
+            avatar: user.avatar
+          }
+        });
       });
 
     } catch (error: any) {
@@ -232,9 +248,8 @@ export function registerRoutes(app: Express) {
   });
 
   app.get("/api/auth/user", (req, res) => {
-    if (!req.user) {
-      res.status(401).json({ error: 'Not authenticated' });
-      return;
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: 'Not authenticated' });
     }
     res.json(req.user);
   });
@@ -245,7 +260,14 @@ export function registerRoutes(app: Express) {
         console.error('Logout error:', err);
         return res.status(500).json({ error: 'Failed to logout' });
       }
-      res.json({ success: true });
+      req.session.destroy((err) => {
+        if (err) {
+          console.error('Session destruction error:', err);
+          return res.status(500).json({ error: 'Failed to destroy session' });
+        }
+        res.clearCookie('connect.sid');
+        res.json({ success: true });
+      });
     });
   });
 

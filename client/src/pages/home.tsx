@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AnimeCard } from "@/components/anime-card";
 import { getUser } from "@/lib/auth";
 import { fetchUserAnime } from "@/lib/anilist";
@@ -38,14 +38,27 @@ type Status = "CURRENT" | "PAUSED" | "PLANNING";
 
 export default function Home() {
   const [isCompact, setIsCompact] = useState(true);
-  const [isAiringOpen, setIsAiringOpen] = useState(true);
+  // State for each collapsible section
+  const [sectionStates, setSectionStates] = useState({
+    airing: true,
+    watching: true,
+    onHold: true,
+    planned: true
+  });
+
+  const toggleSection = (section: keyof typeof sectionStates) => {
+    setSectionStates(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
 
   const { data: user, isLoading: isLoadingUser } = useQuery({
     queryKey: ["/api/users/current"],
     queryFn: getUser
   });
 
-  const { data: anime, isLoading: isLoadingAnime, error: animeError } = useQuery({
+  const { data: anime, isLoading: isAnimeLoading, error: animeError } = useQuery({
     queryKey: ["/anilist/anime", user?.sub],
     queryFn: () => {
       if (!user?.anilistId) {
@@ -56,7 +69,7 @@ export default function Home() {
     enabled: !!user?.anilistId
   });
 
-  if (isLoadingUser || isLoadingAnime) {
+  if (isLoadingUser || isAnimeLoading) {
     return (
       <div className="space-y-8 container mx-auto px-4 sm:px-6 lg:px-8">
         <section>
@@ -102,76 +115,31 @@ export default function Home() {
   const onHold = filterAnimeByStatus("PAUSED");
   const planned = filterAnimeByStatus("PLANNING");
 
-  return (
-    <div className="space-y-8 container mx-auto px-4 sm:px-6 lg:px-8">
-      <div className="flex justify-end">
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => setIsCompact(!isCompact)}
-          title={isCompact ? "Grid View" : "List View"}
-        >
-          {isCompact ? (
-            <LayoutGrid className="h-4 w-4" />
-          ) : (
-            <LayoutList className="h-4 w-4" />
-          )}
-        </Button>
-      </div>
-
-      <section>
-        <Collapsible
-          open={isAiringOpen}
-          onOpenChange={setIsAiringOpen}
-          className="space-y-4"
-        >
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold">Currently Airing</h2>
-            <CollapsibleTrigger asChild>
-              <Button variant="ghost" size="sm">
-                {isAiringOpen ? (
-                  <ChevronUp className="h-4 w-4" />
-                ) : (
-                  <ChevronDown className="h-4 w-4" />
-                )}
-              </Button>
-            </CollapsibleTrigger>
-          </div>
-          <CollapsibleContent className="space-y-4">
-            {currentlyAiring.length > 0 ? (
-              <div className={cn(
-                isCompact
-                  ? "space-y-2"
-                  : "grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6"
-              )}>
-                {currentlyAiring.map(show => (
-                  <AnimeCard
-                    key={show.id}
-                    title={show.title.english || show.title.romaji}
-                    imageUrl={show.coverImage.large}
-                    status={show.status}
-                    currentEpisode={show.mediaListEntry?.progress}
-                    totalEpisodes={show.episodes}
-                    nextEpisode={show.nextAiringEpisode}
-                    isCompact={isCompact}
-                  />
-                ))}
-              </div>
-            ) : (
-              <p className="text-muted-foreground">No currently airing shows in your list.</p>
-            )}
-          </CollapsibleContent>
-        </Collapsible>
-      </section>
-
-      {[
-        { title: "Watching", shows: watching },
-        { title: "On Hold", shows: onHold },
-        { title: "Plan to Watch", shows: planned }
-      ].map(({ title, shows }) => (
-        <section key={title}>
-          <h2 className="text-2xl font-bold mb-4">{title}</h2>
-          {shows.length > 0 ? (
+  const renderSection = (
+    title: string, 
+    shows: typeof anime, 
+    stateKey: keyof typeof sectionStates
+  ) => (
+    <section key={title}>
+      <Collapsible
+        open={sectionStates[stateKey]}
+        onOpenChange={() => toggleSection(stateKey)}
+        className="space-y-4"
+      >
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold">{title}</h2>
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" size="sm">
+              {sectionStates[stateKey] ? (
+                <ChevronUp className="h-4 w-4" />
+              ) : (
+                <ChevronDown className="h-4 w-4" />
+              )}
+            </Button>
+          </CollapsibleTrigger>
+        </div>
+        <CollapsibleContent className="space-y-4">
+          {shows && shows.length > 0 ? (
             <div className={cn(
               isCompact
                 ? "space-y-2"
@@ -193,8 +161,32 @@ export default function Home() {
           ) : (
             <p className="text-muted-foreground">No shows in {title.toLowerCase()}.</p>
           )}
-        </section>
-      ))}
+        </CollapsibleContent>
+      </Collapsible>
+    </section>
+  );
+
+  return (
+    <div className="space-y-8 container mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="flex justify-end">
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => setIsCompact(!isCompact)}
+          title={isCompact ? "Grid View" : "List View"}
+        >
+          {isCompact ? (
+            <LayoutGrid className="h-4 w-4" />
+          ) : (
+            <LayoutList className="h-4 w-4" />
+          )}
+        </Button>
+      </div>
+
+      {renderSection("Currently Airing", currentlyAiring, "airing")}
+      {renderSection("Watching", watching, "watching")}
+      {renderSection("On Hold", onHold, "onHold")}
+      {renderSection("Plan to Watch", planned, "planned")}
     </div>
   );
 }
