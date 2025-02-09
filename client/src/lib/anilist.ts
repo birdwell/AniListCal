@@ -6,8 +6,8 @@ export interface AnimeMedia {
   coverImage: { large: string; extraLarge?: string };
   status: string;
   episodes: number;
-  nextAiringEpisode?: { 
-    airingAt: number; 
+  nextAiringEpisode?: {
+    airingAt: number;
     episode: number;
     timeUntilAiring: number;
   };
@@ -75,7 +75,7 @@ const MEDIA_QUERY = `
 `;
 
 const ANIME_DETAILS_QUERY = `
-  query ($id: Int) {
+  query ($id: Int!) {
     Media(id: $id, type: ANIME) {
       id
       title {
@@ -126,7 +126,7 @@ export async function fetchUserAnime(userId: number): Promise<AnimeMedia[]> {
   try {
     const response = await fetch(ANILIST_API, {
       method: "POST",
-      headers: { 
+      headers: {
         "Content-Type": "application/json",
         "Accept": "application/json"
       },
@@ -167,6 +167,10 @@ export async function fetchUserAnime(userId: number): Promise<AnimeMedia[]> {
 
 export async function fetchAnimeDetails(id: number): Promise<AnimeDetails> {
   try {
+    if (!id || isNaN(id)) {
+      throw new Error("Invalid anime ID provided");
+    }
+
     const response = await fetch(ANILIST_API, {
       method: "POST",
       headers: {
@@ -198,6 +202,9 @@ export async function fetchAnimeDetails(id: number): Promise<AnimeDetails> {
     return data.data.Media;
   } catch (error) {
     console.error("Error fetching anime details:", error);
-    throw new Error(`Failed to fetch anime details: ${error.message}`);
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error("Failed to fetch anime details");
   }
 }
