@@ -75,7 +75,7 @@ const MEDIA_QUERY = `
 `;
 
 const ANIME_DETAILS_QUERY = `
-  query ($id: Int!) {
+  query ($id: Int) {
     Media(id: $id, type: ANIME) {
       id
       title {
@@ -123,54 +123,81 @@ const ANIME_DETAILS_QUERY = `
 `;
 
 export async function fetchUserAnime(userId: number): Promise<AnimeMedia[]> {
-  const response = await fetch(ANILIST_API, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      query: MEDIA_QUERY,
-      variables: { userId }
-    })
-  });
+  try {
+    const response = await fetch(ANILIST_API, {
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      },
+      body: JSON.stringify({
+        query: MEDIA_QUERY,
+        variables: { userId }
+      })
+    });
 
-  if (!response.ok) {
-    throw new Error("Failed to fetch from Anilist");
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    if (data.errors) {
+      throw new Error(data.errors[0]?.message || "Failed to fetch from Anilist");
+    }
+
+    if (!data.data?.MediaListCollection?.lists) {
+      throw new Error("Invalid response format from Anilist");
+    }
+
+    return data.data.MediaListCollection.lists.flatMap(
+      (list: any) => list.entries.map((entry: any) => ({
+        ...entry.media,
+        mediaListEntry: {
+          progress: entry.progress,
+          status: entry.status
+        }
+      }))
+    );
+  } catch (error) {
+    console.error("Error fetching user anime:", error);
+    throw error;
   }
-
-  const data = await response.json();
-  return data.data.MediaListCollection.lists.flatMap(
-    (list: any) => list.entries.map((entry: any) => ({
-      ...entry.media,
-      mediaListEntry: {
-        progress: entry.progress,
-        status: entry.status
-      }
-    }))
-  );
 }
 
 export async function fetchAnimeDetails(id: number): Promise<AnimeDetails> {
-  const response = await fetch(ANILIST_API, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      query: ANIME_DETAILS_QUERY,
-      variables: { id }
-    })
-  });
+  try {
+    const response = await fetch(ANILIST_API, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      },
+      body: JSON.stringify({
+        query: ANIME_DETAILS_QUERY,
+        variables: { id }
+      })
+    });
 
-  if (!response.ok) {
-    throw new Error("Failed to fetch anime details from Anilist");
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    if (data.errors) {
+      const errorMessage = data.errors[0]?.message || "Failed to fetch anime details";
+      console.error("Anilist API error:", data.errors);
+      throw new Error(errorMessage);
+    }
+
+    if (!data.data?.Media) {
+      throw new Error("Anime not found");
+    }
+
+    return data.data.Media;
+  } catch (error) {
+    console.error("Error fetching anime details:", error);
+    throw new Error(`Failed to fetch anime details: ${error.message}`);
   }
-
-  const data = await response.json();
-
-  if (data.errors) {
-    throw new Error(data.errors[0]?.message || "Failed to fetch anime details");
-  }
-
-  if (!data.data?.Media) {
-    throw new Error("Anime not found");
-  }
-
-  return data.data.Media;
 }
