@@ -6,30 +6,39 @@ import { getRecommendations } from "@/lib/ai";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, LayoutGrid, LayoutList } from "lucide-react";
+import { AlertCircle, ChevronDown, ChevronUp, LayoutGrid, LayoutList } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 function LoadingGrid() {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+    <div className="space-y-2">
       {[...Array(4)].map((_, i) => (
         <Card key={i} className="overflow-hidden">
-          <div className="aspect-[2/3]">
-            <Skeleton className="w-full h-full" />
+          <div className="flex gap-4 p-4">
+            <Skeleton className="h-24 w-16 rounded-sm" />
+            <div className="flex-1 space-y-2">
+              <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="h-4 w-1/2" />
+            </div>
           </div>
-          <CardHeader className="p-4">
-            <Skeleton className="h-6 w-3/4" />
-          </CardHeader>
         </Card>
       ))}
     </div>
   );
 }
 
+type Status = "CURRENT" | "PAUSED" | "PLANNING";
+
 export default function Home() {
-  const [isCompact, setIsCompact] = useState(false);
+  const [isCompact, setIsCompact] = useState(true);
+  const [isAiringOpen, setIsAiringOpen] = useState(true);
 
   const { data: user, isLoading: isLoadingUser } = useQuery({
     queryKey: ["/api/users/current"],
@@ -47,22 +56,11 @@ export default function Home() {
     enabled: !!user?.anilistId
   });
 
-  const { data: recommendations, isLoading: isLoadingRecs } = useQuery({
-    queryKey: ["/api/ai/recommendations", anime?.map(a => a.title.english)],
-    queryFn: () => {
-      if (!anime?.length) {
-        throw new Error("No anime in watchlist");
-      }
-      return getRecommendations(anime.map(a => a.title.english || a.title.romaji));
-    },
-    enabled: !!anime?.length
-  });
-
   if (isLoadingUser || isLoadingAnime) {
     return (
       <div className="space-y-8 container mx-auto px-4 sm:px-6 lg:px-8">
         <section>
-          <h2 className="text-2xl font-bold mb-4">Currently Watching</h2>
+          <h2 className="text-2xl font-bold mb-4">Your Anime</h2>
           <LoadingGrid />
         </section>
       </div>
@@ -95,12 +93,14 @@ export default function Home() {
     );
   }
 
-  const currentlyAiring = anime?.filter(a => a.status === "RELEASING") || [];
-  const nonAiring = anime?.filter(a => 
-    a.status !== "RELEASING" && 
-    a.status !== "NOT_YET_RELEASED" &&
-    a.mediaListEntry?.status === "CURRENT"
-  ) || [];
+  const filterAnimeByStatus = (status: Status) => {
+    return anime?.filter(show => show.mediaListEntry?.status === status) || [];
+  };
+
+  const currentlyAiring = anime?.filter(show => show.status === "RELEASING") || [];
+  const watching = filterAnimeByStatus("CURRENT");
+  const onHold = filterAnimeByStatus("PAUSED");
+  const planned = filterAnimeByStatus("PLANNING");
 
   return (
     <div className="space-y-8 container mx-auto px-4 sm:px-6 lg:px-8">
@@ -120,76 +120,81 @@ export default function Home() {
       </div>
 
       <section>
-        <h2 className="text-2xl font-bold mb-4">Currently Airing</h2>
-        {currentlyAiring.length > 0 ? (
-          <div className={cn(
-            isCompact
-              ? "space-y-2"
-              : "grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6"
-          )}>
-            {currentlyAiring.map(show => (
-              <AnimeCard
-                key={show.id}
-                title={show.title.english || show.title.romaji}
-                imageUrl={show.coverImage.large}
-                status={show.status}
-                currentEpisode={show.mediaListEntry?.progress}
-                totalEpisodes={show.episodes}
-                nextEpisode={show.nextAiringEpisode}
-                isCompact={isCompact}
-              />
-            ))}
+        <Collapsible
+          open={isAiringOpen}
+          onOpenChange={setIsAiringOpen}
+          className="space-y-4"
+        >
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold">Currently Airing</h2>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" size="sm">
+                {isAiringOpen ? (
+                  <ChevronUp className="h-4 w-4" />
+                ) : (
+                  <ChevronDown className="h-4 w-4" />
+                )}
+              </Button>
+            </CollapsibleTrigger>
           </div>
-        ) : (
-          <p className="text-muted-foreground">No currently airing shows in your list.</p>
-        )}
-      </section>
-
-      <section>
-        <h2 className="text-2xl font-bold mb-4">Other Shows You're Watching</h2>
-        {nonAiring.length > 0 ? (
-          <div className={cn(
-            isCompact
-              ? "space-y-2"
-              : "grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6"
-          )}>
-            {nonAiring.map(show => (
-              <AnimeCard
-                key={show.id}
-                title={show.title.english || show.title.romaji}
-                imageUrl={show.coverImage.large}
-                status={show.status}
-                currentEpisode={show.mediaListEntry?.progress}
-                totalEpisodes={show.episodes}
-                isCompact={isCompact}
-              />
-            ))}
-          </div>
-        ) : (
-          <p className="text-muted-foreground">No other shows in your watching list.</p>
-        )}
-      </section>
-
-      {recommendations && !isLoadingRecs && (
-        <section>
-          <h2 className="text-2xl font-bold mb-4">AI Recommendations</h2>
-          <Card>
-            <CardHeader>
-              <CardTitle>Based on your watchlist</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {recommendations.recommendations.map((rec: any, i: number) => (
-                  <div key={i} className="p-4 rounded-lg bg-accent/50">
-                    <h3 className="font-bold">{rec.title}</h3>
-                    <p className="text-sm text-muted-foreground">{rec.reason}</p>
-                  </div>
+          <CollapsibleContent className="space-y-4">
+            {currentlyAiring.length > 0 ? (
+              <div className={cn(
+                isCompact
+                  ? "space-y-2"
+                  : "grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6"
+              )}>
+                {currentlyAiring.map(show => (
+                  <AnimeCard
+                    key={show.id}
+                    title={show.title.english || show.title.romaji}
+                    imageUrl={show.coverImage.large}
+                    status={show.status}
+                    currentEpisode={show.mediaListEntry?.progress}
+                    totalEpisodes={show.episodes}
+                    nextEpisode={show.nextAiringEpisode}
+                    isCompact={isCompact}
+                  />
                 ))}
               </div>
-            </CardContent>
-          </Card>
+            ) : (
+              <p className="text-muted-foreground">No currently airing shows in your list.</p>
+            )}
+          </CollapsibleContent>
+        </Collapsible>
+      </section>
+
+      {[
+        { title: "Watching", shows: watching },
+        { title: "On Hold", shows: onHold },
+        { title: "Plan to Watch", shows: planned }
+      ].map(({ title, shows }) => (
+        <section key={title}>
+          <h2 className="text-2xl font-bold mb-4">{title}</h2>
+          {shows.length > 0 ? (
+            <div className={cn(
+              isCompact
+                ? "space-y-2"
+                : "grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6"
+            )}>
+              {shows.map(show => (
+                <AnimeCard
+                  key={show.id}
+                  title={show.title.english || show.title.romaji}
+                  imageUrl={show.coverImage.large}
+                  status={show.status}
+                  currentEpisode={show.mediaListEntry?.progress}
+                  totalEpisodes={show.episodes}
+                  nextEpisode={show.nextAiringEpisode}
+                  isCompact={isCompact}
+                />
+              ))}
+            </div>
+          ) : (
+            <p className="text-muted-foreground">No shows in {title.toLowerCase()}.</p>
+          )}
         </section>
-      )}
+      ))}
     </div>
   );
 }
