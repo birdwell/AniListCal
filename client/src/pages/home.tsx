@@ -1,9 +1,8 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { AnimeCard } from "@/components/anime-card";
 import { getUser } from "@/lib/auth";
 import { fetchUserAnime } from "@/lib/anilist";
-import { getRecommendations } from "@/lib/ai";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, ChevronDown, ChevronUp, LayoutGrid, LayoutList } from "lucide-react";
@@ -38,7 +37,6 @@ type Status = "CURRENT" | "PAUSED" | "PLANNING";
 
 export default function Home() {
   const [isCompact, setIsCompact] = useState(true);
-  // State for each collapsible section
   const [sectionStates, setSectionStates] = useState({
     airing: true,
     watching: true,
@@ -71,9 +69,9 @@ export default function Home() {
 
   if (isLoadingUser || isAnimeLoading) {
     return (
-      <div className="space-y-8 container mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="space-y-4 container mx-auto px-4 sm:px-6 lg:px-8">
         <section>
-          <h2 className="text-2xl font-bold mb-4">Your Anime</h2>
+          <h2 className="text-base font-medium mb-2">Your Anime</h2>
           <LoadingGrid />
         </section>
       </div>
@@ -124,16 +122,16 @@ export default function Home() {
       <Collapsible
         open={sectionStates[stateKey]}
         onOpenChange={() => toggleSection(stateKey)}
-        className="space-y-2"
+        className="space-y-1"
       >
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold text-foreground/90">{title}</h2>
+        <div className="flex items-center justify-between py-1">
+          <h2 className="text-sm font-medium text-muted-foreground">{title}</h2>
           <CollapsibleTrigger asChild>
-            <Button variant="ghost" size="sm" className="h-8 px-2">
+            <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
               {sectionStates[stateKey] ? (
-                <ChevronUp className="h-4 w-4" />
+                <ChevronUp className="h-3 w-3" />
               ) : (
-                <ChevronDown className="h-4 w-4" />
+                <ChevronDown className="h-3 w-3" />
               )}
             </Button>
           </CollapsibleTrigger>
@@ -159,7 +157,7 @@ export default function Home() {
               ))}
             </div>
           ) : (
-            <p className="text-muted-foreground">No shows in {title.toLowerCase()}.</p>
+            <p className="text-sm text-muted-foreground">No shows in {title.toLowerCase()}.</p>
           )}
         </CollapsibleContent>
       </Collapsible>
@@ -167,7 +165,7 @@ export default function Home() {
   );
 
   return (
-    <div className="space-y-8 container mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="space-y-4 container mx-auto px-4 sm:px-6 lg:px-8">
       <div className="flex justify-end">
         <Button
           variant="outline"
