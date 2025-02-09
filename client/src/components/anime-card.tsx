@@ -2,8 +2,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, PlayCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useLocation } from "wouter";
 
 interface AnimeCardProps {
+  id: number;
   title: string;
   imageUrl: string;
   status: string;
@@ -17,6 +19,7 @@ interface AnimeCardProps {
 }
 
 export function AnimeCard({ 
+  id,
   title, 
   imageUrl, 
   status, 
@@ -25,6 +28,8 @@ export function AnimeCard({
   nextEpisode,
   isCompact = false
 }: AnimeCardProps) {
+  const [, setLocation] = useLocation();
+
   const formatDate = (timestamp: number) => {
     const date = new Date(timestamp * 1000);
     return date.toLocaleDateString('en-US', {
@@ -44,9 +49,16 @@ export function AnimeCard({
       : "text-green-500 dark:text-green-400";
   };
 
+  const handleClick = () => {
+    setLocation(`/show/${id}`);
+  };
+
   if (isCompact) {
     return (
-      <Card className="overflow-hidden hover:bg-accent/50 transition-colors">
+      <Card 
+        className="overflow-hidden hover:bg-accent/50 transition-colors cursor-pointer"
+        onClick={handleClick}
+      >
         <div className="flex gap-4 p-4">
           <div className="h-24 w-16 flex-shrink-0 overflow-hidden rounded-sm">
             <img
@@ -78,7 +90,10 @@ export function AnimeCard({
   }
 
   return (
-    <Card className="group overflow-hidden hover:shadow-lg transition-all duration-300 h-full">
+    <Card 
+      className="group overflow-hidden hover:shadow-lg transition-all duration-300 h-full cursor-pointer"
+      onClick={handleClick}
+    >
       <div className="aspect-[2/3] relative overflow-hidden">
         <img
           src={imageUrl}
