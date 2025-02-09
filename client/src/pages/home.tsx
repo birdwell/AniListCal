@@ -124,12 +124,12 @@ export default function Home() {
       <Collapsible
         open={sectionStates[stateKey]}
         onOpenChange={() => toggleSection(stateKey)}
-        className="space-y-4"
+        className="space-y-2"
       >
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold">{title}</h2>
+          <h2 className="text-lg font-bold text-foreground/90">{title}</h2>
           <CollapsibleTrigger asChild>
-            <Button variant="ghost" size="sm">
+            <Button variant="ghost" size="sm" className="h-8 px-2">
               {sectionStates[stateKey] ? (
                 <ChevronUp className="h-4 w-4" />
               ) : (
@@ -138,7 +138,7 @@ export default function Home() {
             </Button>
           </CollapsibleTrigger>
         </div>
-        <CollapsibleContent className="space-y-4">
+        <CollapsibleContent className="space-y-2">
           {shows && shows.length > 0 ? (
             <div className={cn(
               isCompact
