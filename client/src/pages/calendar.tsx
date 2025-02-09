@@ -13,25 +13,60 @@ const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", 
 const WATCH_STATUSES = ["CURRENT", "PLANNING"] as const;
 type WatchStatus = typeof WATCH_STATUSES[number];
 
+function LoadingGrid() {
+  return (
+    <div className="space-y-6">
+      {[...Array(3)].map((_, i) => (
+        <Card key={i}>
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <Skeleton className="h-5 w-5 rounded-full" />
+              <Skeleton className="h-6 w-32" />
+            </div>
+            <div className="space-y-3">
+              {[...Array(2)].map((_, j) => (
+                <div
+                  key={j}
+                  className="p-4 rounded-lg bg-accent/50"
+                >
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+                    <div className="space-y-2">
+                      <Skeleton className="h-5 w-48" />
+                      <Skeleton className="h-4 w-32" />
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <Skeleton className="h-4 w-24" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
 export default function CalendarPage() {
   const today = new Date().getDay();
   const [selectedDay, setSelectedDay] = useState<number>(today);
   const [selectedStatuses, setSelectedStatuses] = useState<WatchStatus[]>(["CURRENT"]);
 
-  // Get ordered days starting from current day (fixed order)
+  // Get ordered days starting from current day
   const orderedDays = DAYS.slice(today).concat(DAYS.slice(0, today));
 
   const { data: user, isLoading: isUserLoading } = useQuery({
     queryKey: ["/api/users/current"],
     queryFn: getUser,
-    staleTime: 5 * 60 * 1000 // Consider data fresh for 5 minutes
+    staleTime: 5 * 60 * 1000
   });
 
   const { data: anime, isLoading: isAnimeLoading } = useQuery({
     queryKey: ["/anilist/anime", user?.sub],
     queryFn: () => fetchUserAnime(parseInt(user?.anilistId || "")),
     enabled: !!user?.anilistId,
-    staleTime: 5 * 60 * 1000 // Consider data fresh for 5 minutes
+    staleTime: 5 * 60 * 1000
   });
 
   const isLoading = isUserLoading || isAnimeLoading;
@@ -51,7 +86,8 @@ export default function CalendarPage() {
         episode: show.nextAiringEpisode!.episode,
         currentEpisode: show.mediaListEntry?.progress || 0,
         totalEpisodes: show.episodes,
-        status: show.mediaListEntry?.status || ""
+        status: show.mediaListEntry?.status || "",
+        airingAt: show.nextAiringEpisode!.airingAt
       });
       return acc;
     }, {} as Record<string, Array<{
@@ -60,6 +96,7 @@ export default function CalendarPage() {
       currentEpisode: number;
       totalEpisodes: number;
       status: string;
+      airingAt: number;
     }>>);
 
   const filteredDates = Object.entries(airingDates || {}).filter(([date]) => {
@@ -74,11 +111,42 @@ export default function CalendarPage() {
     return `${DAYS[date.getDay()]}, ${day}${suffix}`;
   };
 
+  const formatTimeUntil = (timestamp: number) => {
+    const now = Math.floor(Date.now() / 1000);
+    const timeUntil = timestamp - now;
+
+    if (timeUntil < 0) return "Aired";
+
+    const hours = Math.floor(timeUntil / 3600);
+    const minutes = Math.floor((timeUntil % 3600) / 60);
+
+    if (hours > 24) {
+      const days = Math.floor(hours / 24);
+      return `${days} day${days > 1 ? 's' : ''} left`;
+    }
+
+    if (hours > 0) {
+      return `${hours}h ${minutes}m left`;
+    }
+
+    return `${minutes}m left`;
+  };
+
   const getProgressColor = (currentEp: number, totalEp: number) => {
     if (!totalEp) return "text-muted-foreground";
     return currentEp < totalEp
       ? "text-yellow-500 dark:text-yellow-400"
       : "text-green-500 dark:text-green-400";
+  };
+
+  const getAiringStatusColor = (timestamp: number) => {
+    const now = Math.floor(Date.now() / 1000);
+    const timeUntil = timestamp - now;
+
+    if (timeUntil < 0) return "text-gray-500 dark:text-gray-400";
+    if (timeUntil < 3600) return "text-red-500 dark:text-red-400"; // Less than 1 hour
+    if (timeUntil < 86400) return "text-yellow-500 dark:text-yellow-400"; // Less than 24 hours
+    return "text-blue-500 dark:text-blue-400"; // More than 24 hours
   };
 
   if (isLoading) {
@@ -93,6 +161,15 @@ export default function CalendarPage() {
             </div>
           </CardContent>
         </Card>
+
+        <div className="grid lg:grid-cols-[300px_1fr] gap-6">
+          <Card className="hidden lg:block">
+            <CardContent className="p-4">
+              <Skeleton className="h-[300px] w-full rounded-lg" />
+            </CardContent>
+          </Card>
+          <LoadingGrid />
+        </div>
       </div>
     );
   }
@@ -145,28 +222,35 @@ export default function CalendarPage() {
                     {shows.map((show, i) => (
                       <div
                         key={i}
-                        className="p-4 rounded-lg bg-accent/50 hover:bg-accent transition-colors flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3"
+                        className="p-4 rounded-lg bg-accent/50 hover:bg-accent transition-colors"
                       >
-                        <div className="flex flex-col gap-1">
-                          <span className="font-medium line-clamp-2 sm:line-clamp-1">
-                            {show.title}
-                          </span>
-                          <span className="text-sm text-muted-foreground">
-                            Episode {show.episode} - {show.status === "CURRENT" ? "Watching" : "Plan to Watch"}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-4 text-sm">
-                          <div className="flex items-center gap-2">
-                            <PlayCircle className={cn(
-                              "h-4 w-4",
-                              getProgressColor(show.currentEpisode, show.totalEpisodes)
-                            )} />
-                            <span className={cn(
-                              "whitespace-nowrap",
-                              getProgressColor(show.currentEpisode, show.totalEpisodes)
-                            )}>
-                              {show.currentEpisode} / {show.totalEpisodes}
+                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+                          <div className="space-y-1">
+                            <span className="font-medium line-clamp-2 sm:line-clamp-1">
+                              {show.title}
                             </span>
+                            <div className="flex items-center gap-2 text-sm">
+                              <span className="text-muted-foreground">
+                                Episode {show.episode}
+                              </span>
+                              <span className={cn("font-medium", getAiringStatusColor(show.airingAt))}>
+                                • {formatTimeUntil(show.airingAt)}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-4 text-sm">
+                            <div className="flex items-center gap-2">
+                              <PlayCircle className={cn(
+                                "h-4 w-4",
+                                getProgressColor(show.currentEpisode, show.totalEpisodes)
+                              )} />
+                              <span className={cn(
+                                "whitespace-nowrap",
+                                getProgressColor(show.currentEpisode, show.totalEpisodes)
+                              )}>
+                                {show.currentEpisode} / {show.totalEpisodes}
+                              </span>
+                            </div>
                           </div>
                         </div>
                       </div>
