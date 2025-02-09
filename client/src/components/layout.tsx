@@ -2,6 +2,7 @@ import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Home, Calendar, User, LogOut } from "lucide-react";
 import { logout } from "@/lib/auth";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
@@ -30,10 +31,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
               </Button>
             </Link>
           </div>
-          <Button variant="ghost" onClick={() => logout()}>
-            <LogOut className="mr-2 h-4 w-4" />
-            Logout
-          </Button>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <Button variant="ghost" onClick={() => logout()}>
+              <LogOut className="mr-2 h-4 w-4" />
+              Logout
+            </Button>
+          </div>
         </div>
       </nav>
       <main className="container pt-20 pb-8">
