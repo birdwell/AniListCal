@@ -8,9 +8,8 @@ export async function login() {
     throw new Error('Anilist client ID is not configured');
   }
 
-  // Ensure consistent redirect URI format
-  const currentUrl = new URL(window.location.href);
-  const redirectUri = `${currentUrl.protocol}//${currentUrl.host}/auth/callback`;
+  // Use the full deployed URL if available, otherwise use the current origin
+  const redirectUri = 'https://anime-ai-tracker-xtjfxz26j.replit.app/auth/callback';
 
   console.log('Starting Anilist OAuth flow');
   console.log('Using redirect URI:', redirectUri);
@@ -36,7 +35,7 @@ export async function handleAuthCallback(code: string): Promise<void> {
       },
       body: JSON.stringify({ 
         code,
-        redirectUri: `${window.location.protocol}//${window.location.host}/auth/callback`
+        redirectUri: 'https://anime-ai-tracker-xtjfxz26j.replit.app/auth/callback'
       }),
     });
 
