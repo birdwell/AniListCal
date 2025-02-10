@@ -12,6 +12,7 @@ import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import passport from 'passport';
 import connectPgSimple from 'connect-pg-simple';
+import { pool } from './db';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -31,25 +32,43 @@ const UPDATE_INTERVAL = 60000; // Check for updates every minute
 export function registerRoutes(app: Express) {
   const httpServer = createServer(app);
 
+  // Enable CORS for the frontend domain
+  app.use((req, res, next) => {
+    const allowedOrigins = [
+      'https://anime-ai-tracker-xtjfxz26j.replit.app',
+      'http://localhost:5000'
+    ];
+    const origin = req.headers.origin;
+    if (origin && allowedOrigins.includes(origin)) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    if (req.method === 'OPTIONS') {
+      return res.sendStatus(200);
+    }
+    next();
+  });
+
   // Set up session middleware with PostgreSQL store
   app.use(
     session({
       store: new PostgresStore({
-        conObject: {
-          connectionString: process.env.DATABASE_URL,
-        },
+        pool,
+        tableName: 'session',
         createTableIfMissing: true,
-        tableName: 'session'
       }),
       secret: process.env.REPL_ID!, // Using REPL_ID as the session secret
       resave: false,
       saveUninitialized: false,
       cookie: {
-        secure: app.get('env') === 'production',
+        secure: 'auto', // Will be secure in production
         httpOnly: true,
         maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
         sameSite: 'lax'
-      }
+      },
+      name: 'sid' // Custom session cookie name
     })
   );
 
@@ -59,7 +78,7 @@ export function registerRoutes(app: Express) {
 
   // Passport serialization
   passport.serializeUser((user: any, done) => {
-    done(null, user.id);
+    done(null, user.auth0Id);
   });
 
   passport.deserializeUser(async (id: string, done) => {
@@ -265,7 +284,7 @@ export function registerRoutes(app: Express) {
           console.error('Session destruction error:', err);
           return res.status(500).json({ error: 'Failed to destroy session' });
         }
-        res.clearCookie('connect.sid');
+        res.clearCookie('sid'); // Use the custom cookie name
         res.json({ success: true });
       });
     });
