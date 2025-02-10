@@ -51,7 +51,7 @@ export function registerRoutes(app: Express) {
     next();
   });
 
-  // Set up session middleware with PostgreSQL store
+  // Update the cookie settings and session store configuration
   app.use(
     session({
       store: new PostgresStore({
@@ -59,16 +59,16 @@ export function registerRoutes(app: Express) {
         tableName: 'session',
         createTableIfMissing: true,
       }),
-      secret: process.env.REPL_ID!, // Using REPL_ID as the session secret
+      secret: process.env.REPL_ID!,
       resave: false,
       saveUninitialized: false,
       cookie: {
-        secure: 'auto', // Will be secure in production
+        secure: process.env.NODE_ENV === 'production',
         httpOnly: true,
-        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+        maxAge: 30 * 24 * 60 * 60 * 1000,
         sameSite: 'lax'
       },
-      name: 'sid' // Custom session cookie name
+      name: 'sid'
     })
   );
 
@@ -78,7 +78,7 @@ export function registerRoutes(app: Express) {
 
   // Passport serialization
   passport.serializeUser((user: any, done) => {
-    done(null, user.auth0Id);
+    done(null, user.auth0Id); // Use auth0Id for consistency
   });
 
   passport.deserializeUser(async (id: string, done) => {

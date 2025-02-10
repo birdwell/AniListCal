@@ -30,6 +30,7 @@ function AuthCallback() {
 
     handleAuthCallback(code)
       .then(() => {
+        // Force a refetch of the user data
         queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
         setLocation("/");
       })
@@ -48,7 +49,7 @@ function AuthCallback() {
           </CardHeader>
           <CardContent>
             <p>{error}</p>
-            <Button className="mt-4" onClick={() => window.location.href = '/login'}>
+            <Button className="mt-4" onClick={() => setLocation('/login')}>
               Try Again
             </Button>
           </CardContent>
@@ -73,19 +74,31 @@ function AuthCallback() {
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const [, setLocation] = useLocation();
-  const { data: user, isLoading } = useQuery({
+  const { data: user, isLoading, error } = useQuery({
     queryKey: ["/api/auth/user"],
-    queryFn: getUser
+    queryFn: getUser,
+    retry: false
   });
 
   useEffect(() => {
     if (!isLoading && !user) {
+      console.log('No user found, redirecting to login');
       setLocation("/login");
     }
   }, [user, isLoading, setLocation]);
 
   if (isLoading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (error) {
+    console.error('Auth error:', error);
+    setLocation("/login");
+    return null;
   }
 
   return user ? <Component /> : null;
