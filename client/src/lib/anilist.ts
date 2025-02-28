@@ -1,47 +1,61 @@
+import { GraphQLClient } from "graphql-request";
 import {
-  GetUserMediaListQueryVariables,
-  MediaFragmentFragment,
-  GetUserMediaListQuery,
   EntyFragmentFragment,
   GetMediaQuery,
+  GetUserMediaListQuery,
+  GetUserMediaListQueryVariables,
+  MediaFragmentFragment,
+  MediaListStatus,
 } from "@/generated/graphql";
-import { request } from "graphql-request";
+import { GET_USER_MEDIA_LIST_QUERY, GET_MEDIA_QUERY } from "@/queries/queries";
 
 const ANILIST_GRAPHQL_URL = "https://graphql.anilist.co";
 
-import getUserMediaListQuery from "../queries/getUserMediaList.graphql?raw";
-import getMediaQuery from "../queries/getMedia.graphql?raw";
-import { GET_USER_MEDIA_LIST_QUERY } from "@/queries/queries";
-
+/**
+ * Fetches a user's anime list from AniList
+ * @param userId The AniList user ID
+ * @param accessToken Access token for authenticated requests
+ * @returns Array of media list entries
+ */
 export async function fetchUserAnime(
   userId: number,
-  accessToken: string
+  status: MediaListStatus[] = [
+    MediaListStatus.Current,
+    MediaListStatus.Planning,
+    MediaListStatus.Paused,
+  ]
 ): Promise<EntyFragmentFragment[]> {
   try {
-    const variables: GetUserMediaListQueryVariables = {
-      userId: userId,
-    };
-    const response = await request<GetUserMediaListQuery>(
-      ANILIST_GRAPHQL_URL,
-      GET_USER_MEDIA_LIST_QUERY,
-      variables,
-      {
-        Authorization: `Bearer ${accessToken}`,
-      }
-    );
+    const accessToken = sessionStorage.getItem("accessToken");
+    const client = new GraphQLClient(ANILIST_GRAPHQL_URL, {
+      headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+    });
 
-    console.log("Query: ", GET_USER_MEDIA_LIST_QUERY);
+    const variables: GetUserMediaListQueryVariables = {
+      userId,
+      status,
+    };
+
+    const response = await client.request<GetUserMediaListQuery>(
+      GET_USER_MEDIA_LIST_QUERY,
+      variables
+    );
 
     const lists = response.MediaListCollection?.lists ?? [];
     return lists
       .flatMap((list) => list?.entries?.filter((entry) => entry !== null) ?? [])
-      .filter((entry) => entry !== null);
+      .filter(Boolean) as EntyFragmentFragment[];
   } catch (error) {
-    console.error("Error fetching user anime:", error);
+    console.error("Error fetching anime list:", error);
     throw error;
   }
 }
 
+/**
+ * Fetches details for a specific anime by ID
+ * @param id The anime ID
+ * @returns Media details
+ */
 export async function fetchAnimeDetails(
   id: number
 ): Promise<MediaFragmentFragment> {
@@ -50,12 +64,10 @@ export async function fetchAnimeDetails(
       throw new Error("Invalid anime ID provided");
     }
 
-    const response = await request<GetMediaQuery>(
-      ANILIST_GRAPHQL_URL,
-      getMediaQuery,
-      { id }
-    );
-
+    const client = new GraphQLClient(ANILIST_GRAPHQL_URL);
+    const response = await client.request<GetMediaQuery>(GET_MEDIA_QUERY, {
+      id,
+    });
     const media = response.Media;
 
     if (!media) {

@@ -58,12 +58,8 @@ const ENTY_FRAGMENT = gql`
 `;
 
 export const GET_USER_MEDIA_LIST_QUERY = gql`
-  query GetUserMediaList($userId: Int!) {
-    MediaListCollection(
-      userId: $userId
-      type: ANIME
-      status_in: [CURRENT, PLANNING]
-    ) {
+  query GetUserMediaList($userId: Int!, $status: [MediaListStatus]) {
+    MediaListCollection(userId: $userId, type: ANIME, status_in: $status) {
       lists {
         entries {
           ...EntyFragment

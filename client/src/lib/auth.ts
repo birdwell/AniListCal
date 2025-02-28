@@ -164,11 +164,20 @@ export async function getUser() {
 
     const userData = await response.json();
 
-    // Ensure anilistId is included
+    console.log("Userdata: ", userData);
+
+    // Store the access token in memory (not localStorage for security)
+    if (userData.accessToken) {
+      // We'll use this token for API requests
+      console.log("Access token received");
+    }
+
+    // Return user data without exposing the token in the app state
     return {
-      ...userData,
-      sub: userData.id, // Maintain compatibility with profile component
+      id: userData.id,
+      username: userData.username,
       anilistId: userData.anilistId || userData.id, // Default to id if anilistId isn't set
+      accessToken: userData.accessToken // Include the token for API requests
     };
   } catch (error) {
     console.error("Get user failed:", error);

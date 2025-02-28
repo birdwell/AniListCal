@@ -189,12 +189,18 @@ export function registerAuthRoutes(app: Express) {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ error: "Not authenticated" });
     }
-    // Only return safe user info (not the token)
+    
+    // Return user info including the access token
     const user = req.user;
+    
+    // Get the latest token from storage
+    const accessToken = storage.getToken(user.id);
+    
     res.json({
       id: user.id,
       username: user.username,
-      anilistId: user.anilistId
+      anilistId: user.anilistId,
+      accessToken: accessToken // Include the token in the response
     });
   });
 

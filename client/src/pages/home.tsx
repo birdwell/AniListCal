@@ -37,14 +37,14 @@ export default function Home() {
   });
 
   const { data: animeEntries, isLoading: isAnimeLoading, error: animeError } = useQuery({
-    queryKey: ["/anilist/anime", user?.sub],
+    queryKey: ["/anilist/anime", user?.anilistId],
     queryFn: () => {
       if (!user?.anilistId) {
         throw new Error("Please set your Anilist ID in your profile");
       }
-      return fetchUserAnime(parseInt(user.anilistId), user.accessToken || "");
+      return fetchUserAnime(parseInt(user.anilistId));
     },
-    enabled: !!user?.anilistId && !!user?.accessToken,
+    enabled: !!user?.anilistId,
     ...commonQueryOptions
   });
 

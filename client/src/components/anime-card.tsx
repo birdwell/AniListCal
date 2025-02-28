@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar, PlayCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLocation } from "wouter";
+import { getProgressColor } from "@/lib/anime-utils";
 
 interface AnimeCardProps {
   id: number;
@@ -42,13 +43,6 @@ export function AnimeCard({
     });
   };
 
-  const getProgressColor = () => {
-    if (!currentEpisode || !nextEpisode) return "text-muted-foreground";
-    return currentEpisode < nextEpisode.episode - 1 
-      ? "text-yellow-500 dark:text-yellow-400"
-      : "text-green-500 dark:text-green-400";
-  };
-
   const handleClick = () => {
     setLocation(`/show/${id}`);
   };
@@ -70,8 +64,8 @@ export function AnimeCard({
           <div className="flex flex-col justify-center flex-grow min-w-0">
             <h3 className="font-medium line-clamp-1 mb-2">{title}</h3>
             <div className="flex items-center gap-2">
-              <PlayCircle className={cn("h-4 w-4 flex-shrink-0", getProgressColor())} />
-              <span className={cn("text-sm", getProgressColor())}>
+              <PlayCircle className={cn("h-4 w-4 flex-shrink-0", getProgressColor(currentEpisode || 0, nextEpisode?.episode))} />
+              <span className={cn("text-sm", getProgressColor(currentEpisode || 0, nextEpisode?.episode))}>
                 {currentEpisode || 0}{totalEpisodes && ` / ${totalEpisodes}`}
               </span>
             </div>
@@ -113,8 +107,8 @@ export function AnimeCard({
         <div className="flex flex-col gap-1 text-sm">
           {/* Episode Progress */}
           <div className="flex items-center gap-2">
-            <PlayCircle className={cn("h-4 w-4 flex-shrink-0", getProgressColor())} />
-            <span className={cn("font-medium", getProgressColor())}>
+            <PlayCircle className={cn("h-4 w-4 flex-shrink-0", getProgressColor(currentEpisode || 0, nextEpisode?.episode))} />
+            <span className={cn("font-medium", getProgressColor(currentEpisode || 0, nextEpisode?.episode))}>
               Episode {currentEpisode || 0}
               {totalEpisodes && ` / ${totalEpisodes}`}
             </span>

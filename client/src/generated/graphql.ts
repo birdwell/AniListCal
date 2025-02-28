@@ -4559,6 +4559,7 @@ export type EntyFragmentFragment = { id: number, status: MediaListStatus | null,
 
 export type GetUserMediaListQueryVariables = Exact<{
   userId: Scalars['Int']['input'];
+  status: InputMaybe<Array<InputMaybe<MediaListStatus>> | InputMaybe<MediaListStatus>>;
 }>;
 
 

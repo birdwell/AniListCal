@@ -18,7 +18,7 @@ export const DEFAULT_CACHE_TIME = 60 * 60 * 1000;
  * Common query options that can be spread into useQuery configurations
  */
 export const commonQueryOptions = {
-  // staleTime: DEFAULT_STALE_TIME,
+  staleTime: DEFAULT_STALE_TIME,
   retry: 2,
   refetchOnWindowFocus: true,
 };
