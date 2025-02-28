@@ -1,111 +1,81 @@
 import type { Express } from "express";
-
-// Interface for airing anime shows
-interface AiringShow {
-  id: number;
-  title: string;
-  status: string;
-  episodes?: number;
-  mediaListEntry?: {
-    status: string;
-    progress: number;
-  };
-  nextAiringEpisode?: {
-    airingAt: number;
-    episode: number;
-    timeUntilAiring: number;
-  };
-}
-
-const ANILIST_GRAPHQL_URL = "https://graphql.anilist.co";
+import { request, gql } from "graphql-request";
+import {
+  EntyFragmentFragment,
+  UserAnimeListQuery,
+  UserAnimeListQueryVariables,
+} from "../generated/graphql";
+import { ANILIST_GRAPHQL_URL } from "../constants";
 
 export function registerAnimeRoutes(app: Express) {
-  // Get current user's airing anime
   app.get("/api/anime/airing", async (req, res) => {
     try {
-      // Check authentication
       if (!req.isAuthenticated()) {
         return res.status(401).json({ error: "Not authenticated" });
       }
 
       const user = req.user;
 
-      // Query AniList API for user's anime list
-      const response = await fetch(ANILIST_GRAPHQL_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-          Authorization: `Bearer ${user.accessToken}`,
-        },
-        body: JSON.stringify({
-          query: `
-            query {
-              MediaListCollection(userId: ${user.id}, type: ANIME, status_in: [CURRENT, PLANNING]) {
-                lists {
+      const query = gql`
+        query UserAnimeList($userId: Int!) {
+          MediaListCollection(
+            userId: $userId
+            type: ANIME
+            status_in: [CURRENT, PLANNING]
+          ) {
+            lists {
+              status
+              entries {
+                id
+                status
+                progress
+                media {
+                  id
+                  title {
+                    english
+                    romaji
+                  }
+                  episodes
                   status
-                  entries {
-                    id
-                    status
-                    progress
-                    media {
-                      id
-                      title {
-                        english
-                        romaji
-                      }
-                      episodes
-                      status
-                      nextAiringEpisode {
-                        airingAt
-                        episode
-                        timeUntilAiring
-                      }
-                    }
+                  nextAiringEpisode {
+                    airingAt
+                    episode
+                    timeUntilAiring
                   }
                 }
               }
             }
-          `,
-        }),
-      });
+          }
+        }
+      `;
 
-      if (!response.ok) {
-        throw new Error("Failed to fetch anime list");
-      }
-
-      const data = await response.json();
-
-      // Process the data to match the format the client expects
-      const processedData = {
-        type: "airing_update",
-        data: [] as AiringShow[],
+      const variables: UserAnimeListQueryVariables = {
+        userId: parseInt(user.id),
       };
 
-      // Extract and transform the data
-      if (data?.data?.MediaListCollection?.lists) {
-        const allEntries = [];
-        for (const list of data.data.MediaListCollection.lists) {
-          for (const entry of list.entries) {
-            if (entry.media) {
-              allEntries.push({
-                id: entry.media.id,
-                title: entry.media.title.english || entry.media.title.romaji,
-                status: entry.media.status,
-                episodes: entry.media.episodes,
-                mediaListEntry: {
-                  status: entry.status,
-                  progress: entry.progress,
-                },
-                nextAiringEpisode: entry.media.nextAiringEpisode,
-              });
+      const data = await request<UserAnimeListQuery>(
+        ANILIST_GRAPHQL_URL,
+        query,
+        variables,
+        {
+          Authorization: `Bearer ${user.accessToken}`,
+        }
+      );
+
+      const entries: EntyFragmentFragment[] = [];
+      const lists = data?.MediaListCollection?.lists ?? [];
+
+      if (lists) {
+        for (const list of lists) {
+          for (const entry of list?.entries ?? []) {
+            if (entry?.media != null) {
+              entries.push(entry);
             }
           }
         }
-        processedData.data = allEntries;
       }
 
-      res.json(processedData);
+      res.json(entries);
     } catch (error) {
       console.error("Error fetching airing anime:", error);
       res.status(500).json({ error: "Failed to fetch airing anime" });

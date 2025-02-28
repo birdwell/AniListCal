@@ -1,0 +1,37 @@
+fragment EntyFragment on MediaList {
+  id
+  status
+  progress
+  media {
+    ...MediaFragment
+  }
+}
+
+fragment MediaFragment on Media {
+  id
+  title {
+    english
+    romaji
+  }
+  episodes
+  status
+  nextAiringEpisode {
+    airingAt
+    episode
+    timeUntilAiring
+  }
+}
+
+query UserAnimeList($userId: Int!) {
+  MediaListCollection(
+    userId: $userId
+    type: ANIME
+    status_in: [CURRENT, PLANNING]
+  ) {
+    lists {
+      entries {
+        ...EntyFragment
+      }
+    }
+  }
+}

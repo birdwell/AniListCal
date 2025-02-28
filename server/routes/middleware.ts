@@ -37,14 +37,14 @@ export function registerMiddleware(app: Express) {
 
   // Configure session
   const PostgresStore = connectPgSimple(session);
-  
+
   const sessionOptions: SessionOptions = {
     secret: process.env.SESSION_SECRET || "anime-calendar-secret",
     resave: false,
     saveUninitialized: false,
     cookie: {
       secure: process.env.NODE_ENV === "production",
-      maxAge: 1000 * 60 * 60 * 24 * 7, // 1 week
+      maxAge: 1000 * 60 * 60 * 24 * 7,
     },
     store: new PostgresStore({
       pool: pool as any,
@@ -64,18 +64,16 @@ export function registerMiddleware(app: Express) {
 
   passport.deserializeUser(async (id: string, done) => {
     try {
-      // Only get the token, which is all we need
       const token = storage.getToken(id);
       if (!token) {
         return done(null, false);
       }
 
-      // Return minimal user object with token
       const user: AniListUser = {
         id,
-        username: "", // We can fetch this from AniList API if needed
+        username: "",
         accessToken: token,
-        anilistId: id  // Set anilistId to match the AniList user ID
+        anilistId: id,
       };
 
       done(null, user);

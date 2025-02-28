@@ -2,16 +2,13 @@ import type { Express } from "express";
 import OpenAI from "openai";
 import * as dotenv from "dotenv";
 
-// Load environment variables from .env file
 dotenv.config();
 
-// Initialize OpenAI with error handling for missing API key
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || "", // Empty string fallback for type safety
+  apiKey: process.env.OPENAI_API_KEY || "",
 });
 
 export function registerAIRoutes(app: Express) {
-  // AI recommendations endpoint
   app.post("/api/ai/recommend", async (req, res) => {
     try {
       const { shows } = req.body;

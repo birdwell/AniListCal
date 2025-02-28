@@ -1,7 +1,6 @@
 import type { Express } from "express";
 
 export function registerConfigRoutes(app: Express) {
-  // Add a config endpoint for client-side setup
   app.get("/api/config", (req, res) => {
     res.json({
       clientId:

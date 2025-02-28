@@ -1,0 +1,52 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Launch Server",
+            "program": "${workspaceFolder}/server/index.ts",
+            "request": "launch",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "node",
+            "runtimeExecutable": "node",
+            "runtimeArgs": [
+                "--import",
+                "tsx"
+            ],
+            "env": {
+                "NODE_ENV": "development"
+            },
+            "console": "integratedTerminal",
+            "sourceMaps": true,
+            "outFiles": []
+        },
+        {
+            "type": "chrome",
+            "request": "launch",
+            "name": "Launch Brave against Dev Server",
+            "url": "http://localhost:5001",
+            "webRoot": "${workspaceFolder}/client",
+            "runtimeExecutable": "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser",
+            "sourceMaps": true,
+            "sourceMapPathOverrides": {
+                "/@fs/*": "*",
+                "/@vite/*": "${webRoot}/node_modules/*",
+                "/src/*": "${webRoot}/src/*",
+                "/@/*": "${webRoot}/src/*",
+                "/@shared/*": "${workspaceFolder}/shared/*"
+            },
+            "preLaunchTask": "Start Dev Server",
+            "userDataDir": "${workspaceFolder}/.vscode/brave-debug-profile"
+        }
+    ],
+    "compounds": [
+        {
+            "name": "Server + Client",
+            "configurations": ["Launch Server", "Launch Brave against Dev Server"]
+        }
+    ]
+}

@@ -1,0 +1,21 @@
+schema: "https://graphql.anilist.co" # Replace with your GraphQL schema URL
+documents: "server/**/*.graphql" # Path to your GraphQL query files
+generates:
+  server/generated/graphql.ts: # Where the generated types will be saved
+    plugins:
+      - "typescript"
+      - "typescript-operations"
+    config:
+      avoidOptionals: true
+      skipTypename: true
+      preResolveTypes: true
+      useTypeImports: true
+      scalars:
+        Int: number
+        Float: number
+        String: string
+        Boolean: boolean
+        ID: string
+  schema.graphql:
+    plugins:
+      - schema-ast

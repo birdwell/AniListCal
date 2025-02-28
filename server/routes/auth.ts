@@ -1,15 +1,12 @@
 import type { Express } from "express";
 import { storage, AniListUser } from "../storage";
-import passport from "passport";
-
-const ANILIST_TOKEN_URL = "https://anilist.co/api/v2/oauth/token";
-const ANILIST_GRAPHQL_URL = "https://graphql.anilist.co";
+import { ANILIST_GRAPHQL_URL, ANILIST_TOKEN_URL } from "../constants";
 
 export function registerAuthRoutes(app: Express) {
-  // AniList auth callback endpoint
   app.post("/api/auth/callback", async (req, res) => {
     try {
       const { code, redirectUri } = req.body;
+
       if (!code) {
         throw new Error("Authorization code is required");
       }
@@ -23,7 +20,6 @@ export function registerAuthRoutes(app: Express) {
         );
       }
 
-      // Exchange the code for a token
       const tokenPayload = {
         grant_type: "authorization_code",
         client_id: process.env.ANILIST_CLIENT_ID,
@@ -43,7 +39,9 @@ export function registerAuthRoutes(app: Express) {
 
       if (!tokenResponse.ok) {
         const errorData = await tokenResponse.json();
+
         console.error("Token exchange failed:", errorData);
+
         throw new Error(
           `Failed to get access token: ${
             errorData.message || tokenResponse.statusText
@@ -53,7 +51,6 @@ export function registerAuthRoutes(app: Express) {
 
       const tokenData = await tokenResponse.json();
 
-      // Get user info from AniList
       const userResponse = await fetch(ANILIST_GRAPHQL_URL, {
         method: "POST",
         headers: {

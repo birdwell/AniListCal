@@ -5,7 +5,6 @@ import { registerAuthRoutes } from "./auth";
 import { registerAnimeRoutes } from "./anime";
 import { registerAIRoutes } from "./ai";
 
-// Add type declaration for Express Request.user
 declare global {
   namespace Express {
     interface User {
@@ -18,10 +17,8 @@ declare global {
 }
 
 export function registerAllRoutes(app: Express, httpServer: any) {
-  // Register middleware first
   registerMiddleware(app);
-  
-  // Register all route modules
+
   registerConfigRoutes(app);
   registerAuthRoutes(app);
   registerAnimeRoutes(app);
