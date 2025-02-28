@@ -6,7 +6,7 @@ interface HeroSectionProps {
 
 export function HeroSection({ show }: HeroSectionProps) {
   return (
-    <div className="relative h-[300px] md:h-[400px] -mx-4 sm:mx-0 sm:rounded-lg overflow-hidden">
+    <div className="relative h-[300px] md:h-[400px] -mx-4 sm:mx-0 sm:rounded-lg overflow-hidden z-0">
       <img
         src={show.bannerImage || show.coverImage.large}
         alt={show.title?.english || show.title?.romaji || ""}

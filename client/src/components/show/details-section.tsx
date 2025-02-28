@@ -2,6 +2,7 @@ import { MediaFragmentFragment } from "@/generated/graphql";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Calendar, Info, PlayCircle, Users } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 
 interface DetailsSectionProps {
   show: MediaFragmentFragment;
@@ -21,12 +22,22 @@ export function DetailsSection({ show }: DetailsSectionProps) {
     return `${minutes}m left`;
   };
 
+  // Function to safely render HTML content
+  const createMarkup = (htmlContent: string) => {
+    return { __html: htmlContent };
+  };
+
   return (
     <div className="grid md:grid-cols-[2fr_1fr] gap-6">
       <div className="space-y-6">
-        <p className="text-muted-foreground whitespace-pre-line">
-          {show.description}
-        </p>
+        <div className="prose dark:prose-invert prose-sm sm:prose-base max-w-none">
+          {show.description && (
+            <div
+              dangerouslySetInnerHTML={createMarkup(show.description)}
+              className="text-foreground"
+            />
+          )}
+        </div>
         <div className="flex flex-wrap gap-2">
           {show.genres?.map((genre) => (
             <Badge key={genre} variant="secondary">
@@ -46,17 +57,13 @@ export function DetailsSection({ show }: DetailsSectionProps) {
               <Calendar className="h-4 w-4 text-primary" />
               <span className="text-sm">
                 Episode {show.nextAiringEpisode.episode} airing in{" "}
-                {formatTimeUntilAiring(
-                  show.nextAiringEpisode.timeUntilAiring
-                )}
+                {formatTimeUntilAiring(show.nextAiringEpisode.timeUntilAiring)}
               </span>
             </div>
           )}
           <div className="flex items-center gap-3">
             <PlayCircle className="h-4 w-4 text-primary" />
-            <span className="text-sm">
-              Episodes: {show.episodes || "TBA"}
-            </span>
+            <span className="text-sm">Episodes: {show.episodes || "TBA"}</span>
           </div>
           {show.studios?.nodes?.[0] && (
             <div className="flex items-center gap-3">
