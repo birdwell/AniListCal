@@ -1,9 +1,9 @@
-import { Switch, Route, useLocation, useRouter } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
-import { useEffect, ReactElement, useState } from "react";
-import { handleAuthCallback, getUser } from "./lib/auth";
+import { useEffect, useState } from "react";
+import authService, { handleAuthCallback, getUser, isAuthenticated } from "./lib/auth";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import Calendar from "@/pages/calendar";
@@ -40,17 +40,17 @@ function AuthCallback() {
       return;
     }
 
-    console.log('Auth callback processing code:', code.substring(0, 5) + '...');
+    console.log('Processing authentication callback...');
 
     handleAuthCallback(code)
       .then(() => {
         // Force a refetch of the user data
-        console.log('Auth successful, refreshing user data');
-        queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+        console.log('Authentication successful');
+        queryClient.invalidateQueries({ queryKey: ["auth"] });
         setTimeout(() => setLocation("/"), 500); // Small delay for state to update
       })
       .catch(err => {
-        console.error('Auth error:', err);
+        console.error('Authentication error:', err);
         setError(err.message || 'Authentication failed');
         setIsLoading(false);
       });
@@ -102,14 +102,15 @@ function AuthCallback() {
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const [, setLocation] = useLocation();
   const { data: user, isLoading, error } = useQuery({
-    queryKey: ["/api/auth/user"],
+    queryKey: ["auth", "user"],
     queryFn: getUser,
-    retry: false
+    retry: false,
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
   useEffect(() => {
     if (!isLoading && !user) {
-      console.log('No user found, redirecting to login');
+      console.log('No authenticated user found, redirecting to login');
       setLocation("/login");
     }
   }, [user, isLoading, setLocation]);
@@ -123,7 +124,8 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
   }
 
   if (error) {
-    console.error('Auth error:', error);
+    console.error('Authentication error:', error);
+    authService.clearAuthData(); // Clear any invalid auth data
     setLocation("/login");
     return null;
   }

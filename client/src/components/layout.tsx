@@ -1,11 +1,20 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Home, Calendar, User, LogOut } from "lucide-react";
-import { logout } from "@/lib/auth";
+import authService from "@/lib/auth";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
+
+  const handleLogout = async () => {
+    try {
+      await authService.logout();
+      // The redirect to login will be handled by the protected route component
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -33,7 +42,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </div>
           <div className="flex items-center gap-2">
             <ThemeToggle />
-            <Button variant="ghost" onClick={() => logout()}>
+            <Button variant="ghost" onClick={handleLogout}>
               <LogOut className="mr-2 h-4 w-4" />
               Logout
             </Button>

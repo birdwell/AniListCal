@@ -1,11 +1,10 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { login } from "@/lib/auth";
+import authService, { getUser } from "@/lib/auth";
 import { SiAnilist } from "react-icons/si";
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { getUser } from "@/lib/auth";
 import { Loader2 } from "lucide-react";
 
 export default function Login() {
@@ -13,8 +12,9 @@ export default function Login() {
   const [, setLocation] = useLocation();
 
   const { data: user, isLoading: isCheckingAuth } = useQuery({
-    queryKey: ["/api/auth/user"],
-    queryFn: getUser
+    queryKey: ["auth", "user"],
+    queryFn: getUser,
+    retry: false
   });
 
   // Redirect to home if already logged in
@@ -26,7 +26,7 @@ export default function Login() {
   const handleLogin = async () => {
     setIsLoading(true);
     try {
-      await login();
+      await authService.login();
     } catch (error) {
       console.error('Login error:', error);
       setIsLoading(false);

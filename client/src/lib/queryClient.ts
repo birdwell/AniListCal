@@ -1,7 +1,14 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import authService from "./auth";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
+    // Special handling for authentication errors
+    if (res.status === 401) {
+      // Clear any stale auth data and trigger redirect in the UI
+      authService.clearAuthData();
+    }
+    
     const text = (await res.text()) || res.statusText;
     throw new Error(`${res.status}: ${text}`);
   }
@@ -12,15 +19,36 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
-  const res = await fetch(url, {
-    method,
-    headers: data ? { "Content-Type": "application/json" } : {},
-    body: data ? JSON.stringify(data) : undefined,
-    credentials: "include",
-  });
+  // Check if this is an authenticated request (not login/register)
+  const isAuthRequest = !url.includes("/auth/login") && !url.includes("/auth/register");
+  
+  try {
+    const res = await fetch(url, {
+      method,
+      headers: {
+        ...(data ? { "Content-Type": "application/json" } : {}),
+        ...(isAuthRequest && authService.getApiToken() ? { "Authorization": `Bearer ${authService.getApiToken()}` } : {})
+      },
+      body: data ? JSON.stringify(data) : undefined,
+      credentials: "include",
+    });
 
-  await throwIfResNotOk(res);
-  return res;
+    // Handle token refresh if needed
+    if (res.status === 401 && isAuthRequest) {
+      // Try to refresh the token
+      const refreshed = await authService.refreshApiToken();
+      if (refreshed) {
+        // Retry the original request with the new token
+        return apiRequest(method, url, data);
+      }
+    }
+
+    await throwIfResNotOk(res);
+    return res;
+  } catch (error) {
+    console.error("API request error:", error);
+    throw error;
+  }
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
@@ -29,23 +57,54 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const res = await fetch(queryKey[0] as string, {
-      credentials: "include",
-    });
+    // Check if this is an authenticated request
+    const url = queryKey[0] as string;
+    const isAuthRequest = !url.includes("/auth/login") && !url.includes("/auth/register");
+    
+    try {
+      const res = await fetch(url, {
+        headers: isAuthRequest && authService.getApiToken() ? {
+          "Authorization": `Bearer ${authService.getApiToken()}`
+        } : {},
+        credentials: "include",
+      });
 
-    if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-      return null;
+      // Handle token refresh if needed
+      if (res.status === 401 && isAuthRequest) {
+        // Try to refresh the token
+        const refreshed = await authService.refreshApiToken();
+        if (refreshed) {
+          // Retry the query with the new token
+          const retryRes = await fetch(url, {
+            headers: {
+              "Authorization": `Bearer ${authService.getApiToken()}`
+            },
+            credentials: "include",
+          });
+          
+          if (retryRes.ok) {
+            return await retryRes.json();
+          }
+        }
+      }
+
+      if (unauthorizedBehavior === "returnNull" && res.status === 401) {
+        return null;
+      }
+
+      await throwIfResNotOk(res);
+      return await res.json();
+    } catch (error) {
+      console.error("Query function error:", error);
+      throw error;
     }
-
-    await throwIfResNotOk(res);
-    return await res.json();
   };
 
 // Configure the QueryClient with improved caching
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      queryFn: getQueryFn({ on401: "throw" }),
+      queryFn: getQueryFn({ on401: "returnNull" }),
       // Don't refetch on window focus for better UX
       refetchOnWindowFocus: false,
       // Consider data fresh for 5 minutes by default
@@ -55,7 +114,7 @@ export const queryClient = new QueryClient({
       // Don't retry failed requests automatically
       retry: false,
       // Show loading state immediately for better UX
-      throwOnError: true,
+      throwOnError: false,
     },
     mutations: {
       // Don't retry failed mutations

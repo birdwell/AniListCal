@@ -1,8 +1,16 @@
-import type { Express } from "express";
-import { storage, AniListUser } from "../storage";
+import type { Express, Request, Response, NextFunction } from "express";
+import { storage } from "../storage";
 import { ANILIST_GRAPHQL_URL, ANILIST_TOKEN_URL } from "../constants";
+import { AniListUser } from "../types";
+import { validateApiToken } from "./middleware";
 
 export function registerAuthRoutes(app: Express) {
+  // Register the API token middleware for protected routes
+  app.use(
+    ["/api/anilist", "/api/auth/user", "/api/auth/refresh-token"],
+    validateApiToken
+  );
+
   app.post("/api/auth/callback", async (req, res) => {
     try {
       const { code, redirectUri } = req.body;
@@ -39,9 +47,6 @@ export function registerAuthRoutes(app: Express) {
 
       if (!tokenResponse.ok) {
         const errorData = await tokenResponse.json();
-
-        console.error("Token exchange failed:", errorData);
-
         throw new Error(
           `Failed to get access token: ${
             errorData.message || tokenResponse.statusText
@@ -50,13 +55,14 @@ export function registerAuthRoutes(app: Express) {
       }
 
       const tokenData = await tokenResponse.json();
+      const accessToken = tokenData.access_token;
 
       const userResponse = await fetch(ANILIST_GRAPHQL_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Accept: "application/json",
-          Authorization: `Bearer ${tokenData.access_token}`,
+          Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify({
           query: `
@@ -79,16 +85,26 @@ export function registerAuthRoutes(app: Express) {
 
       const userData = await userResponse.json();
       const anilistUser = userData.data.Viewer;
+      const userId = anilistUser.id.toString();
 
-      // Store token in our simple storage
-      storage.storeToken(anilistUser.id.toString(), tokenData.access_token);
+      // Store token in our storage
+      storage.storeToken(userId, accessToken);
+
+      // Store user info
+      storage.storeUserInfo(
+        userId,
+        anilistUser.name,
+        anilistUser.avatar?.medium
+      );
+
+      // Generate an API token
+      const apiToken = storage.generateApiToken(userId);
 
       // Create user object for session
       const user: AniListUser = {
-        id: anilistUser.id.toString(),
+        id: userId,
         username: anilistUser.name,
-        accessToken: tokenData.access_token,
-        anilistId: anilistUser.id.toString() // Set anilistId to match the AniList user ID
+        avatarUrl: anilistUser.avatar?.medium,
       };
 
       // Log the user in by establishing a session
@@ -97,13 +113,17 @@ export function registerAuthRoutes(app: Express) {
           console.error("Login error:", err);
           return res.status(500).json({ error: "Failed to establish session" });
         }
+
+        // Return user info and API token
         res.json({
           success: true,
           user: {
             id: user.id,
             username: user.username,
-            anilistId: user.anilistId // Include anilistId in the response
+            avatarUrl: user.avatarUrl,
           },
+          apiToken: apiToken,
+          expiresIn: 4 * 60 * 60, // 4 hours in seconds
         });
       });
     } catch (error: any) {
@@ -119,11 +139,6 @@ export function registerAuthRoutes(app: Express) {
       return res.redirect("/login?error=No_authorization_code_received");
     }
 
-    console.log(
-      "Received auth callback with code:",
-      code.substring(0, 5) + "..."
-    );
-
     // Send the auth code to the client for processing via the SPA router
     res.send(`
       <!DOCTYPE html>
@@ -134,15 +149,12 @@ export function registerAuthRoutes(app: Express) {
             window.onload = function() {
               // Extract the code from the URL
               const code = "${code}";
-              console.log("Got authentication code, storing temporarily...");
               
               // Store it in sessionStorage for the client-side app
               sessionStorage.setItem('auth_code', code);
               
               // Redirect to the SPA auth callback handler without the code parameter
-              // Use a small timeout to ensure sessionStorage is set
               setTimeout(() => {
-                console.log("Redirecting to SPA auth callback handler...");
                 window.location.href = '/auth/callback-process';
               }, 100);
             }
@@ -186,44 +198,115 @@ export function registerAuthRoutes(app: Express) {
 
   // Get current user
   app.get("/api/auth/user", (req, res) => {
-    if (!req.isAuthenticated()) {
+    // API token authentication is handled by middleware
+    // By the time we get here, req.userId is already set
+    if (!req.userId) {
       return res.status(401).json({ error: "Not authenticated" });
     }
-    
-    // Return user info including the access token
-    const user = req.user;
-    
-    // Get the latest token from storage
-    const accessToken = storage.getToken(user.id);
-    
+
+    // Get user info
+    const userInfo = storage.getUserInfo(req.userId);
+    if (!userInfo) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
     res.json({
-      id: user.id,
-      username: user.username,
-      anilistId: user.anilistId,
-      accessToken: accessToken // Include the token in the response
+      id: req.userId,
+      username: userInfo.username,
+      avatarUrl: userInfo.avatarUrl,
     });
+  });
+
+  // Refresh API token endpoint
+  app.post("/api/auth/refresh-token", (req, res) => {
+    // API token validation is already done in middleware
+    // If we get here, req.userId is set
+    if (!req.userId) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    // Generate a new API token
+    const newApiToken = storage.generateApiToken(req.userId);
+
+    res.json({
+      apiToken: newApiToken,
+      expiresIn: 4 * 60 * 60, // 4 hours in seconds
+    });
+  });
+
+  // Endpoint to make authenticated AniList requests through our server
+  app.post("/api/anilist/proxy", async (req, res) => {
+    // API token validation is already done in middleware
+    if (!req.userId || !req.anilistToken) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const { query, variables } = req.body;
+
+      if (!query) {
+        return res.status(400).json({ error: "GraphQL query required" });
+      }
+
+      // Forward the request to AniList with the actual token
+      const response = await fetch(ANILIST_GRAPHQL_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          Authorization: `Bearer ${req.anilistToken}`,
+        },
+        body: JSON.stringify({
+          query,
+          variables,
+        }),
+      });
+
+      const data = await response.json();
+      res.json(data);
+    } catch (error: any) {
+      console.error("AniList proxy error:", error);
+      res.status(500).json({ error: "Failed to proxy request to AniList" });
+    }
   });
 
   // Logout endpoint
   app.post("/api/auth/logout", (req, res) => {
-    if (req.user) {
-      const user = req.user;
-      storage.removeToken(user.id);
+    // Get the token from the Authorization header
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      const token = authHeader.split(" ")[1];
+      storage.revokeApiToken(token);
     }
 
-    req.logout((err) => {
-      if (err) {
-        console.error("Logout error:", err);
-        return res.status(500).json({ error: "Failed to logout" });
+    // If we have userId from token validation, revoke all tokens for that user
+    if (req.userId) {
+      storage.revokeToken(req.userId);
+    }
+
+    // Handle session logout if using session auth
+    if (req.isAuthenticated()) {
+      const user = req.user as AniListUser;
+      if (user.id) {
+        storage.revokeToken(user.id);
       }
-      req.session.destroy((err) => {
+
+      req.logout((err) => {
         if (err) {
-          console.error("Session destruction error:", err);
-          return res.status(500).json({ error: "Failed to destroy session" });
+          console.error("Logout error:", err);
+          return res.status(500).json({ error: "Failed to logout" });
         }
-        res.clearCookie("sid"); // Use the custom cookie name
-        res.json({ success: true });
+        req.session.destroy((err) => {
+          if (err) {
+            console.error("Session destruction error:", err);
+            return res.status(500).json({ error: "Failed to destroy session" });
+          }
+          res.clearCookie("sid"); // Use the custom cookie name
+          res.json({ success: true });
+        });
       });
-    });
+    } else {
+      res.json({ success: true });
+    }
   });
 }

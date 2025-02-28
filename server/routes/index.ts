@@ -9,8 +9,12 @@ declare global {
     interface User {
       id: string;
       username: string;
-      accessToken: string;
-      anilistId: string;
+      avatarUrl?: string;
+    }
+    
+    interface Request {
+      userId?: string;       // User ID from API token
+      anilistToken?: string; // AniList token from API token auth
     }
   }
 }

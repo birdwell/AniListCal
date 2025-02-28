@@ -57,16 +57,14 @@ export default function CalendarPage() {
   });
 
   const { data: animeEntries, isLoading: isAnimeLoading } = useQuery({
-    queryKey: ["/anilist/anime", user?.anilistId],
+    queryKey: ["/anilist/anime", user?.id],
     queryFn: () => {
-      if (!user?.anilistId) {
+      if (!user?.id) {
         throw new Error("Please set your Anilist ID in your profile");
       }
-      return fetchUserAnime(parseInt(user.anilistId), [
-        MediaListStatus.Current,
-      ]);
+      return fetchUserAnime(user.id, [MediaListStatus.Current]);
     },
-    enabled: !!user?.anilistId,
+    enabled: !!user?.id,
     ...commonQueryOptions,
   });
 

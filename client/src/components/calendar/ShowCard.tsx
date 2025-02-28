@@ -10,23 +10,25 @@ interface ShowCardProps {
 
 export function ShowCard({ entry }: ShowCardProps) {
   if (!entry.media?.nextAiringEpisode) return null;
-  
-  const title = entry.media.title?.english || entry.media.title?.romaji || "Unknown Title";
+
+  const title =
+    entry.media.title?.english || entry.media.title?.romaji || "Unknown Title";
   const episode = entry.media.nextAiringEpisode.episode;
   const currentEpisode = entry.progress || 0;
   const totalEpisodes = entry.media.episodes;
   const airingAt = entry.media.nextAiringEpisode.airingAt;
-  const coverImage = entry.media.coverImage?.large || entry.media.coverImage?.medium;
-  
+  const coverImage =
+    entry.media.coverImage?.large || entry.media.coverImage?.extraLarge;
+
   return (
     <div className="p-4 rounded-lg bg-accent/50 hover:bg-accent transition-colors">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
         <div className="flex gap-3 items-center">
           {coverImage && (
             <div className="h-12 w-12 rounded-md overflow-hidden flex-shrink-0">
-              <img 
-                src={coverImage} 
-                alt={title} 
+              <img
+                src={coverImage}
+                alt={title}
                 className="h-full w-full object-cover"
               />
             </div>
@@ -36,10 +38,10 @@ export function ShowCard({ entry }: ShowCardProps) {
               {title}
             </span>
             <div className="flex items-center gap-2 text-sm">
-              <span className="text-muted-foreground">
-                Episode {episode}
-              </span>
-              <span className={cn("font-medium", getAiringStatusColor(airingAt))}>
+              <span className="text-muted-foreground">Episode {episode}</span>
+              <span
+                className={cn("font-medium", getAiringStatusColor(airingAt))}
+              >
                 • {formatTimeUntil(airingAt)}
               </span>
             </div>
@@ -47,15 +49,19 @@ export function ShowCard({ entry }: ShowCardProps) {
         </div>
         <div className="flex items-center gap-4 text-sm">
           <div className="flex items-center gap-2">
-            <PlayCircle className={cn(
-              "h-4 w-4",
-              getProgressColor(currentEpisode, episode)
-            )} />
-            <span className={cn(
-              "whitespace-nowrap",
-              getProgressColor(currentEpisode, episode)
-            )}>
-              {currentEpisode} / {totalEpisodes || '?'}
+            <PlayCircle
+              className={cn(
+                "h-4 w-4",
+                getProgressColor(currentEpisode, episode)
+              )}
+            />
+            <span
+              className={cn(
+                "whitespace-nowrap",
+                getProgressColor(currentEpisode, episode)
+              )}
+            >
+              {currentEpisode} / {totalEpisodes || "?"}
             </span>
           </div>
         </div>

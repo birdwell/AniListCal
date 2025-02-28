@@ -1,9 +1,38 @@
-import type { Express } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import session, { SessionOptions } from "express-session";
 import passport from "passport";
 import connectPgSimple from "connect-pg-simple";
 import { pool } from "../db";
-import { AniListUser, storage } from "../storage";
+import { AniListUser } from "../types";
+import { storage } from "../storage";
+
+/**
+ * Middleware to validate API tokens
+ */
+export function validateApiToken(req: Request, res: Response, next: NextFunction) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
+  const token = authHeader.split(' ')[1];
+  const tokenData = storage.validateApiToken(token);
+  
+  if (!tokenData) {
+    return res.status(401).json({ error: 'Invalid or expired token' });
+  }
+  
+  // Add user info to request for use in protected routes
+  req.userId = tokenData.userId;
+  
+  // Add the AniList token to the request if needed for proxy operations
+  const anilistToken = storage.getToken(tokenData.userId);
+  if (anilistToken) {
+    req.anilistToken = anilistToken;
+  }
+  
+  next();
+}
 
 export function registerMiddleware(app: Express) {
   // Enable CORS for the frontend domain
@@ -69,11 +98,16 @@ export function registerMiddleware(app: Express) {
         return done(null, false);
       }
 
+      // Get user info from storage
+      const userInfo = storage.getUserInfo(id);
+      if (!userInfo) {
+        return done(null, false);
+      }
+
       const user: AniListUser = {
         id,
-        username: "",
-        accessToken: token,
-        anilistId: id,
+        username: userInfo.username,
+        avatarUrl: userInfo.avatarUrl,
       };
 
       done(null, user);
