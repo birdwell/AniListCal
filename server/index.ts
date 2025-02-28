@@ -1,21 +1,15 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-import { db } from "./db";
-import { users, User } from "@shared/schema";
+import { pool } from "./db";
 import * as dotenv from 'dotenv';
+import { createServer } from "http";
 
 // Load environment variables from .env file
 dotenv.config();
 
-// Extend Express Request type to include our User type
-declare global {
-  namespace Express {
-    interface Request {
-      user?: User; // Add user property to Request interface
-    }
-  }
-}
+// We'll no longer extend the Request interface here to avoid type conflicts
+// Passport will handle the user type internally
 
 const app = express();
 app.use(express.json());
@@ -25,7 +19,9 @@ app.use(express.urlencoded({ extended: false }));
 async function checkDatabaseConnection() {
   try {
     // Test query to verify database connection
-    await db.select().from(users).limit(1);
+    const client = await pool.connect();
+    await client.query('SELECT NOW()');
+    client.release();
     log("Database connection successful");
   } catch (error) {
     log("Database connection failed: " + error);
@@ -49,13 +45,24 @@ app.use((req, res, next) => {
     if (path.startsWith("/api")) {
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
       if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+        // Include a short summary of the response if it's not too big
+        const responseKeys = Object.keys(capturedJsonResponse);
+        if (responseKeys.length <= 5) {
+          const summary = responseKeys.map(k => {
+            const val = capturedJsonResponse![k];
+            if (Array.isArray(val)) {
+              return `${k}: [${val.length} items]`;
+            } else if (typeof val === "object" && val !== null) {
+              return `${k}: {${Object.keys(val).length} props}`;
+            } else {
+              return `${k}: ${val}`;
+            }
+          }).join(", ");
+          logLine += ` - Response: {${summary}}`;
+        } else {
+          logLine += ` - Response: {${responseKeys.length} keys}`;
+        }
       }
-
-      if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
-      }
-
       log(logLine);
     }
   });
@@ -63,33 +70,42 @@ app.use((req, res, next) => {
   next();
 });
 
-(async () => {
-  try {
-    // Check database connection before starting server
-    await checkDatabaseConnection();
+// Define the port to listen on
+const PORT = process.env.PORT || 5001;
 
-    const server = registerRoutes(app);
+// Check the database connection before starting the server
+checkDatabaseConnection()
+  .then(async () => {
+    // Create HTTP server first
+    const httpServer = createServer(app);
+    
+    // Register all application routes first
+    registerRoutes(app, httpServer);
 
-    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-      const status = err.status || err.statusCode || 500;
-      const message = err.message || "Internal Server Error";
-      log(`Error: ${status} - ${message}`);
-      res.status(status).json({ message });
-      throw err;
-    });
-
-    if (app.get("env") === "development") {
-      await setupVite(app, server);
+    // Initialize Vite middleware for development
+    if (process.env.NODE_ENV !== 'production') {
+      await setupVite(app, httpServer);
     } else {
       serveStatic(app);
     }
-
-    const PORT = 5001;
-    server.listen(PORT, "0.0.0.0", () => {
-      log(`serving on port ${PORT}`);
+    
+    // Start the HTTP server
+    httpServer.listen(PORT, () => {
+      log(`Server running on http://localhost:${PORT}/`);
     });
-  } catch (error) {
-    log("Failed to start server: " + error);
+
+    // Handle server shutdown
+    ["SIGINT", "SIGTERM"].forEach((signal) => {
+      process.on(signal, () => {
+        log(`Received ${signal}, shutting down...`);
+        httpServer.close(() => {
+          log("Server closed");
+          process.exit(0);
+        });
+      });
+    });
+  })
+  .catch((error) => {
+    log(`Startup error: ${error}`);
     process.exit(1);
-  }
-})();
+  });

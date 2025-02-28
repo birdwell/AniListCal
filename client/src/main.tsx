@@ -1,3 +1,4 @@
+// Import our app components
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";

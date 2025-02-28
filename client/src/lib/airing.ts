@@ -14,9 +14,15 @@ export interface AiringShow {
   id: number;
   title: string;
   status: string;
+  episodes?: number;
+  mediaListEntry?: {
+    status: string;
+    progress: number;
+  };
   nextAiringEpisode?: {
     timeUntilAiring: number;
     episode: number;
+    airingAt: number;
   };
 }
 
@@ -26,7 +32,8 @@ const listeners: Record<string, ((data: any) => void)[]> = {};
 // Fetch airing updates from the server
 export async function fetchAiringUpdates(): Promise<AiringUpdate> {
   try {
-    const response = await fetch('/api/airing-updates');
+    // Use the new endpoint
+    const response = await fetch('/api/anime/airing');
     if (!response.ok) {
       throw new Error(`Failed to fetch airing updates: ${response.statusText}`);
     }

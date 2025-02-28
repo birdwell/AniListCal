@@ -58,9 +58,12 @@ export async function login() {
     const authUrl = `${ANILIST_AUTH_URL}?${params.toString()}`;
     console.log('Authorization URL:', authUrl);
 
-    // Save state to verify the callback
-    sessionStorage.setItem('auth_redirect_uri', redirectUri);
+    // Store the current timestamp to prevent stale responses
+    sessionStorage.setItem('auth_request_time', Date.now().toString());
     
+    // Store the redirect URI for token exchange
+    sessionStorage.setItem('auth_redirect_uri', redirectUri);
+
     // Redirect to AniList for authentication
     window.location.href = authUrl;
   } catch (error) {
@@ -80,6 +83,7 @@ export async function handleAuthCallback(code: string): Promise<any> {
     
     // Clean up
     sessionStorage.removeItem('auth_redirect_uri');
+    sessionStorage.removeItem('auth_code');
     
     console.log('Using redirect URI for token exchange:', redirectUri);
     

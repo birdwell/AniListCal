@@ -1,14 +1,12 @@
 import { Pool, neonConfig } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-serverless';
 import ws from "ws";
-import * as schema from "@shared/schema";
 import { log } from './vite';
-
 import * as dotenv from 'dotenv';
 
 // Load environment variables from .env file
 dotenv.config();
 
+// Configure Neon with WebSocket
 neonConfig.webSocketConstructor = ws;
 
 if (!process.env.DATABASE_URL) {
@@ -17,38 +15,35 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-// Create a connection pool with proper error handling and reconnection
+// Create a connection pool for session storage only
 const pool = new Pool({ 
   connectionString: process.env.DATABASE_URL,
   connectionTimeoutMillis: 5000,
-  max: 20,
-  idleTimeoutMillis: 30000,
+  max: 5, // Smaller pool size since we're only using it for sessions
 });
 
-// Add event handlers for the pool
+// Add simple error handling for the pool
 pool.on('error', (err: Error) => {
   log(`Database pool error: ${err.message}`);
+  
   // Don't exit on transient errors
   if (err.message.includes('Connection terminated') || 
       err.message.includes('Connection ended unexpectedly')) {
     log('Attempting to recover from connection error...');
     return;
   }
+  
   log('Fatal database error, exiting...');
   process.exit(-1);
 });
 
-pool.on('connect', () => {
-  log('New client connected to the pool');
-});
-
-// Test the connection
+// Initialize database with session table
 (async () => {
   try {
     const client = await pool.connect();
     log('Database connection test successful');
     
-    // Initialize session table if needed
+    // Initialize session table only
     await client.query(`
       CREATE TABLE IF NOT EXISTS "session" (
         "sid" varchar NOT NULL,
@@ -59,8 +54,8 @@ pool.on('connect', () => {
       
       CREATE INDEX IF NOT EXISTS "IDX_session_expire" ON "session" ("expire");
     `);
-    log('Session table initialized');
     
+    log('Session table initialized');
     client.release();
   } catch (err) {
     log(`Failed to connect to database: ${err}`);
@@ -69,4 +64,3 @@ pool.on('connect', () => {
 })();
 
 export { pool };
-export const db = drizzle(pool, { schema });

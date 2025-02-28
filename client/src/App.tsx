@@ -16,7 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { ThemeProvider } from "@/components/theme-provider";
-import { initWebSocket } from "@/lib/websocket";
+import { initAiringUpdates } from "@/lib/airing";
 
 function AuthCallback() {
   const [error, setError] = useState<string | null>(null);
@@ -134,12 +134,24 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
 
 function Router() {
   const [location] = useLocation();
-  const showLayout = !["/login", "/auth/callback"].includes(location);
+  const showLayout = !["/login", "/auth/callback", "/auth/callback-process"].includes(location);
 
   const content = (
     <Switch>
       <Route path="/login" component={Login} />
-      <Route path="/auth/callback" component={AuthCallback} />
+      <Route path="/auth/callback" component={() => {
+        // Just handle the initial OAuth redirect with code parameter
+        // This route will be hit by the AniList OAuth redirect
+        return (
+          <div className="min-h-screen w-full flex items-center justify-center bg-background">
+            <div className="text-center">
+              <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
+              <p>Initiating authentication...</p>
+            </div>
+          </div>
+        );
+      }} />
+      <Route path="/auth/callback-process" component={AuthCallback} />
       <Route path="/" component={() => <ProtectedRoute component={Home} />} />
       <Route path="/calendar" component={() => <ProtectedRoute component={Calendar} />} />
       <Route path="/profile" component={() => <ProtectedRoute component={Profile} />} />
@@ -153,7 +165,8 @@ function Router() {
 
 function App() {
   useEffect(() => {
-    initWebSocket();
+    // Use the new polling-based airing updates instead of WebSockets
+    initAiringUpdates();
   }, []);
 
   return (
