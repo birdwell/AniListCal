@@ -50,19 +50,18 @@ export const queryClient = new QueryClient({
       refetchOnWindowFocus: false,
       // Consider data fresh for 5 minutes by default
       staleTime: 5 * 60 * 1000,
-      // Keep unused data in cache for 30 minutes
-      cacheTime: 30 * 60 * 1000,
+      // Keep unused data in cache for 30 minutes (renamed from cacheTime in React Query v5)
+      gcTime: 30 * 60 * 1000,
       // Don't retry failed requests automatically
       retry: false,
       // Show loading state immediately for better UX
-      useErrorBoundary: true,
-      suspense: false,
+      throwOnError: true,
     },
     mutations: {
       // Don't retry failed mutations
       retry: false,
       // Show error states immediately
-      useErrorBoundary: true,
+      throwOnError: true,
     },
   },
 });

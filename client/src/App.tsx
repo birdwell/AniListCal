@@ -16,7 +16,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { ThemeProvider } from "@/components/theme-provider";
-import { initAiringUpdates } from "@/lib/airing";
 
 function AuthCallback() {
   const [error, setError] = useState<string | null>(null);
@@ -164,11 +163,6 @@ function Router() {
 }
 
 function App() {
-  useEffect(() => {
-    // Use the new polling-based airing updates instead of WebSockets
-    initAiringUpdates();
-  }, []);
-
   return (
     <ThemeProvider defaultTheme="system" storageKey="anime-tracker-theme">
       <QueryClientProvider client={queryClient}>

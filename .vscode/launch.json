@@ -21,26 +21,31 @@
                 "NODE_ENV": "development"
             },
             "console": "integratedTerminal",
-            "sourceMaps": true,
-            "outFiles": []
+            "sourceMaps": true
         },
         {
             "type": "chrome",
             "request": "launch",
             "name": "Launch Brave against Dev Server",
             "url": "http://localhost:5001",
-            "webRoot": "${workspaceFolder}/client",
+            "webRoot": "${workspaceFolder}",
             "runtimeExecutable": "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser",
             "sourceMaps": true,
             "sourceMapPathOverrides": {
                 "/@fs/*": "*",
+                "/@fs/${workspaceFolder}/*": "${workspaceFolder}/*",
                 "/@vite/*": "${webRoot}/node_modules/*",
-                "/src/*": "${webRoot}/src/*",
-                "/@/*": "${webRoot}/src/*",
-                "/@shared/*": "${workspaceFolder}/shared/*"
+                "/src/*": "${webRoot}/client/src/*",
+                "/@/*": "${webRoot}/client/src/*",
+                "/@shared/*": "${workspaceFolder}/shared/*",
+                "webpack:///./~/*": "${webRoot}/node_modules/*",
+                "webpack:///./*": "${webRoot}/*",
+                "webpack:///*": "*",
+                "webpack:///src/*": "${webRoot}/client/src/*"
             },
             "preLaunchTask": "Start Dev Server",
-            "userDataDir": "${workspaceFolder}/.vscode/brave-debug-profile"
+            "userDataDir": "${workspaceFolder}/.vscode/brave-debug-profile",
+            "trace": true
         }
     ],
     "compounds": [

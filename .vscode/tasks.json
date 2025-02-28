@@ -21,6 +21,12 @@
                     "endsPattern": "ready in"
                 }
             },
+            "options": {
+                "env": {
+                    "NODE_ENV": "development",
+                    "DEBUG": "vite:*"
+                }
+            },
             "presentation": {
                 "reveal": "always",
                 "panel": "new"

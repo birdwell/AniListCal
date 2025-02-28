@@ -2,7 +2,6 @@ import type { Express } from "express";
 import { registerMiddleware } from "./middleware";
 import { registerConfigRoutes } from "./config";
 import { registerAuthRoutes } from "./auth";
-import { registerAnimeRoutes } from "./anime";
 import { registerAIRoutes } from "./ai";
 
 declare global {
@@ -21,6 +20,5 @@ export function registerAllRoutes(app: Express, httpServer: any) {
 
   registerConfigRoutes(app);
   registerAuthRoutes(app);
-  registerAnimeRoutes(app);
   registerAIRoutes(app);
 }

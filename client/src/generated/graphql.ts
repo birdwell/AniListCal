@@ -4546,13 +4546,20 @@ export type YearStats = {
   year: Maybe<Scalars['Int']['output']>;
 };
 
-export type EntyFragmentFragment = { id: number, status: MediaListStatus | null, progress: number | null, media: { id: number, episodes: number | null, status: MediaStatus | null, title: { english: string | null, romaji: string | null } | null, nextAiringEpisode: { airingAt: number, episode: number, timeUntilAiring: number } | null } | null };
+export type MediaFragmentFragment = { id: number, bannerImage: string | null, description: string | null, status: MediaStatus | null, episodes: number | null, genres: Array<string | null> | null, averageScore: number | null, popularity: number | null, title: { romaji: string | null, english: string | null, native: string | null } | null, coverImage: { large: string | null, extraLarge: string | null } | null, nextAiringEpisode: { airingAt: number, episode: number, timeUntilAiring: number } | null, studios: { nodes: Array<{ id: number, name: string } | null> | null } | null, characters: { nodes: Array<{ id: number, name: { full: string | null, native: string | null } | null, image: { large: string | null } | null } | null> | null } | null };
 
-export type MediaFragmentFragment = { id: number, episodes: number | null, status: MediaStatus | null, title: { english: string | null, romaji: string | null } | null, nextAiringEpisode: { airingAt: number, episode: number, timeUntilAiring: number } | null };
+export type GetMediaQueryVariables = Exact<{
+  id: Scalars['Int']['input'];
+}>;
 
-export type UserAnimeListQueryVariables = Exact<{
+
+export type GetMediaQuery = { Media: { id: number, bannerImage: string | null, description: string | null, status: MediaStatus | null, episodes: number | null, genres: Array<string | null> | null, averageScore: number | null, popularity: number | null, title: { romaji: string | null, english: string | null, native: string | null } | null, coverImage: { large: string | null, extraLarge: string | null } | null, nextAiringEpisode: { airingAt: number, episode: number, timeUntilAiring: number } | null, studios: { nodes: Array<{ id: number, name: string } | null> | null } | null, characters: { nodes: Array<{ id: number, name: { full: string | null, native: string | null } | null, image: { large: string | null } | null } | null> | null } | null } | null };
+
+export type EntyFragmentFragment = { id: number, status: MediaListStatus | null, progress: number | null, media: { id: number, bannerImage: string | null, description: string | null, status: MediaStatus | null, episodes: number | null, genres: Array<string | null> | null, averageScore: number | null, popularity: number | null, title: { romaji: string | null, english: string | null, native: string | null } | null, coverImage: { large: string | null, extraLarge: string | null } | null, nextAiringEpisode: { airingAt: number, episode: number, timeUntilAiring: number } | null, studios: { nodes: Array<{ id: number, name: string } | null> | null } | null, characters: { nodes: Array<{ id: number, name: { full: string | null, native: string | null } | null, image: { large: string | null } | null } | null> | null } | null } | null };
+
+export type GetUserMediaListQueryVariables = Exact<{
   userId: Scalars['Int']['input'];
 }>;
 
 
-export type UserAnimeListQuery = { MediaListCollection: { lists: Array<{ entries: Array<{ id: number, status: MediaListStatus | null, progress: number | null, media: { id: number, episodes: number | null, status: MediaStatus | null, title: { english: string | null, romaji: string | null } | null, nextAiringEpisode: { airingAt: number, episode: number, timeUntilAiring: number } | null } | null } | null> | null } | null> | null } | null };
+export type GetUserMediaListQuery = { MediaListCollection: { lists: Array<{ entries: Array<{ id: number, status: MediaListStatus | null, progress: number | null, media: { id: number, bannerImage: string | null, description: string | null, status: MediaStatus | null, episodes: number | null, genres: Array<string | null> | null, averageScore: number | null, popularity: number | null, title: { romaji: string | null, english: string | null, native: string | null } | null, coverImage: { large: string | null, extraLarge: string | null } | null, nextAiringEpisode: { airingAt: number, episode: number, timeUntilAiring: number } | null, studios: { nodes: Array<{ id: number, name: string } | null> | null } | null, characters: { nodes: Array<{ id: number, name: { full: string | null, native: string | null } | null, image: { large: string | null } | null } | null> | null } | null } | null } | null> | null } | null> | null } | null };

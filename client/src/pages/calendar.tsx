@@ -1,272 +1,91 @@
 import { useQuery } from "@tanstack/react-query";
-import { Calendar as CalendarIcon, PlayCircle, Filter } from "lucide-react";
-import { Calendar } from "@/components/ui/calendar";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import { fetchUserAnime } from "@/lib/anilist";
 import { getUser } from "@/lib/auth";
 import { useState } from "react";
-import { cn } from "@/lib/utils";
+import { EntyFragmentFragment } from "@/generated/graphql";
+import {
+  CalendarCard,
+  DaySelector,
+  LoadingView,
+  ShowsList
+} from "@/components/calendar";
+import { commonQueryOptions } from "@/lib/query-config";
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-const WATCH_STATUSES = ["CURRENT", "PLANNING"] as const;
-type WatchStatus = typeof WATCH_STATUSES[number];
 
-function LoadingGrid() {
-  return (
-    <div className="space-y-6">
-      {[...Array(3)].map((_, i) => (
-        <Card key={i}>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-3 mb-6">
-              <Skeleton className="h-5 w-5 rounded-full" />
-              <Skeleton className="h-6 w-32" />
-            </div>
-            <div className="space-y-3">
-              {[...Array(2)].map((_, j) => (
-                <div
-                  key={j}
-                  className="p-4 rounded-lg bg-accent/50"
-                >
-                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
-                    <div className="space-y-2">
-                      <Skeleton className="h-5 w-48" />
-                      <Skeleton className="h-4 w-32" />
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <Skeleton className="h-4 w-24" />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      ))}
-    </div>
-  );
+// Helper function to group shows by airing date
+function groupShowsByAiringDate(
+  animeEntries: EntyFragmentFragment[] | undefined
+): Record<string, EntyFragmentFragment[]> {
+  if (!animeEntries) return {};
+
+  return animeEntries
+    .filter(entry => 
+      entry.media?.nextAiringEpisode && entry.status == "CURRENT"
+    )
+    .reduce((acc, entry) => {
+      if (!entry.media?.nextAiringEpisode) return acc;
+      
+      const date = new Date(entry.media.nextAiringEpisode.airingAt * 1000);
+      const key = date.toISOString().split('T')[0];
+      
+      if (!acc[key]) acc[key] = [];
+      acc[key].push(entry);
+      
+      return acc;
+    }, {} as Record<string, EntyFragmentFragment[]>);
 }
 
 export default function CalendarPage() {
   const today = new Date().getDay();
   const [selectedDay, setSelectedDay] = useState<number>(today);
-  const [selectedStatuses, setSelectedStatuses] = useState<WatchStatus[]>(["CURRENT"]);
 
-  // Get ordered days starting from current day
   const orderedDays = DAYS.slice(today).concat(DAYS.slice(0, today));
 
-  const { data: user, isLoading: isUserLoading } = useQuery({
+  const { data: user, isLoading: isLoadingUser } = useQuery({
     queryKey: ["/api/users/current"],
     queryFn: getUser,
-    staleTime: 5 * 60 * 1000
+    ...commonQueryOptions
   });
 
-  const { data: anime, isLoading: isAnimeLoading } = useQuery({
+  const { data: animeEntries, isLoading: isAnimeLoading } = useQuery({
     queryKey: ["/anilist/anime", user?.sub],
-    queryFn: () => fetchUserAnime(parseInt(user?.anilistId || "")),
-    enabled: !!user?.anilistId,
-    staleTime: 5 * 60 * 1000
+    queryFn: () => {
+      if (!user?.anilistId) {
+        throw new Error("Please set your Anilist ID in your profile");
+      }
+      return fetchUserAnime(parseInt(user.anilistId), user.accessToken || "");
+    },
+    enabled: !!user?.anilistId && !!user?.accessToken,
+    ...commonQueryOptions
   });
 
-  const isLoading = isUserLoading || isAnimeLoading;
+  const isLoading = isLoadingUser || isAnimeLoading;
 
-  const airingDates = anime
-    ?.filter(show =>
-      show.nextAiringEpisode &&
-      show.mediaListEntry &&
-      selectedStatuses.includes(show.mediaListEntry.status as WatchStatus)
-    )
-    .reduce((acc, show) => {
-      const date = new Date(show.nextAiringEpisode!.airingAt * 1000);
-      const key = date.toISOString().split('T')[0];
-      if (!acc[key]) acc[key] = [];
-      acc[key].push({
-        title: show.title.english || show.title.romaji || "",
-        episode: show.nextAiringEpisode!.episode,
-        currentEpisode: show.mediaListEntry?.progress || 0,
-        totalEpisodes: show.episodes,
-        status: show.mediaListEntry?.status || "",
-        airingAt: show.nextAiringEpisode!.airingAt
-      });
-      return acc;
-    }, {} as Record<string, Array<{
-      title: string;
-      episode: number;
-      currentEpisode: number;
-      totalEpisodes: number;
-      status: string;
-      airingAt: number;
-    }>>);
-
-  const filteredDates = Object.entries(airingDates || {}).filter(([date]) => {
+  // Group shows by airing date
+  const airingDateMap = groupShowsByAiringDate(animeEntries);
+  
+  // Filter shows by selected day
+  const filteredDates = Object.entries(airingDateMap).filter(([date]) => {
     const dayOfWeek = new Date(date).getDay();
     return dayOfWeek === selectedDay;
   });
 
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    const day = date.getDate();
-    const suffix = ['th', 'st', 'nd', 'rd'][day % 10 - 1] || 'th';
-    return `${DAYS[date.getDay()]}, ${day}${suffix}`;
-  };
-
-  const formatTimeUntil = (timestamp: number) => {
-    const now = Math.floor(Date.now() / 1000);
-    const timeUntil = timestamp - now;
-
-    if (timeUntil < 0) return "Aired";
-
-    const hours = Math.floor(timeUntil / 3600);
-    const minutes = Math.floor((timeUntil % 3600) / 60);
-
-    if (hours > 24) {
-      const days = Math.floor(hours / 24);
-      return `${days} day${days > 1 ? 's' : ''} left`;
-    }
-
-    if (hours > 0) {
-      return `${hours}h ${minutes}m left`;
-    }
-
-    return `${minutes}m left`;
-  };
-
-  const getProgressColor = (currentEp: number, totalEp: number) => {
-    if (!totalEp) return "text-muted-foreground";
-    return currentEp < totalEp
-      ? "text-yellow-500 dark:text-yellow-400"
-      : "text-green-500 dark:text-green-400";
-  };
-
-  const getAiringStatusColor = (timestamp: number) => {
-    const now = Math.floor(Date.now() / 1000);
-    const timeUntil = timestamp - now;
-
-    if (timeUntil < 0) return "text-gray-500 dark:text-gray-400";
-    if (timeUntil < 3600) return "text-red-500 dark:text-red-400"; // Less than 1 hour
-    if (timeUntil < 86400) return "text-yellow-500 dark:text-yellow-400"; // Less than 24 hours
-    return "text-blue-500 dark:text-blue-400"; // More than 24 hours
-  };
-
   if (isLoading) {
-    return (
-      <div className="space-y-6 max-w-7xl mx-auto px-4 sm:px-6 animate-in fade-in duration-500">
-        <Card className="overflow-x-auto -mx-4 sm:mx-0 rounded-none sm:rounded-lg">
-          <CardContent className="p-4 sm:p-6 space-y-4">
-            <div className="flex gap-2 sm:gap-3 min-w-max">
-              {[...Array(7)].map((_, i) => (
-                <Skeleton key={i} className="h-8 w-24" />
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        <div className="grid lg:grid-cols-[300px_1fr] gap-6">
-          <Card className="hidden lg:block">
-            <CardContent className="p-4">
-              <Skeleton className="h-[300px] w-full rounded-lg" />
-            </CardContent>
-          </Card>
-          <LoadingGrid />
-        </div>
-      </div>
-    );
+    return <LoadingView />;
   }
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto px-4 sm:px-6 animate-in fade-in duration-500">
-      <Card className="overflow-x-auto -mx-4 sm:mx-0 rounded-none sm:rounded-lg">
-        <CardContent className="p-4 sm:p-6 space-y-4">
-          <div className="flex gap-2 sm:gap-3 min-w-max">
-            {orderedDays.slice(0, 7).map((day, index) => {
-              const dayIndex = (today + index) % 7;
-              return (
-                <Button
-                  key={day}
-                  variant={selectedDay === dayIndex ? "default" : "outline"}
-                  onClick={() => setSelectedDay(dayIndex)}
-                  className="px-3 sm:px-5 py-2 text-sm sm:text-base"
-                >
-                  {window.innerWidth < 640 ? day.slice(0, 3) : day}
-                </Button>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
+      <DaySelector 
+        orderedDays={orderedDays} 
+        selectedDay={selectedDay} 
+        setSelectedDay={setSelectedDay} 
+      />
 
       <div className="grid lg:grid-cols-[300px_1fr] gap-6">
-        <Card className="hidden lg:block">
-          <CardContent className="p-4">
-            <Calendar
-              mode="single"
-              selected={new Date()}
-              className="rounded-md border"
-            />
-          </CardContent>
-        </Card>
-
-        <div className="space-y-6">
-          {filteredDates.length > 0 ? (
-            filteredDates.map(([date, shows]) => (
-              <Card key={date} className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-3 mb-6">
-                    <CalendarIcon className="h-5 w-5 text-primary" />
-                    <h3 className="font-semibold text-lg">
-                      {formatDate(date)}
-                    </h3>
-                  </div>
-                  <div className="space-y-3">
-                    {shows.map((show, i) => (
-                      <div
-                        key={i}
-                        className="p-4 rounded-lg bg-accent/50 hover:bg-accent transition-colors"
-                      >
-                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
-                          <div className="space-y-1">
-                            <span className="font-medium line-clamp-2 sm:line-clamp-1">
-                              {show.title}
-                            </span>
-                            <div className="flex items-center gap-2 text-sm">
-                              <span className="text-muted-foreground">
-                                Episode {show.episode}
-                              </span>
-                              <span className={cn("font-medium", getAiringStatusColor(show.airingAt))}>
-                                • {formatTimeUntil(show.airingAt)}
-                              </span>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-4 text-sm">
-                            <div className="flex items-center gap-2">
-                              <PlayCircle className={cn(
-                                "h-4 w-4",
-                                getProgressColor(show.currentEpisode, show.totalEpisodes)
-                              )} />
-                              <span className={cn(
-                                "whitespace-nowrap",
-                                getProgressColor(show.currentEpisode, show.totalEpisodes)
-                              )}>
-                                {show.currentEpisode} / {show.totalEpisodes}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            ))
-          ) : (
-            <Card className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <CardContent className="p-6 text-center text-muted-foreground">
-                No shows airing on {DAYS[selectedDay]}
-              </CardContent>
-            </Card>
-          )}
-        </div>
+        <CalendarCard />
+        <ShowsList filteredDates={filteredDates} selectedDay={selectedDay} />
       </div>
     </div>
   );

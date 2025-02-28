@@ -1,0 +1,42 @@
+fragment MediaFragment on Media {
+  id
+  title {
+    romaji
+    english
+    native
+  }
+  coverImage {
+    large
+    extraLarge
+  }
+  bannerImage
+  description(asHtml: false)
+  status
+  episodes
+  nextAiringEpisode {
+    airingAt
+    episode
+    timeUntilAiring
+  }
+  genres
+  averageScore
+  popularity
+  studios {
+    nodes {
+      id
+      name
+    }
+  }
+  characters(sort: [ROLE, RELEVANCE], perPage: 12) {
+    nodes {
+      id
+      name {
+        full
+        native
+      }
+      image {
+        large
+      }
+    }
+  }
+}

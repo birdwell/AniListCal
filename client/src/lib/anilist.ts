@@ -1,217 +1,68 @@
-const ANILIST_API = "https://graphql.anilist.co";
+import {
+  GetUserMediaListQueryVariables,
+  MediaFragmentFragment,
+  GetUserMediaListQuery,
+  EntyFragmentFragment,
+  GetMediaQuery,
+} from "@/generated/graphql";
+import { request } from "graphql-request";
 
-export interface AnimeMedia {
-  id: number;
-  title: { romaji: string; english: string; native?: string };
-  coverImage: { large: string; extraLarge?: string };
-  status: string;
-  episodes: number;
-  nextAiringEpisode?: {
-    airingAt: number;
-    episode: number;
-    timeUntilAiring: number;
-  };
-  mediaListEntry?: {
-    progress: number;
-    status: string;
-  };
-}
+const ANILIST_GRAPHQL_URL = "https://graphql.anilist.co";
 
-export interface AnimeDetails extends AnimeMedia {
-  bannerImage?: string;
-  description: string;
-  genres: string[];
-  averageScore: number;
-  popularity: number;
-  studios: {
-    nodes: Array<{
-      id: number;
-      name: string;
-    }>;
-  };
-  characters: {
-    nodes: Array<{
-      id: number;
-      name: {
-        full: string;
-        native?: string;
-      };
-      image: {
-        large: string;
-      };
-      role: string;
-    }>;
-  };
-}
+import getUserMediaListQuery from "../queries/getUserMediaList.graphql?raw";
+import getMediaQuery from "../queries/getMedia.graphql?raw";
+import { GET_USER_MEDIA_LIST_QUERY } from "@/queries/queries";
 
-const MEDIA_QUERY = `
-  query ($userId: Int) {
-    MediaListCollection(userId: $userId, type: ANIME) {
-      lists {
-        entries {
-          progress
-          status
-          media {
-            id
-            title {
-              romaji
-              english
-            }
-            coverImage {
-              large
-            }
-            status
-            episodes
-            nextAiringEpisode {
-              airingAt
-              episode
-              timeUntilAiring
-            }
-          }
-        }
-      }
-    }
-  }
-`;
-
-const ANIME_DETAILS_QUERY = `
-  query ($id: Int!) {
-    Media(id: $id, type: ANIME) {
-      id
-      title {
-        romaji
-        english
-        native
-      }
-      coverImage {
-        large
-        extraLarge
-      }
-      bannerImage
-      description(asHtml: false)
-      status
-      episodes
-      nextAiringEpisode {
-        airingAt
-        episode
-        timeUntilAiring
-      }
-      genres
-      averageScore
-      popularity
-      studios {
-        nodes {
-          id
-          name
-        }
-      }
-      characters(sort: [ROLE, RELEVANCE], perPage: 12) {
-        nodes {
-          id
-          name {
-            full
-            native
-          }
-          image {
-            large
-          }
-          role
-        }
-      }
-    }
-  }
-`;
-
-export async function fetchUserAnime(userId: number): Promise<AnimeMedia[]> {
+export async function fetchUserAnime(
+  userId: number,
+  accessToken: string
+): Promise<EntyFragmentFragment[]> {
   try {
-    const response = await fetch(ANILIST_API, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Accept": "application/json"
-      },
-      body: JSON.stringify({
-        query: MEDIA_QUERY,
-        variables: { userId }
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
-
-    if (data.errors) {
-      throw new Error(data.errors[0]?.message || "Failed to fetch from Anilist");
-    }
-
-    if (!data.data?.MediaListCollection?.lists) {
-      throw new Error("Invalid response format from Anilist");
-    }
-
-    return data.data.MediaListCollection.lists.flatMap(
-      (list: any) => list.entries.map((entry: any) => ({
-        ...entry.media,
-        mediaListEntry: {
-          progress: entry.progress,
-          status: entry.status
-        }
-      }))
+    const variables: GetUserMediaListQueryVariables = {
+      userId: userId,
+    };
+    const response = await request<GetUserMediaListQuery>(
+      ANILIST_GRAPHQL_URL,
+      GET_USER_MEDIA_LIST_QUERY,
+      variables,
+      {
+        Authorization: `Bearer ${accessToken}`,
+      }
     );
+
+    console.log("Query: ", GET_USER_MEDIA_LIST_QUERY);
+
+    const lists = response.MediaListCollection?.lists ?? [];
+    return lists
+      .flatMap((list) => list?.entries?.filter((entry) => entry !== null) ?? [])
+      .filter((entry) => entry !== null);
   } catch (error) {
     console.error("Error fetching user anime:", error);
     throw error;
   }
 }
 
-export async function fetchAnimeDetails(id: number): Promise<AnimeDetails> {
+export async function fetchAnimeDetails(
+  id: number
+): Promise<MediaFragmentFragment> {
   try {
     if (!id || isNaN(id)) {
       throw new Error("Invalid anime ID provided");
     }
 
-    console.log("Fetching anime details for ID:", id);
+    const response = await request<GetMediaQuery>(
+      ANILIST_GRAPHQL_URL,
+      getMediaQuery,
+      { id }
+    );
 
-    const requestBody = {
-      query: ANIME_DETAILS_QUERY,
-      variables: { id }
-    };
+    const media = response.Media;
 
-    console.log("Request body:", JSON.stringify(requestBody, null, 2));
-
-    const response = await fetch(ANILIST_API, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Accept": "application/json"
-      },
-      body: JSON.stringify(requestBody)
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("API Response error:", {
-        status: response.status,
-        statusText: response.statusText,
-        body: errorText
-      });
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    console.log("API Response:", JSON.stringify(data, null, 2));
-
-    if (data.errors) {
-      console.error("Anilist API errors:", data.errors);
-      throw new Error(data.errors[0]?.message || "Failed to fetch anime details");
-    }
-
-    if (!data.data?.Media) {
+    if (!media) {
       throw new Error("Anime not found");
     }
 
-    return data.data.Media;
+    return media;
   } catch (error) {
     console.error("Error fetching anime details:", error);
     if (error instanceof Error) {

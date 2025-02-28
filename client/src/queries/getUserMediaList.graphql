@@ -7,22 +7,7 @@ fragment EntyFragment on MediaList {
   }
 }
 
-fragment MediaFragment on Media {
-  id
-  title {
-    english
-    romaji
-  }
-  episodes
-  status
-  nextAiringEpisode {
-    airingAt
-    episode
-    timeUntilAiring
-  }
-}
-
-query UserAnimeList($userId: Int!) {
+query GetUserMediaList($userId: Int!) {
   MediaListCollection(
     userId: $userId
     type: ANIME

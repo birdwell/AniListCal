@@ -6,7 +6,6 @@ export function registerConfigRoutes(app: Express) {
       clientId:
         process.env.VITE_ANILIST_CLIENT_ID || process.env.ANILIST_CLIENT_ID,
       apiEndpoints: {
-        airingAnime: "/api/anime/airing",
         user: "/api/auth/user",
         callback: "/api/auth/callback",
         logout: "/api/auth/logout",
