@@ -127,6 +127,7 @@ export function registerRoutes(app: Express, httpServer: any) {
         id,
         username: "", // We can fetch this from AniList API if needed
         accessToken: token,
+        anilistId: id  // Set anilistId to match the AniList user ID
       };
 
       done(null, user);
@@ -220,6 +221,7 @@ export function registerRoutes(app: Express, httpServer: any) {
         id: anilistUser.id.toString(),
         username: anilistUser.name,
         accessToken: tokenData.access_token,
+        anilistId: anilistUser.id.toString() // Set anilistId to match the AniList user ID
       };
 
       // Log the user in by establishing a session
@@ -233,6 +235,7 @@ export function registerRoutes(app: Express, httpServer: any) {
           user: {
             id: user.id,
             username: user.username,
+            anilistId: user.anilistId // Include anilistId in the response
           },
         });
       });
@@ -324,6 +327,7 @@ export function registerRoutes(app: Express, httpServer: any) {
     res.json({
       id: user.id,
       username: user.username,
+      anilistId: user.anilistId
     });
   });
 

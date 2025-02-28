@@ -5,6 +5,7 @@ export interface AniListUser {
   id: string;        // AniList user ID 
   username: string;  // AniList username
   accessToken: string; // AniList access token
+  anilistId: string; // AniList ID - same as id but explicitly for client use
 }
 
 // In-memory token storage - in a production app you'd use Redis or similar

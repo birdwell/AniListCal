@@ -52,6 +52,10 @@ export default function Profile() {
     defaultValues: {
       anilistId: user?.anilistId || "",
     },
+    values: {
+      // This will update the form value whenever user data changes
+      anilistId: user?.anilistId || ""
+    }
   });
 
   async function onSubmit(values: FormData) {
@@ -83,6 +87,13 @@ export default function Profile() {
           <CardTitle>Anilist Integration</CardTitle>
         </CardHeader>
         <CardContent>
+          {user?.anilistId ? (
+            <div className="mb-4">
+              <p className="text-green-600 dark:text-green-400">
+                Your AniList account is connected (ID: {user.anilistId})
+              </p>
+            </div>
+          ) : null}
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
