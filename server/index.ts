@@ -78,16 +78,37 @@ const PORT = process.env.PORT || 5001;
 // Add a database status flag
 let isDatabaseConnected = false;
 
-// Add a route to check database status
+// Add a health check endpoint
 app.get('/api/health', async (req, res) => {
-  const dbStatus = await checkDatabaseConnection().catch(() => false);
-  isDatabaseConnected = dbStatus;
+  const health = {
+    uptime: process.uptime(),
+    timestamp: Date.now(),
+    status: 'OK',
+    database: {
+      status: isDatabaseConnected ? 'connected' : 'disconnected'
+    },
+    environment: process.env.NODE_ENV
+  };
   
-  res.json({
-    status: 'ok',
-    database: dbStatus ? 'connected' : 'disconnected',
-    uptime: process.uptime()
-  });
+  // If the database is disconnected, return a degraded status
+  if (!isDatabaseConnected) {
+    health.status = 'DEGRADED';
+    return res.status(200).json(health);
+  }
+  
+  // Check if we can actually query the database
+  try {
+    const client = await pool.connect();
+    await client.query('SELECT 1');
+    client.release();
+    health.database.status = 'healthy';
+  } catch (error) {
+    health.status = 'DEGRADED';
+    health.database.status = 'unhealthy';
+    log(`Health check database error: ${error}`);
+  }
+  
+  return res.status(health.status === 'OK' ? 200 : 200).json(health);
 });
 
 // Start the server regardless of database connection status

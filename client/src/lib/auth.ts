@@ -43,12 +43,14 @@ async function getClientId(): Promise<string> {
   // First check if we've cached it
   const cachedClientId = sessionStorage.getItem(STORAGE_KEYS.CLIENT_ID);
   if (cachedClientId) {
+    console.log("Using cached client ID:", cachedClientId);
     return cachedClientId;
   }
 
   // Try to get it from import.meta.env
   const envClientId = import.meta.env.VITE_ANILIST_CLIENT_ID;
   if (envClientId) {
+    console.log("Using client ID from environment:", envClientId);
     // Cache it for future use
     sessionStorage.setItem(STORAGE_KEYS.CLIENT_ID, envClientId);
     return envClientId;
@@ -56,18 +58,22 @@ async function getClientId(): Promise<string> {
 
   // As a fallback, fetch from server config
   try {
+    console.log("Fetching client ID from server config...");
     const response = await fetch(API_ENDPOINTS.CONFIG);
     if (!response.ok) {
       throw new Error(`Failed to fetch config: ${response.status}`);
     }
     
     const config = await response.json();
+    console.log("Received config from server:", config);
+    
     if (!config.clientId) {
       throw new Error("Client ID not found in config response");
     }
     
     // Cache it for future use
     sessionStorage.setItem(STORAGE_KEYS.CLIENT_ID, config.clientId);
+    console.log("Using client ID from server config:", config.clientId);
     return config.clientId;
   } catch (error) {
     console.error("Failed to fetch client ID from config:", error);

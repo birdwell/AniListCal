@@ -25,14 +25,14 @@ export default defineConfig({
   build: {
     outDir: path.resolve(__dirname, "dist/public"),
     emptyOutDir: true,
-    sourcemap: true,
+    sourcemap: process.env.NODE_ENV !== 'production',
   },
   server: {
     port: 5001,
     strictPort: true,
   },
-  // Enable source maps for development
+  // Enable source maps only for development
   css: {
-    devSourcemap: true,
+    devSourcemap: process.env.NODE_ENV !== 'production',
   },
 });

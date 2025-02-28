@@ -76,7 +76,13 @@ export async function setupVite(app: Express, server: Server) {
 }
 
 export function serveStatic(app: Express) {
-  const distPath = path.resolve(__dirname, "public");
+  // In production with ESM, __dirname might be different than expected
+  // We need to find the correct path to the built client files
+  const distPath = process.env.NODE_ENV === 'production'
+    ? path.resolve(process.cwd(), "dist/public")
+    : path.resolve(__dirname, "public");
+
+  log(`Serving static files from: ${distPath}`);
 
   if (!fs.existsSync(distPath)) {
     throw new Error(
