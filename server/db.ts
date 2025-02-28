@@ -13,27 +13,84 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  connectionTimeoutMillis: 5000,
-  max: 5,
-});
+// Create a function to initialize the pool
+const createPool = () => {
+  return new Pool({
+    connectionString: process.env.DATABASE_URL,
+    connectionTimeoutMillis: 5000,
+    max: 5,
+    idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
+  });
+};
 
+let pool = createPool();
+let isReconnecting = false;
+const MAX_RECONNECT_ATTEMPTS = 5;
+let reconnectAttempts = 0;
+
+// Handle pool errors
 pool.on("error", (err: Error) => {
   log(`Database pool error: ${err.message}`);
 
   if (
     err.message.includes("Connection terminated") ||
-    err.message.includes("Connection ended unexpectedly")
+    err.message.includes("Connection ended unexpectedly") ||
+    err.message.includes("terminating connection due to administrator command")
   ) {
-    log("Attempting to recover from connection error...");
+    // Don't try to reconnect if we're already in the process
+    if (!isReconnecting) {
+      handleReconnection();
+    }
     return;
   }
 
-  log("Fatal database error, exiting...");
-  process.exit(-1);
+  // For other errors, log but don't crash
+  log(`Database error occurred: ${err.message}`);
 });
 
+// Function to handle reconnection logic
+async function handleReconnection() {
+  if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+    log(`Failed to reconnect after ${MAX_RECONNECT_ATTEMPTS} attempts. Will continue with degraded functionality.`);
+    reconnectAttempts = 0; // Reset for future attempts
+    isReconnecting = false;
+    return;
+  }
+
+  isReconnecting = true;
+  reconnectAttempts++;
+  
+  log(`Attempting to reconnect to database (attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})...`);
+  
+  try {
+    // First, try to end the current pool gracefully
+    await pool.end().catch(err => log(`Error ending pool: ${err.message}`));
+    
+    // Create a new pool
+    pool = createPool();
+    
+    // Test the connection
+    const client = await pool.connect();
+    await client.query('SELECT 1');
+    client.release();
+    
+    log(`Successfully reconnected to database after ${reconnectAttempts} attempts`);
+    reconnectAttempts = 0;
+    isReconnecting = false;
+  } catch (error) {
+    log(`Reconnection attempt ${reconnectAttempts} failed: ${error}`);
+    
+    // Wait before trying again - exponential backoff
+    const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
+    log(`Will retry in ${delay}ms...`);
+    
+    setTimeout(() => {
+      handleReconnection();
+    }, delay);
+  }
+}
+
+// Initial connection test
 (async () => {
   try {
     const client = await pool.connect();
@@ -41,7 +98,8 @@ pool.on("error", (err: Error) => {
     client.release();
   } catch (err) {
     log(`Failed to connect to database: ${err}`);
-    process.exit(-1);
+    // Don't exit, try to reconnect instead
+    handleReconnection();
   }
 })();
 

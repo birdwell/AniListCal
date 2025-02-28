@@ -11,15 +11,23 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// Global error handler middleware
+app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+  log(`Error: ${err.message}`);
+  res.status(500).json({ error: "Internal server error" });
+});
+
 async function checkDatabaseConnection() {
   try {
     const client = await pool.connect();
     await client.query("SELECT NOW()");
     client.release();
     log("Database connection successful");
+    return true;
   } catch (error) {
     log("Database connection failed: " + error);
-    throw error;
+    // Don't throw the error, just return false
+    return false;
   }
 }
 
@@ -67,33 +75,72 @@ app.use((req, res, next) => {
 
 const PORT = process.env.PORT || 5001;
 
-checkDatabaseConnection()
-  .then(async () => {
-    const httpServer = createServer(app);
+// Add a database status flag
+let isDatabaseConnected = false;
 
-    registerRoutes(app, httpServer);
+// Add a route to check database status
+app.get('/api/health', async (req, res) => {
+  const dbStatus = await checkDatabaseConnection().catch(() => false);
+  isDatabaseConnected = dbStatus;
+  
+  res.json({
+    status: 'ok',
+    database: dbStatus ? 'connected' : 'disconnected',
+    uptime: process.uptime()
+  });
+});
 
-    if (process.env.NODE_ENV !== "production") {
-      await setupVite(app, httpServer);
-    } else {
-      serveStatic(app);
+// Start the server regardless of database connection status
+async function startServer() {
+  const httpServer = createServer(app);
+
+  // Check database connection but don't fail if it's not available
+  isDatabaseConnected = await checkDatabaseConnection();
+  
+  registerRoutes(app, httpServer);
+
+  if (process.env.NODE_ENV !== "production") {
+    await setupVite(app, httpServer);
+  } else {
+    serveStatic(app);
+  }
+
+  httpServer.listen(PORT, () => {
+    log(`Server running on http://localhost:${PORT}/`);
+    if (!isDatabaseConnected) {
+      log('Warning: Server started without database connection. Some features may not work.');
     }
+  });
 
-    httpServer.listen(PORT, () => {
-      log(`Server running on http://localhost:${PORT}/`);
-    });
-
-    ["SIGINT", "SIGTERM"].forEach((signal) => {
-      process.on(signal, () => {
-        log(`Received ${signal}, shutting down...`);
-        httpServer.close(() => {
-          log("Server closed");
-          process.exit(0);
-        });
+  ["SIGINT", "SIGTERM"].forEach((signal) => {
+    process.on(signal, () => {
+      log(`Received ${signal}, shutting down...`);
+      httpServer.close(() => {
+        log("Server closed");
+        process.exit(0);
       });
     });
-  })
-  .catch((error) => {
-    log(`Startup error: ${error}`);
-    process.exit(1);
   });
+}
+
+// Start the server and catch any startup errors
+startServer().catch((error) => {
+  log(`Startup error: ${error}`);
+  log('Attempting to start server in degraded mode...');
+  
+  // Try again without requiring database
+  const httpServer = createServer(app);
+  
+  registerRoutes(app, httpServer);
+  
+  if (process.env.NODE_ENV !== "production") {
+    setupVite(app, httpServer).catch(err => log(`Vite setup error: ${err}`));
+  } else {
+    serveStatic(app);
+  }
+  
+  httpServer.listen(PORT, () => {
+    log(`Server running in degraded mode on http://localhost:${PORT}/`);
+    log('Warning: Some features requiring database access will not work.');
+  });
+});

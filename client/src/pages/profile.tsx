@@ -6,7 +6,14 @@ import { Input } from "@/components/ui/input";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -22,40 +29,40 @@ export default function Profile() {
 
   const { data: user, isLoading } = useQuery({
     queryKey: ["/api/users/current"],
-    queryFn: getUser
+    queryFn: getUser,
   });
 
   const updateAnilistId = useMutation({
     mutationFn: async (data: FormData) => {
-      await apiRequest("PATCH", `/api/users/${user?.sub}`, {
-        anilistId: data.anilistId
+      await apiRequest("PATCH", `/api/users/${user?.id}`, {
+        anilistId: data.anilistId,
       });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/users/current"] });
       toast({
         title: "Profile Updated",
-        description: "Your Anilist ID has been saved successfully."
+        description: "Your Anilist ID has been saved successfully.",
       });
     },
     onError: (error) => {
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message || "Failed to update profile"
+        description: error.message || "Failed to update profile",
       });
-    }
+    },
   });
 
   const form = useForm<FormData>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
-      anilistId: user?.anilistId || "",
+      anilistId: user?.id || "",
     },
     values: {
       // This will update the form value whenever user data changes
-      anilistId: user?.anilistId || ""
-    }
+      anilistId: user?.id || "",
+    },
   });
 
   async function onSubmit(values: FormData) {
@@ -75,8 +82,8 @@ export default function Profile() {
         <CardContent>
           <div className="space-y-4">
             <div>
-              <label className="text-sm font-medium">Email</label>
-              <p className="text-muted-foreground">{user?.email}</p>
+              <label className="text-sm font-medium">Username</label>
+              <p className="text-muted-foreground">{user?.username}</p>
             </div>
           </div>
         </CardContent>
@@ -87,10 +94,10 @@ export default function Profile() {
           <CardTitle>Anilist Integration</CardTitle>
         </CardHeader>
         <CardContent>
-          {user?.anilistId ? (
+          {user?.id ? (
             <div className="mb-4">
               <p className="text-green-600 dark:text-green-400">
-                Your AniList account is connected (ID: {user.anilistId})
+                Your AniList account is connected (ID: {user.id})
               </p>
             </div>
           ) : null}
@@ -103,16 +110,16 @@ export default function Profile() {
                   <FormItem>
                     <FormLabel>Anilist User ID</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter your Anilist user ID" {...field} />
+                      <Input
+                        placeholder="Enter your Anilist user ID"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <Button 
-                type="submit" 
-                disabled={updateAnilistId.isPending}
-              >
+              <Button type="submit" disabled={updateAnilistId.isPending}>
                 {updateAnilistId.isPending ? "Saving..." : "Save"}
               </Button>
             </form>

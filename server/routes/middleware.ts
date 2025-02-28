@@ -5,6 +5,7 @@ import connectPgSimple from "connect-pg-simple";
 import { pool } from "../db";
 import { AniListUser } from "../types";
 import { storage } from "../storage";
+import { log } from "../vite";
 
 /**
  * Middleware to validate API tokens
@@ -32,6 +33,35 @@ export function validateApiToken(req: Request, res: Response, next: NextFunction
   }
   
   next();
+}
+
+/**
+ * Middleware to handle database errors
+ */
+export function databaseErrorMiddleware(
+  err: any,
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  // Check if it's a database-related error
+  if (
+    err.message &&
+    (err.message.includes("database") ||
+     err.message.includes("connection") ||
+     err.message.includes("pool") ||
+     err.message.includes("sql") ||
+     err.message.includes("terminating connection"))
+  ) {
+    log(`Database error in request to ${req.path}: ${err.message}`);
+    return res.status(503).json({
+      error: "Database service unavailable",
+      message: "The database is currently unavailable. Please try again later."
+    });
+  }
+  
+  // For other errors, pass to the next error handler
+  next(err);
 }
 
 export function registerMiddleware(app: Express) {
@@ -64,55 +94,68 @@ export function registerMiddleware(app: Express) {
     next();
   });
 
-  // Configure session
-  const PostgresStore = connectPgSimple(session);
+  // Configure session with error handling
+  try {
+    const PostgresStore = connectPgSimple(session);
 
-  const sessionOptions: SessionOptions = {
-    secret: process.env.SESSION_SECRET || "anime-calendar-secret",
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 1000 * 60 * 60 * 24 * 7,
-    },
-    store: new PostgresStore({
-      pool: pool as any,
-      tableName: "session",
-    }),
-    name: "sid", // Custom cookie name
-  };
+    const sessionOptions: SessionOptions = {
+      secret: process.env.SESSION_SECRET || "anime-calendar-secret",
+      resave: false,
+      saveUninitialized: false,
+      cookie: {
+        secure: process.env.NODE_ENV === "production",
+        maxAge: 1000 * 60 * 60 * 24 * 7,
+      },
+      store: new PostgresStore({
+        pool: pool as any,
+        tableName: "session",
+        errorCallback: (error: Error) => {
+          log(`Session store error: ${error.message}`);
+          // Don't crash the server on session store errors
+        }
+      }),
+      name: "sid", // Custom cookie name
+    };
 
-  app.use(session(sessionOptions) as any);
-  app.use(passport.initialize() as any);
-  app.use(passport.session());
+    app.use(session(sessionOptions) as any);
+    app.use(passport.initialize() as any);
+    app.use(passport.session());
 
-  // Configure passport
-  passport.serializeUser((user: AniListUser, done) => {
-    done(null, user.id);
-  });
+    // Configure passport
+    passport.serializeUser((user: AniListUser, done) => {
+      done(null, user.id);
+    });
 
-  passport.deserializeUser(async (id: string, done) => {
-    try {
-      const token = storage.getToken(id);
-      if (!token) {
-        return done(null, false);
+    passport.deserializeUser(async (id: string, done) => {
+      try {
+        const token = storage.getToken(id);
+        if (!token) {
+          return done(null, false);
+        }
+
+        // Get user info from storage
+        const userInfo = storage.getUserInfo(id);
+        if (!userInfo) {
+          return done(null, false);
+        }
+
+        const user: AniListUser = {
+          id,
+          username: userInfo.username,
+          avatarUrl: userInfo.avatarUrl,
+        };
+
+        done(null, user);
+      } catch (err) {
+        log(`Passport deserialize error: ${err}`);
+        done(null, false); // Continue without user instead of failing
       }
+    });
+  } catch (error) {
+    log(`Session setup error: ${error}`);
+    // Continue without session support in case of setup errors
+  }
 
-      // Get user info from storage
-      const userInfo = storage.getUserInfo(id);
-      if (!userInfo) {
-        return done(null, false);
-      }
-
-      const user: AniListUser = {
-        id,
-        username: userInfo.username,
-        avatarUrl: userInfo.avatarUrl,
-      };
-
-      done(null, user);
-    } catch (err) {
-      done(err);
-    }
-  });
+  // Add database error handling middleware at the end
+  app.use(databaseErrorMiddleware);
 }
