@@ -4,6 +4,11 @@ import ws from "ws";
 import * as schema from "@shared/schema";
 import { log } from './vite';
 
+import * as dotenv from 'dotenv';
+
+// Load environment variables from .env file
+dotenv.config();
+
 neonConfig.webSocketConstructor = ws;
 
 if (!process.env.DATABASE_URL) {
@@ -42,6 +47,20 @@ pool.on('connect', () => {
   try {
     const client = await pool.connect();
     log('Database connection test successful');
+    
+    // Initialize session table if needed
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS "session" (
+        "sid" varchar NOT NULL,
+        "sess" json NOT NULL,
+        "expire" timestamp(6) NOT NULL,
+        CONSTRAINT "session_pkey" PRIMARY KEY ("sid")
+      );
+      
+      CREATE INDEX IF NOT EXISTS "IDX_session_expire" ON "session" ("expire");
+    `);
+    log('Session table initialized');
+    
     client.release();
   } catch (err) {
     log(`Failed to connect to database: ${err}`);

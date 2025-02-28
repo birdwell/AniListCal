@@ -1,23 +1,19 @@
 import type { Express } from "express";
+import express from "express";
 import { createServer } from "http";
 import { storage } from "./storage";
 import { insertUserSchema, insertWatchlistSchema } from "@shared/schema";
 import OpenAI from "openai";
-import express from "express";
-import session from "express-session";
-import MemoryStore from "memorystore";
-import { WebSocketServer } from 'ws';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
+import session, { SessionOptions } from "express-session";
+import { WebSocketServer, WebSocket as WS } from 'ws';
 import passport from 'passport';
 import connectPgSimple from 'connect-pg-simple';
 import { pool } from './db';
+import * as dotenv from 'dotenv';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+// Load environment variables from .env file
+dotenv.config();
 
-const MemoryStoreSession = MemoryStore(session);
 const PostgresStore = connectPgSimple(session);
 
 // Initialize OpenAI with error handling for missing API key
@@ -32,11 +28,21 @@ const UPDATE_INTERVAL = 60000; // Check for updates every minute
 export function registerRoutes(app: Express) {
   const httpServer = createServer(app);
 
+  // Add a config endpoint for client-side setup
+  app.get("/api/config", (req, res) => {
+    res.json({
+      websocketPath: '/ws/airing',
+      clientId: process.env.VITE_ANILIST_CLIENT_ID || process.env.ANILIST_CLIENT_ID
+    });
+  });
+
   // Enable CORS for the frontend domain
   app.use((req, res, next) => {
     const allowedOrigins = [
       'https://anime-ai-tracker-xtjfxz26j.replit.app',
-      'http://localhost:5000'
+      'http://localhost:5000',
+      'http://localhost:5001',
+      'http://localhost:4173' // Vite preview server
     ];
     const origin = req.headers.origin;
     if (origin && allowedOrigins.includes(origin)) {
@@ -52,14 +58,13 @@ export function registerRoutes(app: Express) {
   });
 
   // Update the cookie settings and session store configuration
-  app.use(
-    session({
+  const sessionConfig: SessionOptions = {
       store: new PostgresStore({
-        pool,
+        pool: pool as any, // Type assertion to bypass the type incompatibility
         tableName: 'session',
         createTableIfMissing: true,
       }),
-      secret: process.env.REPL_ID!,
+      secret: process.env.REPL_ID || 'your-secret-key',
       resave: false,
       saveUninitialized: false,
       cookie: {
@@ -69,13 +74,12 @@ export function registerRoutes(app: Express) {
         sameSite: 'lax'
       },
       name: 'sid'
-    })
-  );
+    };
+    
+  app.use(session(sessionConfig) as any);
 
-  // Initialize Passport middleware
-  app.use(passport.initialize());
-  app.use(passport.session());
-
+  app.use(passport.initialize() as any);
+  app.use(passport.session() as any);
   // Passport serialization
   passport.serializeUser((user: any, done) => {
     done(null, user.auth0Id); // Use auth0Id for consistency
@@ -97,7 +101,7 @@ export function registerRoutes(app: Express) {
   });
 
   // Track connected clients
-  const clients = new Set<WebSocket>();
+  const clients = new Set<WS>();
 
   wss.on('connection', (ws) => {
     clients.add(ws);
@@ -129,7 +133,7 @@ export function registerRoutes(app: Express) {
       // Update each user's airing shows
       for (const user of activeUsers) {
         try {
-          const shows = await fetchUserAnime(parseInt(user.anilistId));
+          const shows = await fetchUserAnime(parseInt(user.anilistId || "0"));
           const airingShows = shows.filter(show =>
             show.status === "RELEASING" && show.nextAiringEpisode
           );
@@ -140,11 +144,12 @@ export function registerRoutes(app: Express) {
             data: airingShows
           });
 
-          for (const client of clients) {
-            if (client.readyState === WebSocket.OPEN) {
+          // Convert Set to Array before iteration to avoid TypeScript errors
+          Array.from(clients).forEach(client => {
+            if (client.readyState === WS.OPEN) {
               client.send(message);
             }
-          }
+          });
         } catch (error) {
           console.error('Error fetching user anime:', error);
         }
@@ -233,13 +238,11 @@ export function registerRoutes(app: Express) {
           anilistId: anilistUser.id.toString(),
           lastSync: new Date(),
           accessToken: tokenData.access_token,
-          avatar: anilistUser.avatar?.medium
         });
       } else {
         user = await storage.updateUserByAuth0Id(anilistUser.id.toString(), {
           lastSync: new Date(),
           accessToken: tokenData.access_token,
-          avatar: anilistUser.avatar?.medium
         });
       }
 
@@ -255,7 +258,6 @@ export function registerRoutes(app: Express) {
             id: user.id,
             username: user.username,
             anilistId: user.anilistId,
-            avatar: user.avatar
           }
         });
       });
@@ -264,6 +266,74 @@ export function registerRoutes(app: Express) {
       console.error('Auth callback error:', error);
       res.status(500).json({ error: error.message || 'Authentication failed' });
     }
+  });
+
+  app.get("/auth/callback", (req, res) => {
+    const code = req.query.code as string;
+    if (!code) {
+      return res.redirect('/login?error=No_authorization_code_received');
+    }
+    
+    console.log('Received auth callback with code:', code.substring(0, 5) + '...');
+    
+    // Send the auth code to the client for processing via the SPA router
+    res.send(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Authenticating...</title>
+          <script>
+            window.onload = function() {
+              // Extract the code from the URL
+              const code = "${code}";
+              console.log("Got authentication code, storing temporarily...");
+              
+              // Store it in sessionStorage for the client-side app
+              sessionStorage.setItem('auth_code', code);
+              
+              // Redirect to the SPA router's auth callback route
+              // Use a small timeout to ensure sessionStorage is set
+              setTimeout(() => {
+                console.log("Redirecting to SPA auth callback handler...");
+                window.location.href = '/auth/callback';
+              }, 100);
+            }
+          </script>
+          <style>
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              height: 100vh;
+              margin: 0;
+              background-color: #f9fafb;
+              color: #333;
+              text-align: center;
+            }
+            .loader {
+              border: 4px solid #f3f3f3;
+              border-radius: 50%;
+              border-top: 4px solid #3498db;
+              width: 40px;
+              height: 40px;
+              margin: 0 auto 20px;
+              animation: spin 1s linear infinite;
+            }
+            @keyframes spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+          </style>
+        </head>
+        <body>
+          <div>
+            <div class="loader"></div>
+            <p>Authenticating with AniList...</p>
+          </div>
+        </body>
+      </html>
+    `);
   });
 
   app.get("/api/auth/user", (req, res) => {
@@ -353,6 +423,12 @@ export function registerRoutes(app: Express) {
         error: error.message || 'Failed to generate recommendations'
       });
     }
+  });
+
+  app.get("/debug/ws-status", (req, res) => {
+    res.json({
+      clients: clients.size
+    });
   });
 
   return httpServer;

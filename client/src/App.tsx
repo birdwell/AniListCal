@@ -16,29 +16,57 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { ThemeProvider } from "@/components/theme-provider";
+import { initWebSocket } from "@/lib/websocket";
 
 function AuthCallback() {
   const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [, setLocation] = useLocation();
 
   useEffect(() => {
-    const code = new URLSearchParams(window.location.search).get('code');
+    // Check URL parameters first, then sessionStorage
+    let code = new URLSearchParams(window.location.search).get('code');
+    
+    // If no code in URL, try sessionStorage
     if (!code) {
+      code = sessionStorage.getItem('auth_code');
+      // Clean up sessionStorage
+      sessionStorage.removeItem('auth_code');
+    }
+    
+    if (!code) {
+      console.error('No authorization code received');
       setError('No authorization code received');
+      setIsLoading(false);
       return;
     }
+
+    console.log('Auth callback processing code:', code.substring(0, 5) + '...');
 
     handleAuthCallback(code)
       .then(() => {
         // Force a refetch of the user data
+        console.log('Auth successful, refreshing user data');
         queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-        setLocation("/");
+        setTimeout(() => setLocation("/"), 500); // Small delay for state to update
       })
       .catch(err => {
         console.error('Auth error:', err);
-        setError(err.message);
+        setError(err.message || 'Authentication failed');
+        setIsLoading(false);
       });
   }, [setLocation]);
+
+  if (isLoading && !error) {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center bg-background">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
+          <p>Completing authentication...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (error) {
     return (
@@ -124,6 +152,10 @@ function Router() {
 }
 
 function App() {
+  useEffect(() => {
+    initWebSocket();
+  }, []);
+
   return (
     <ThemeProvider defaultTheme="system" storageKey="anime-tracker-theme">
       <QueryClientProvider client={queryClient}>

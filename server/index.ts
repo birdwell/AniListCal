@@ -3,6 +3,10 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { db } from "./db";
 import { users, User } from "@shared/schema";
+import * as dotenv from 'dotenv';
+
+// Load environment variables from .env file
+dotenv.config();
 
 // Extend Express Request type to include our User type
 declare global {
@@ -80,7 +84,7 @@ app.use((req, res, next) => {
       serveStatic(app);
     }
 
-    const PORT = 5000;
+    const PORT = 5001;
     server.listen(PORT, "0.0.0.0", () => {
       log(`serving on port ${PORT}`);
     });

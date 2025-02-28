@@ -1,33 +1,88 @@
+// Authentication utilities for AniList OAuth
 import { queryClient } from "./queryClient";
 
 const ANILIST_AUTH_URL = 'https://anilist.co/api/v2/oauth/authorize';
 
-export async function login() {
-  const clientId = import.meta.env.VITE_ANILIST_CLIENT_ID;
-  if (!clientId) {
-    throw new Error('Anilist client ID is not configured');
+// Get client ID from environment or config endpoint
+async function getClientId(): Promise<string> {
+  // First check if we've cached it
+  const cachedClientId = sessionStorage.getItem('anilist_client_id');
+  if (cachedClientId) {
+    return cachedClientId;
   }
-
-  // Use window.location.origin to dynamically determine the callback URL
-  const redirectUri = `${window.location.origin}/auth/callback`;
-
-  console.log('Starting Anilist OAuth flow');
-  console.log('Using redirect URI:', redirectUri);
-  console.log('Client ID exists:', !!clientId);
-
-  const params = new URLSearchParams({
-    client_id: clientId,
-    redirect_uri: redirectUri,
-    response_type: 'code',
-  });
-
-  console.log('Authorization URL:', `${ANILIST_AUTH_URL}?${params.toString()}`);
-
-  window.location.href = `${ANILIST_AUTH_URL}?${params.toString()}`;
+  
+  // Try to get it from import.meta.env
+  const envClientId = import.meta.env.VITE_ANILIST_CLIENT_ID;
+  if (envClientId) {
+    // Cache it for future use
+    sessionStorage.setItem('anilist_client_id', envClientId);
+    return envClientId;
+  }
+  
+  // As a fallback, fetch from server config
+  try {
+    const response = await fetch('/api/config');
+    if (response.ok) {
+      const config = await response.json();
+      if (config.clientId) {
+        // Cache it for future use
+        sessionStorage.setItem('anilist_client_id', config.clientId);
+        return config.clientId;
+      }
+    }
+  } catch (error) {
+    console.error('Failed to fetch client ID from config:', error);
+  }
+  
+  throw new Error('Anilist client ID is not configured');
 }
 
-export async function handleAuthCallback(code: string): Promise<void> {
+// Start the login flow
+export async function login() {
   try {
+    console.log('Starting Anilist OAuth flow');
+    
+    const clientId = await getClientId();
+    // Use window.location.origin to dynamically determine the callback URL
+    const redirectUri = `${window.location.origin}/auth/callback`;
+
+    console.log('Using redirect URI:', redirectUri);
+    console.log('Client ID exists:', !!clientId);
+
+    const params = new URLSearchParams({
+      client_id: clientId,
+      redirect_uri: redirectUri,
+      response_type: 'code',
+    });
+
+    const authUrl = `${ANILIST_AUTH_URL}?${params.toString()}`;
+    console.log('Authorization URL:', authUrl);
+
+    // Save state to verify the callback
+    sessionStorage.setItem('auth_redirect_uri', redirectUri);
+    
+    // Redirect to AniList for authentication
+    window.location.href = authUrl;
+  } catch (error) {
+    console.error('Login initialization failed:', error);
+    throw error;
+  }
+}
+
+// Handle the OAuth callback
+export async function handleAuthCallback(code: string): Promise<any> {
+  try {
+    console.log('Processing auth callback with code:', code.substring(0, 5) + '...');
+    
+    // Get the redirect URI we originally used (or use current origin as fallback)
+    const redirectUri = sessionStorage.getItem('auth_redirect_uri') || 
+                      `${window.location.origin}/auth/callback`;
+    
+    // Clean up
+    sessionStorage.removeItem('auth_redirect_uri');
+    
+    console.log('Using redirect URI for token exchange:', redirectUri);
+    
     const response = await fetch('/api/auth/callback', {
       method: 'POST',
       headers: {
@@ -35,51 +90,74 @@ export async function handleAuthCallback(code: string): Promise<void> {
       },
       body: JSON.stringify({ 
         code,
-        redirectUri: `${window.location.origin}/auth/callback`
+        redirectUri
       }),
       credentials: 'include'
     });
 
     if (!response.ok) {
       const errorData = await response.json();
+      console.error('Auth callback error:', errorData);
       throw new Error(errorData.error || 'Authentication failed');
     }
 
+    const data = await response.json();
+    console.log('Authentication successful');
+    
+    // Refresh user data
     await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+    return data;
   } catch (error) {
-    console.error('Auth callback error:', error);
+    console.error('Auth callback processing failed:', error);
     throw error;
   }
 }
 
+// Log out the current user
 export async function logout() {
   try {
-    await fetch('/api/auth/logout', { 
+    const response = await fetch('/api/auth/logout', {
       method: 'POST',
       credentials: 'include'
     });
-    window.location.href = '/';
+    
+    if (!response.ok) {
+      throw new Error('Failed to logout');
+    }
+    
+    // Clear any auth-related data from session storage
+    sessionStorage.removeItem('auth_redirect_uri');
+    
+    // Clear user data from cache
+    queryClient.removeQueries({ queryKey: ["/api/auth/user"] });
+    
+    // Redirect to login page
+    window.location.href = '/login';
   } catch (error) {
-    console.error('Logout error:', error);
+    console.error('Logout failed:', error);
+    throw error;
   }
 }
 
+// Get the currently logged in user
 export async function getUser() {
   try {
     const response = await fetch('/api/auth/user', {
       credentials: 'include'
     });
-
+    
     if (!response.ok) {
       if (response.status === 401) {
+        // Not authenticated is an expected state
         return null;
       }
-      throw new Error('Failed to get user');
+      throw new Error('Failed to get user info');
     }
-
+    
     return await response.json();
   } catch (error) {
-    console.error('Error getting user:', error);
+    console.error('Get user failed:', error);
+    // Return null instead of throwing - more graceful
     return null;
   }
 }
