@@ -10,11 +10,11 @@ interface SearchBarProps {
   isLoading?: boolean;
 }
 
-export function SearchBar({ 
-  searchQuery, 
-  setSearchQuery, 
+export function SearchBar({
+  searchQuery,
+  setSearchQuery,
   totalResults,
-  isLoading = false
+  isLoading = false,
 }: SearchBarProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -22,30 +22,30 @@ export function SearchBar({
   useEffect(() => {
     // Add a small delay to ensure the component is fully mounted
     const timer = setTimeout(() => {
-      if (document.activeElement?.tagName !== 'INPUT') {
+      if (document.activeElement?.tagName !== "INPUT") {
         inputRef.current?.focus();
       }
     }, 100);
-    
+
     return () => clearTimeout(timer);
   }, []);
 
   // Handle keyboard shortcut (Ctrl+K or Cmd+K)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+      if ((e.ctrlKey || e.metaKey) && e.key === "k") {
         e.preventDefault();
         inputRef.current?.focus();
       }
-      
+
       // Clear search on Escape key
-      if (e.key === 'Escape' && document.activeElement === inputRef.current) {
-        setSearchQuery('');
+      if (e.key === "Escape" && document.activeElement === inputRef.current) {
+        setSearchQuery("");
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [setSearchQuery]);
 
   return (
@@ -58,23 +58,23 @@ export function SearchBar({
             <Search className="h-4 w-4 text-muted-foreground" />
           )}
         </div>
-        
+
         <Input
           ref={inputRef}
           type="text"
-          placeholder="Search anime... (Ctrl+K)"
+          placeholder="Search anime..."
           className="pl-10 pr-10 py-2"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
-        
+
         {searchQuery && (
           <div className="absolute inset-y-0 right-0 flex items-center pr-3">
             <Button
               variant="ghost"
               size="sm"
               className="h-6 w-6 p-0"
-              onClick={() => setSearchQuery('')}
+              onClick={() => setSearchQuery("")}
               aria-label="Clear search"
             >
               <X className="h-4 w-4" />
@@ -82,10 +82,10 @@ export function SearchBar({
           </div>
         )}
       </div>
-      
+
       {totalResults !== null && (
         <div className="absolute right-0 -bottom-6 text-xs text-muted-foreground animate-in fade-in slide-in-from-top-1 duration-300">
-          {totalResults} result{totalResults !== 1 ? 's' : ''}
+          {totalResults} result{totalResults !== 1 ? "s" : ""}
         </div>
       )}
     </div>

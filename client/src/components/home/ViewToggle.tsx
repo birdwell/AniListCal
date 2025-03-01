@@ -11,27 +11,19 @@ export function ViewToggle({ isCompact, onToggle }: ViewToggleProps) {
   // Add keyboard shortcut for toggling view (Ctrl+G)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'g') {
+      if ((e.ctrlKey || e.metaKey) && e.key === "g") {
         e.preventDefault();
         onToggle();
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [onToggle]);
   return (
     <div className="flex justify-between items-center py-4">
       <div className="flex items-center">
-        <h1 className="text-2xl font-bold">My Anime List</h1>
-        <div className="ml-4 hidden sm:flex space-x-2">
-          <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
-            Ctrl+K to search
-          </span>
-          <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
-            Ctrl+G to toggle view
-          </span>
-        </div>
+        <h1 className="text-2xl font-bold">My Anime</h1>
       </div>
       <div className="flex items-center gap-2">
         <span className="text-sm text-muted-foreground mr-1">

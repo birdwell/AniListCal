@@ -15,7 +15,6 @@ interface AnimeSectionProps {
   isOpen: boolean;
   onToggle: () => void;
   isCompact: boolean;
-  count?: number;
 }
 
 export function AnimeSection({
@@ -24,7 +23,6 @@ export function AnimeSection({
   isOpen,
   onToggle,
   isCompact,
-  count,
 }: AnimeSectionProps) {
   return (
     <section className="bg-background rounded-lg border shadow-sm overflow-hidden">
@@ -36,9 +34,9 @@ export function AnimeSection({
           >
             <h2 className="text-lg font-semibold">
               {title}
-              {(count !== undefined ? count : entries.length) > 0 && (
+              {entries.length > 0 && (
                 <span className="ml-2 text-sm font-normal text-muted-foreground">
-                  ({count !== undefined ? count : entries.length})
+                  ({entries.length})
                 </span>
               )}
             </h2>

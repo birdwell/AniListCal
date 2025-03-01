@@ -94,7 +94,6 @@ export function AnimeContent({
         isOpen={sectionStates.airing}
         onToggle={() => toggleSection("airing")}
         isCompact={isCompact}
-        count={currentlyAiring.length}
       />
       
       <AnimeSection 
@@ -103,7 +102,6 @@ export function AnimeContent({
         isOpen={sectionStates.watching}
         onToggle={() => toggleSection("watching")}
         isCompact={isCompact}
-        count={watching.length}
       />
       
       <AnimeSection 
@@ -112,7 +110,6 @@ export function AnimeContent({
         isOpen={sectionStates.onHold}
         onToggle={() => toggleSection("onHold")}
         isCompact={isCompact}
-        count={onHold.length}
       />
       
       <AnimeSection 
@@ -121,7 +118,6 @@ export function AnimeContent({
         isOpen={sectionStates.planned}
         onToggle={() => toggleSection("planned")}
         isCompact={isCompact}
-        count={planned.length}
       />
     </>
   );
