@@ -49,7 +49,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </nav>
-      <main className="container pt-20 pb-8">
+      <main className="w-full pt-20 pb-8">
         {children}
       </main>
     </div>

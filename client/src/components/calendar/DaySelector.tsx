@@ -17,12 +17,12 @@ export function DaySelector({
       <CardContent className="p-4 sm:p-6 space-y-4">
         <div className="flex gap-2 sm:gap-3 min-w-max">
           {orderedDays.slice(0, 7).map((day, index) => {
-            const dayIndex = (new Date().getDay() + index) % 7;
+            // index is already the day relative to today (0=today, 1=tomorrow, etc.)
             return (
               <Button
                 key={day}
-                variant={selectedDay === dayIndex ? "default" : "outline"}
-                onClick={() => setSelectedDay(dayIndex)}
+                variant={selectedDay === index ? "default" : "outline"}
+                onClick={() => setSelectedDay(index)}
                 className="px-3 sm:px-5 py-2 text-sm sm:text-base"
               >
                 {window.innerWidth < 640 ? day.slice(0, 3) : day}

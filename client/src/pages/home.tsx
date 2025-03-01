@@ -76,18 +76,20 @@ export default function Home() {
   }
 
   return (
-    <div className="space-y-4 container mx-auto px-4 sm:px-6 lg:px-8">
-      <ViewToggle
-        isCompact={isCompact}
-        onToggle={() => setIsCompact(!isCompact)}
-      />
+    <div className="flex justify-center w-full">
+      <div className="space-y-4 w-full px-4 sm:px-6 md:px-8 max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg">
+        <ViewToggle
+          isCompact={isCompact}
+          onToggle={() => setIsCompact(!isCompact)}
+        />
 
-      <AnimeContent
-        animeEntries={animeEntries || []}
-        sectionStates={sectionStates}
-        toggleSection={toggleSection}
-        isCompact={isCompact}
-      />
+        <AnimeContent
+          animeEntries={animeEntries || []}
+          sectionStates={sectionStates}
+          toggleSection={toggleSection}
+          isCompact={isCompact}
+        />
+      </div>
     </div>
   );
 }

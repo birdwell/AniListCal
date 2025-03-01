@@ -10,6 +10,8 @@ import {
   ShowsList,
 } from "@/components/calendar";
 import { commonQueryOptions } from "@/lib/query-config";
+import { format } from "date-fns";
+import { isWeeklyShow } from "@/lib/calendar-utils";
 
 const DAYS = [
   "Sunday",
@@ -22,10 +24,13 @@ const DAYS = [
 ];
 
 // Helper function to group shows by airing date
-function groupShowsByAiringDate(
+export function groupShowsByAiringDate(
   animeEntries: EntyFragmentFragment[] | undefined
 ): Record<string, EntyFragmentFragment[]> {
   if (!animeEntries) return {};
+
+  const today = new Date();
+  const todayString = format(today, "yyyy-MM-dd");
 
   return animeEntries
     .filter(
@@ -34,9 +39,26 @@ function groupShowsByAiringDate(
     .reduce((acc, entry) => {
       if (!entry.media?.nextAiringEpisode) return acc;
 
-      const date = new Date(entry.media.nextAiringEpisode.airingAt * 1000);
-      const key = date.toISOString().split("T")[0];
+      // Create a date object from the timestamp
+      const timestamp = entry.media.nextAiringEpisode.airingAt * 1000;
 
+      // Create a date object that properly accounts for local timezone
+      const nextAiringDate = new Date(timestamp);
+
+      // Format the date in local timezone (YYYY-MM-DD)
+      let key = format(nextAiringDate, "yyyy-MM-dd");
+
+      // Check if this is a weekly show that should also appear on today's calendar
+      // This uses our isWeeklyShow helper which checks if the show airs on the same day of week as today
+      if (isWeeklyShow(entry.media.nextAiringEpisode.airingAt)) {
+        // Add it to both today and its actual airing date
+        if (!acc[todayString]) acc[todayString] = [];
+        // Create a copy of the entry for today's display
+        const todayEntry = JSON.parse(JSON.stringify(entry));
+        acc[todayString].push(todayEntry);
+      }
+
+      // Still add it to its actual airing date as well
       if (!acc[key]) acc[key] = [];
       acc[key].push(entry);
 
@@ -45,10 +67,16 @@ function groupShowsByAiringDate(
 }
 
 export default function CalendarPage() {
-  const today = new Date().getDay();
-  const [selectedDay, setSelectedDay] = useState<number>(today);
+  // Initialize with day index 0 (today), not the day of week
+  const [selectedDay, setSelectedDay] = useState<number>(0);
 
-  const orderedDays = DAYS.slice(today).concat(DAYS.slice(0, today));
+  // Get the current day of week (0-6, 0 is Sunday)
+  const currentDayOfWeek = new Date().getDay();
+
+  // Order days starting with today's day of week
+  const orderedDays = DAYS.slice(currentDayOfWeek).concat(
+    DAYS.slice(0, currentDayOfWeek)
+  );
 
   const { data: user, isLoading: isLoadingUser } = useQuery({
     queryKey: ["/api/users/current"],
@@ -73,10 +101,20 @@ export default function CalendarPage() {
   // Group shows by airing date
   const airingDateMap = groupShowsByAiringDate(animeEntries);
 
-  // Filter shows by selected day
+  // Get the next 7 days starting from today
+  const today = new Date();
+  const nextWeekDates = Array.from({ length: 7 }, (_, i) => {
+    const date = new Date(today);
+    date.setDate(today.getDate() + i);
+    return format(date, "yyyy-MM-dd");
+  });
+
+  // Filter shows for the selected day (0 = today, 1 = tomorrow, etc.)
+  const selectedDate = nextWeekDates[selectedDay];
+
+  // Get entries for the selected date
   const filteredDates = Object.entries(airingDateMap).filter(([date]) => {
-    const dayOfWeek = new Date(date).getDay();
-    return dayOfWeek === selectedDay;
+    return date === selectedDate;
   });
 
   if (isLoading) {
@@ -91,10 +129,7 @@ export default function CalendarPage() {
         setSelectedDay={setSelectedDay}
       />
 
-      <div className="grid lg:grid-cols-[300px_1fr] gap-6">
-        <CalendarCard />
-        <ShowsList filteredDates={filteredDates} selectedDay={selectedDay} />
-      </div>
+      <ShowsList filteredDates={filteredDates} selectedDay={selectedDay} />
     </div>
   );
 }
