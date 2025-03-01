@@ -5,6 +5,7 @@ import { useLocation } from "wouter";
 import { CoverImage } from "./CoverImage";
 import { EpisodeInfo } from "./EpisodeInfo";
 import { ProgressDisplay } from "./ProgressDisplay";
+import { EpisodeControls } from "@/components/episode-controls";
 
 // Import the custom hook
 import { useEpisodeDisplay } from "@/hooks/useEpisodeDisplay";
@@ -71,6 +72,13 @@ export function ShowCard({ entry }: ShowCardProps) {
             currentEpisode={currentEpisode}
             targetEpisode={targetEpisode}
             totalEpisodes={totalEpisodes}
+          />
+          <EpisodeControls
+            mediaId={entry.media.id}
+            currentEpisode={currentEpisode}
+            totalEpisodes={totalEpisodes}
+            compact
+            variant="pill"
           />
         </div>
       </div>

@@ -1,0 +1,17 @@
+mutation UpdateMediaListProgress($mediaId: Int!, $progress: Int) {
+  SaveMediaListEntry(mediaId: $mediaId, progress: $progress) {
+    id
+    mediaId
+    status
+    progress
+    media {
+      id
+      title {
+        romaji
+        english
+        native
+      }
+      episodes
+    }
+  }
+}

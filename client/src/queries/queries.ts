@@ -78,3 +78,23 @@ export const GET_MEDIA_QUERY = gql`
   }
   ${MEDIA_FRAGMENT}
 `;
+
+export const UPDATE_PROGRESS_MUTATION = gql`
+  mutation UpdateMediaListProgress($mediaId: Int!, $progress: Int) {
+    SaveMediaListEntry(mediaId: $mediaId, progress: $progress) {
+      id
+      mediaId
+      status
+      progress
+      media {
+        id
+        title {
+          romaji
+          english
+          native
+        }
+        episodes
+      }
+    }
+  }
+`;

@@ -2,6 +2,7 @@ import { MediaFragmentFragment } from "@/generated/graphql";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Calendar, Info, PlayCircle, Users } from "lucide-react";
+import { EpisodeControls } from "@/components/episode-controls";
 import ReactMarkdown from "react-markdown";
 
 interface DetailsSectionProps {
@@ -65,6 +66,22 @@ export function DetailsSection({ show }: DetailsSectionProps) {
             <PlayCircle className="h-4 w-4 text-primary" />
             <span className="text-sm">Episodes: {show.episodes || "TBA"}</span>
           </div>
+          
+          {show.mediaListEntry && (
+            <div className="flex items-center gap-3">
+              <div className="h-4 w-4 flex items-center justify-center text-primary">📺</div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm">Progress:</span>
+                <EpisodeControls
+                  mediaId={show.id}
+                  currentEpisode={show.mediaListEntry.progress || 0}
+                  totalEpisodes={show.episodes}
+                  compact
+                  variant="minimal"
+                />
+              </div>
+            </div>
+          )}
           {show.studios?.nodes?.[0] && (
             <div className="flex items-center gap-3">
               <Users className="h-4 w-4 text-primary" />
