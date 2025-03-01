@@ -71,7 +71,6 @@ export function ShowCard({ entry }: ShowCardProps) {
             currentEpisode={currentEpisode}
             targetEpisode={targetEpisode}
             totalEpisodes={totalEpisodes}
-            showCatchUpWarning={showCatchUpWarning}
           />
         </div>
       </div>

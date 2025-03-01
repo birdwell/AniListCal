@@ -15,6 +15,7 @@ interface AnimeSectionProps {
   isOpen: boolean;
   onToggle: () => void;
   isCompact: boolean;
+  count?: number;
 }
 
 export function AnimeSection({
@@ -23,38 +24,44 @@ export function AnimeSection({
   isOpen,
   onToggle,
   isCompact,
+  count,
 }: AnimeSectionProps) {
   return (
-    <section>
-      <Collapsible open={isOpen} onOpenChange={onToggle} className="space-y-1">
+    <section className="bg-background rounded-lg border shadow-sm overflow-hidden">
+      <Collapsible open={isOpen} onOpenChange={onToggle} className="w-full">
         <CollapsibleTrigger asChild>
           <div
-            className="flex items-center justify-between py-1 cursor-pointer hover:text-primary transition-colors"
+            className="flex items-center justify-between p-4 cursor-pointer hover:bg-accent/50 transition-colors"
             role="button"
           >
-            <h2 className="text-sm font-medium text-muted-foreground">
+            <h2 className="text-lg font-semibold">
               {title}
+              {(count !== undefined ? count : entries.length) > 0 && (
+                <span className="ml-2 text-sm font-normal text-muted-foreground">
+                  ({count !== undefined ? count : entries.length})
+                </span>
+              )}
             </h2>
             <Button
               variant="ghost"
               size="sm"
-              className="h-6 w-6 p-0 pointer-events-none"
+              className="h-8 w-8 p-0 pointer-events-none"
             >
               {isOpen ? (
-                <ChevronUp className="h-3 w-3" />
+                <ChevronUp className="h-4 w-4" />
               ) : (
-                <ChevronDown className="h-3 w-3" />
+                <ChevronDown className="h-4 w-4" />
               )}
             </Button>
           </div>
         </CollapsibleTrigger>
-        <CollapsibleContent className="space-y-2">
+        <CollapsibleContent className="p-4 pt-0">
           {entries && entries.length > 0 ? (
             <div
               className={cn(
                 isCompact
-                  ? "space-y-2"
-                  : "grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6"
+                  ? "space-y-3"
+                  : "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6"
               )}
             >
               {entries.map((entry) => (
@@ -80,7 +87,7 @@ export function AnimeSection({
               ))}
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-muted-foreground py-4">
               No shows in {title.toLowerCase()}.
             </p>
           )}

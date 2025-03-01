@@ -18,7 +18,7 @@ type Status = "CURRENT" | "PAUSED" | "PLANNING";
 export default function Home() {
   const [isCompact, setIsCompact] = useState(true);
   const [sectionStates, setSectionStates] = useState<SectionStates>({
-    airing: false,
+    airing: true, // Set first section to be open by default
     watching: false,
     onHold: false,
     planned: false,
@@ -77,7 +77,7 @@ export default function Home() {
 
   return (
     <div className="flex justify-center w-full">
-      <div className="space-y-4 w-full px-4 sm:px-6 md:px-8 max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg">
+      <div className="space-y-6 w-full px-4 sm:px-6 md:px-8 max-w-xs sm:max-w-sm md:max-w-xl lg:max-w-4xl xl:max-w-6xl">
         <ViewToggle
           isCompact={isCompact}
           onToggle={() => setIsCompact(!isCompact)}
