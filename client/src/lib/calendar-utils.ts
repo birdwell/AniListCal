@@ -1,10 +1,28 @@
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
+/**
+ * Formats a date string into a human-readable format
+ * @param dateStr Date string in YYYY-MM-DD format
+ * @returns Formatted date string (e.g., "Friday, 28th")
+ */
 export function formatDate(dateStr: string) {
-  const date = new Date(dateStr);
-  const day = date.getDate();
-  const suffix = ['th', 'st', 'nd', 'rd'][day % 10 > 0 && day % 10 < 4 && (day < 11 || day > 13) ? day % 10 : 0];
-  return `${DAYS[date.getDay()]}, ${day}${suffix}`;
+  // Parse the date string (YYYY-MM-DD) into a Date object
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const date = new Date(year, month - 1, day); // month is 0-indexed in JS Date
+  
+  // Get the day of the month
+  const dayOfMonth = date.getDate();
+  
+  // Get the appropriate suffix for the day
+  const suffix = ['th', 'st', 'nd', 'rd'][
+    dayOfMonth % 10 > 0 && dayOfMonth % 10 < 4 && (dayOfMonth < 11 || dayOfMonth > 13) ? dayOfMonth % 10 : 0
+  ];
+  
+  // Get the day of the week
+  const dayOfWeek = DAYS[date.getDay()];
+  
+  // Format the date
+  return `${dayOfWeek}, ${dayOfMonth}${suffix}`;
 }
 
 /**
