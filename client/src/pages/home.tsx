@@ -77,11 +77,13 @@ export default function Home() {
 
   return (
     <div className="flex justify-center w-full">
-      <div className="space-y-6 w-full px-4 sm:px-6 md:px-8 max-w-xs sm:max-w-sm md:max-w-xl lg:max-w-4xl xl:max-w-6xl">
-        <ViewToggle
-          isCompact={isCompact}
-          onToggle={() => setIsCompact(!isCompact)}
-        />
+      <div className="space-y-4 sm:space-y-6 w-full px-3 sm:px-6 md:px-8 max-w-full sm:max-w-sm md:max-w-xl lg:max-w-4xl xl:max-w-6xl">
+        <div className="sticky top-0 z-10 pt-2 pb-1 bg-background/80 backdrop-blur-sm">
+          <ViewToggle
+            isCompact={isCompact}
+            onToggle={() => setIsCompact(!isCompact)}
+          />
+        </div>
 
         <AnimeContent
           animeEntries={animeEntries || []}

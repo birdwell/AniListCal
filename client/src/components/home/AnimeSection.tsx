@@ -59,27 +59,13 @@ export function AnimeSection({
               className={cn(
                 isCompact
                   ? "space-y-3"
-                  : "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6"
+                  : "grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 md:gap-6"
               )}
             >
               {entries.map((entry) => (
                 <AnimeCard
                   key={entry.media?.id}
-                  id={entry.media?.id || 0}
-                  title={
-                    entry.media?.title?.english ||
-                    entry.media?.title?.romaji ||
-                    "Unknown"
-                  }
-                  imageUrl={
-                    isCompact
-                      ? entry.media?.coverImage?.large ?? ""
-                      : entry.media?.coverImage?.extraLarge || ""
-                  }
-                  status={entry.media?.status || ""}
-                  currentEpisode={entry.progress || 0}
-                  totalEpisodes={entry.media?.episodes || undefined}
-                  nextEpisode={entry.media?.nextAiringEpisode || undefined}
+                  entry={entry}
                   isCompact={isCompact}
                 />
               ))}

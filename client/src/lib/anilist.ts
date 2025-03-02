@@ -135,3 +135,61 @@ export async function fetchAnimeDetails(
     throw error;
   }
 }
+
+/**
+ * Fetches anime details with user-specific data (requires authentication)
+ * @param id Anime ID
+ * @param forceRefresh Whether to bypass cache and force a refresh
+ * @returns Media details including user-specific data like mediaListEntry
+ */
+export async function fetchAuthenticatedAnimeDetails(
+  id: number,
+  forceRefresh = false
+): Promise<MediaFragmentFragment> {
+  try {
+    if (!id || isNaN(id)) {
+      throw new Error("Invalid anime ID provided");
+    }
+
+    // Get the current user
+    const user = await import("./auth").then(m => m.getUser());
+    if (!user) {
+      console.warn("No authenticated user found, falling back to public API");
+      return fetchAnimeDetails(id, forceRefresh);
+    }
+
+    const userId = parseInt(user.id);
+    const cacheKey = `auth-${userId}-${id}`;
+
+    // Check cache first if not forcing refresh
+    if (!forceRefresh) {
+      const cachedData = animeDetailsCache.get<MediaFragmentFragment>(cacheKey);
+      if (cachedData) {
+        console.log(`Using cached authenticated data for anime ID ${id}`);
+        return cachedData;
+      }
+    }
+
+    // Use the authenticated query method directly from the auth module
+    // This ensures we're using the same authentication pattern as other calls
+    const { queryAniList } = await import("./auth");
+    const response = await queryAniList<GetMediaQuery>(GET_MEDIA_QUERY, {
+      id
+      // We don't need to pass userId here as the server will get it from the auth token
+    });
+    
+    const media = response.data?.Media;
+
+    if (!media) {
+      throw new Error(`Anime with ID ${id} not found`);
+    }
+
+    // Save to cache
+    animeDetailsCache.set(cacheKey, media, CACHE_EXPIRY.LONG);
+
+    return media;
+  } catch (error) {
+    console.error("Error fetching authenticated anime details:", error);
+    throw error;
+  }
+}

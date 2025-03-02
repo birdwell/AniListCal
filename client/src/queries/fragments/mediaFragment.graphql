@@ -18,6 +18,11 @@ fragment MediaFragment on Media {
     episode
     timeUntilAiring
   }
+  mediaListEntry {
+    id
+    status
+    progress
+  }
   genres
   averageScore
   popularity

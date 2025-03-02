@@ -24,6 +24,11 @@ const MEDIA_FRAGMENT = gql`
     genres
     averageScore
     popularity
+    mediaListEntry {
+      id
+      status
+      progress
+    }
     studios {
       nodes {
         id
@@ -82,6 +87,26 @@ export const GET_MEDIA_QUERY = gql`
 export const UPDATE_PROGRESS_MUTATION = gql`
   mutation UpdateMediaListProgress($mediaId: Int!, $progress: Int) {
     SaveMediaListEntry(mediaId: $mediaId, progress: $progress) {
+      id
+      mediaId
+      status
+      progress
+      media {
+        id
+        title {
+          romaji
+          english
+          native
+        }
+        episodes
+      }
+    }
+  }
+`;
+
+export const UPDATE_STATUS_MUTATION = gql`
+  mutation UpdateMediaListStatus($mediaId: Int!, $status: MediaListStatus) {
+    SaveMediaListEntry(mediaId: $mediaId, status: $status) {
       id
       mediaId
       status

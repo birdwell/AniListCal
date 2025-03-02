@@ -66,16 +66,18 @@ export function DetailsSection({ show }: DetailsSectionProps) {
             <PlayCircle className="h-4 w-4 text-primary" />
             <span className="text-sm">Episodes: {show.episodes || "TBA"}</span>
           </div>
-          
+          {/* @ts-ignore - We know mediaListEntry might not be in the type but it's in the data */}
           {show.mediaListEntry && (
             <div className="flex items-center gap-3">
-              <div className="h-4 w-4 flex items-center justify-center text-primary">📺</div>
+              <div className="h-4 w-4 flex items-center justify-center text-primary">
+                📺
+              </div>
               <div className="flex items-center gap-2">
                 <span className="text-sm">Progress:</span>
                 <EpisodeControls
                   mediaId={show.id}
                   currentEpisode={show.mediaListEntry.progress || 0}
-                  totalEpisodes={show.episodes}
+                  totalEpisodes={show.episodes || 0}
                   compact
                   variant="minimal"
                 />

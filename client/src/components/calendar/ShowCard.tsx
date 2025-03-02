@@ -4,7 +4,6 @@ import { useLocation } from "wouter";
 // Import the extracted components
 import { CoverImage } from "./CoverImage";
 import { EpisodeInfo } from "./EpisodeInfo";
-import { ProgressDisplay } from "./ProgressDisplay";
 import { EpisodeControls } from "@/components/episode-controls";
 
 // Import the custom hook
@@ -36,9 +35,10 @@ export function ShowCard({ entry }: ShowCardProps) {
 
   // Determine target episode for progress comparison
   const targetEpisode = shouldShowPreviousEpisode ? episode - 1 : episode;
-  
+
   // Determine if we need to show catch-up warning
-  const showCatchUpWarning = shouldShowPreviousEpisode && currentEpisode < episode - 1;
+  const showCatchUpWarning =
+    shouldShowPreviousEpisode && currentEpisode < episode - 1;
 
   const handleClick = () => {
     if (entry.media?.id) {
@@ -68,18 +68,17 @@ export function ShowCard({ entry }: ShowCardProps) {
           </div>
         </div>
         <div className="flex items-center gap-4 text-sm">
-          <ProgressDisplay
-            currentEpisode={currentEpisode}
-            targetEpisode={targetEpisode}
-            totalEpisodes={totalEpisodes}
-          />
-          <EpisodeControls
-            mediaId={entry.media.id}
-            currentEpisode={currentEpisode}
-            totalEpisodes={totalEpisodes}
-            compact
-            variant="pill"
-          />
+          <div className="flex-shrink-0">
+            <EpisodeControls
+              mediaId={entry.media.id}
+              currentEpisode={currentEpisode}
+              totalEpisodes={totalEpisodes ?? 0}
+              targetEpisode={targetEpisode}
+              compact
+              variant="pill"
+              className="flex-shrink-0"
+            />
+          </div>
         </div>
       </div>
     </div>
