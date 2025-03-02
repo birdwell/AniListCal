@@ -16,14 +16,52 @@ const MEDIA_FRAGMENT = gql`
     description(asHtml: false)
     status
     episodes
+    duration
+    season
+    seasonYear
+    format
+    source
+    countryOfOrigin
+    isAdult
+    startDate {
+      year
+      month
+      day
+    }
+    endDate {
+      year
+      month
+      day
+    }
     nextAiringEpisode {
       airingAt
       episode
       timeUntilAiring
     }
     genres
+    tags {
+      id
+      name
+      description
+      category
+      rank
+      isGeneralSpoiler
+      isMediaSpoiler
+    }
     averageScore
+    meanScore
     popularity
+    favourites
+    rankings {
+      id
+      rank
+      type
+      format
+      year
+      season
+      allTime
+      context
+    }
     mediaListEntry {
       id
       status
@@ -34,6 +72,54 @@ const MEDIA_FRAGMENT = gql`
         id
         name
       }
+    }
+    relations {
+      edges {
+        id
+        relationType
+        node {
+          id
+          title {
+            romaji
+            english
+            native
+          }
+          format
+          type
+          status
+          coverImage {
+            large
+          }
+        }
+      }
+    }
+    recommendations(sort: RATING_DESC, perPage: 10) {
+      nodes {
+        id
+        rating
+        mediaRecommendation {
+          id
+          title {
+            romaji
+            english
+            native
+          }
+          format
+          type
+          status
+          coverImage {
+            large
+          }
+        }
+      }
+    }
+    externalLinks {
+      id
+      url
+      site
+      type
+      icon
+      color
     }
     characters(sort: [ROLE, RELEVANCE], perPage: 12) {
       nodes {

@@ -11,6 +11,13 @@ interface EpisodeTrackingSectionProps {
 }
 
 export function EpisodeTrackingSection({ show }: EpisodeTrackingSectionProps) {
+  // Add debug logging
+  console.log("Episode tracking data:", {
+    mediaListEntry: show.mediaListEntry,
+    episodes: show.episodes,
+    nextAiringEpisode: show.nextAiringEpisode,
+  });
+  
   // @ts-ignore - We know mediaListEntry might not be in the type but it's in the data
   const currentEpisode = show.mediaListEntry?.progress || 0;
   const totalEpisodes = show.episodes || 0;
@@ -32,6 +39,7 @@ export function EpisodeTrackingSection({ show }: EpisodeTrackingSectionProps) {
   // If the user doesn't have this in their list, don't show the section
   // @ts-ignore - We know mediaListEntry might not be in the type but it's in the data
   if (!show.mediaListEntry) {
+    console.log("No mediaListEntry available, not showing episode tracking section");
     return null;
   }
 

@@ -6,7 +6,11 @@ interface CharactersSectionProps {
 }
 
 export function CharactersSection({ show }: CharactersSectionProps) {
-  if (!show.characters?.nodes?.length) {
+  // Add debug logging
+  console.log("Characters data:", show.characters);
+  
+  if (!show.characters || !show.characters.nodes || !show.characters.nodes.length) {
+    console.log("No characters available");
     return null;
   }
 
@@ -21,17 +25,20 @@ export function CharactersSection({ show }: CharactersSectionProps) {
             if (!character) return null;
             
             return (
-              <div key={character.id} className="space-y-2">
+              <div key={character.id || `char-${Math.random().toString(36).substr(2, 9)}`} className="space-y-2">
                 <div className="aspect-[3/4] rounded-lg overflow-hidden">
                   <img
                     src={character.image?.large || ""}
-                    alt={character.name?.full || ""}
+                    alt={character.name?.full || "Character"}
                     className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.src = "https://via.placeholder.com/225x318?text=No+Image";
+                    }}
                   />
                 </div>
                 <div className="space-y-1">
                   <p className="font-medium line-clamp-1">
-                    {character.name?.full}
+                    {character.name?.full || "Unknown Character"}
                   </p>
                 </div>
               </div>

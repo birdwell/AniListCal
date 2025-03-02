@@ -1,9 +1,12 @@
 import { MediaFragmentFragment } from "@/generated/graphql";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
-import { Calendar, Info, PlayCircle, Users } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Calendar, Info, PlayCircle, Users, AlignLeft } from "lucide-react";
 import { EpisodeControls } from "@/components/episode-controls";
-import ReactMarkdown from "react-markdown";
+import { TagsSection } from "./tags-section";
+import { MetricsSection } from "./metrics-section";
+import { SeriesInfoSection } from "./series-info-section";
+import { RelationsSection } from "./relations-section";
 
 interface DetailsSectionProps {
   show: MediaFragmentFragment;
@@ -29,26 +32,43 @@ export function DetailsSection({ show }: DetailsSectionProps) {
   };
 
   return (
-    <div className="grid md:grid-cols-[2fr_1fr] gap-6">
-      <div className="space-y-6">
-        <div className="prose dark:prose-invert prose-sm sm:prose-base max-w-none">
-          {show.description && (
-            <div
-              dangerouslySetInnerHTML={createMarkup(show.description)}
-              className="text-foreground"
-            />
-          )}
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {show.genres?.map((genre) => (
-            <Badge key={genre} variant="secondary">
-              {genre}
-            </Badge>
-          ))}
-        </div>
-      </div>
+    <div className="space-y-6">
+      {/* Description and Genres */}
       <Card>
-        <CardContent className="p-6 space-y-4">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <AlignLeft className="h-5 w-5 text-primary" />
+            Overview
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0 space-y-6">
+          <div className="prose dark:prose-invert prose-sm sm:prose-base max-w-none">
+            {show.description && (
+              <div
+                dangerouslySetInnerHTML={createMarkup(show.description)}
+                className="text-foreground"
+              />
+            )}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {show.genres?.map((genre) => (
+              <Badge key={genre} variant="secondary">
+                {genre}
+              </Badge>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Status Card */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Info className="h-5 w-5 text-primary" />
+            Status
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0 space-y-4">
           <div className="flex items-center gap-3">
             <Info className="h-4 w-4 text-primary" />
             <span className="text-sm">Status: {show.status}</span>
@@ -84,16 +104,20 @@ export function DetailsSection({ show }: DetailsSectionProps) {
               </div>
             </div>
           )}
-          {show.studios?.nodes?.[0] && (
-            <div className="flex items-center gap-3">
-              <Users className="h-4 w-4 text-primary" />
-              <span className="text-sm">
-                Studio: {show.studios.nodes[0].name}
-              </span>
-            </div>
-          )}
         </CardContent>
       </Card>
+
+      {/* Grid layout for the information sections */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <SeriesInfoSection show={show} />
+        <MetricsSection show={show} />
+      </div>
+
+      {/* Tags Section - Only render if tags exists */}
+      {show.tags && <TagsSection show={show} />}
+
+      {/* Relations Section - Only render if relations exists */}
+      {show.relations && <RelationsSection show={show} />}
     </div>
   );
 }

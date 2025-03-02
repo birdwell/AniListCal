@@ -1,6 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "wouter";
-import { fetchAnimeDetails, fetchAuthenticatedAnimeDetails } from "@/lib/anilist";
+import {
+  fetchAnimeDetails,
+  fetchAuthenticatedAnimeDetails,
+} from "@/lib/anilist";
 import { MediaFragmentFragment } from "@/generated/graphql";
 import {
   LoadingSkeleton,
@@ -8,11 +11,13 @@ import {
   DetailsSection,
   CharactersSection,
   ErrorDisplay,
-  EpisodeTrackingSection
+  EpisodeTrackingSection,
 } from "@/components/show";
 import { AddToListButton } from "@/components/show/add-to-list-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ListPlus } from "lucide-react";
+import { RecommendationsSection } from "@/components/show/recommendations-section";
+import { ExternalLinksSection } from "@/components/show/external-links-section";
 
 export default function ShowPage() {
   const { id } = useParams();
@@ -22,7 +27,7 @@ export default function ShowPage() {
     data: show,
     isLoading,
     error,
-    refetch
+    refetch,
   } = useQuery<MediaFragmentFragment>({
     queryKey: ["/anilist/anime", animeId],
     queryFn: () => {
@@ -60,7 +65,7 @@ export default function ShowPage() {
   return (
     <div className="container mx-auto px-4 sm:px-6 py-6 max-w-7xl space-y-8 animate-in fade-in duration-500">
       <HeroSection show={show} />
-      
+
       {isInUserList ? (
         <EpisodeTrackingSection show={show} />
       ) : (
@@ -74,16 +79,23 @@ export default function ShowPage() {
           <CardContent className="p-6">
             <div className="flex flex-col items-center justify-center py-4 text-center space-y-4">
               <p className="text-muted-foreground mb-2">
-                This anime is not in your list yet. Add it to track your progress!
+                This anime is not in your list yet. Add it to track your
+                progress!
               </p>
               <AddToListButton mediaId={show.id} />
             </div>
           </CardContent>
         </Card>
       )}
-      
+
       <DetailsSection show={show} />
-      <CharactersSection show={show} />
+      {show.characters && <CharactersSection show={show} />}
+
+      {/* External Links Section - Only render if externalLinks exists */}
+      {show.externalLinks && <ExternalLinksSection show={show} />}
+
+      {/* Recommendations Section - Only render if recommendations exists */}
+      {show.recommendations && <RecommendationsSection show={show} />}
     </div>
   );
 }
