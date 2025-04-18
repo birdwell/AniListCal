@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { format } from 'date-fns';
 // Use a type-only import for MediaListStatus to avoid the import error
-import { groupShowsByAiringDate } from '../pages/calendar';
+import { groupShowsByAiringDate } from '../hooks/useCalendar';
 
 describe('groupShowsByAiringDate', () => {
   // Mock data for testing
@@ -59,7 +59,7 @@ describe('groupShowsByAiringDate', () => {
 
   it('should filter out entries that do not have nextAiringEpisode or are not CURRENT', () => {
     const result = groupShowsByAiringDate(mockEntries);
-    
+
     // Should only include entries with status CURRENT and nextAiringEpisode
     const totalEntries = Object.values(result).flat().length;
     expect(totalEntries).toBe(2); // Only 2 entries should pass the filter
@@ -67,18 +67,18 @@ describe('groupShowsByAiringDate', () => {
 
   it('should group entries by their airing date in local time', () => {
     const result = groupShowsByAiringDate(mockEntries);
-    
+
     // Get the expected date keys in local time
     const date1 = new Date(mockEntries[0].media.nextAiringEpisode!.airingAt! * 1000);
     const date2 = new Date(mockEntries[1].media.nextAiringEpisode!.airingAt! * 1000);
-    
+
     const expectedDate1 = format(date1, 'yyyy-MM-dd');
     const expectedDate2 = format(date2, 'yyyy-MM-dd');
-    
+
     // Check that the entries are grouped by the correct dates
     expect(Object.keys(result)).toContain(expectedDate1);
     expect(Object.keys(result)).toContain(expectedDate2);
-    
+
     // Check that the entries are in the correct groups
     expect(result[expectedDate1][0].id).toBe('1');
     expect(result[expectedDate2][0].id).toBe('2');
@@ -97,13 +97,13 @@ describe('groupShowsByAiringDate', () => {
         }
       }
     };
-    
+
     // Get the expected date in local time
     const date = new Date(midnightShow.media.nextAiringEpisode.airingAt * 1000);
     const expectedDate = format(date, 'yyyy-MM-dd');
-    
+
     const result = groupShowsByAiringDate([midnightShow]);
-    
+
     // The show should be grouped by the local date, not UTC date
     expect(Object.keys(result)).toContain(expectedDate);
     expect(result[expectedDate][0].id).toBe('5');

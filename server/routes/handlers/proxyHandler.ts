@@ -20,9 +20,23 @@ export async function handleProxy(req: Request, res: Response, next: NextFunctio
     }
     const apiRes = await fetch(ANILIST_GRAPHQL_URL, {
       method: 'POST',
-      headers: { 'Content-Type':'application/json','Accept':'application/json', 'Authorization': `Bearer ${anilistToken}` },
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'Authorization': `Bearer ${anilistToken}` },
       body: JSON.stringify({ query, variables }),
     });
+
+    // Check if the fetch response was successful
+    if (!apiRes.ok) {
+      // Attempt to get more details from the error response, but throw generic if parsing fails
+      let errorDetails = `Status: ${apiRes.status} ${apiRes.statusText}`;
+      try {
+        const errorData = await apiRes.json();
+        errorDetails = JSON.stringify(errorData);
+      } catch (parseError) {
+        // Ignore parsing error, use status text
+      }
+      throw new Error(`AniList API request failed: ${errorDetails}`);
+    }
+
     const data = await apiRes.json();
     return res.json(data);
   } catch (error: any) {

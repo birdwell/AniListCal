@@ -6,3 +6,6 @@ vite.config.ts.*
 *.tar.gz
 .vscode/brave-debug-profile/
 .env
+coverage/
+
+.persist-storage/

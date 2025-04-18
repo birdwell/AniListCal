@@ -8,12 +8,18 @@ import { storage } from '../../storage';
  * @param res Express Response
  * @param next Express NextFunction
  */
-export function handleRefreshToken(req: Request, res: Response, next: NextFunction) {
-  const userId = (req as any).userId;
-  if (!userId) {
-    return res.status(401).json({ error: 'Not authenticated' });
-  }
+export async function handleRefreshToken(req: Request, res: Response, next: NextFunction) {
+  try {
+    const userId = (req as any).userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
 
-  const apiToken = storage.generateApiToken(userId);
-  return res.json({ apiToken, expiresIn: 4 * 3600 });
+    const apiToken = await storage.generateApiToken(userId);
+    return res.json({ success: true, apiToken, expiresIn: 4 * 3600 });
+
+  } catch (error) {
+    console.error('[handleRefreshToken] Error generating token:', error);
+    next(error);
+  }
 }

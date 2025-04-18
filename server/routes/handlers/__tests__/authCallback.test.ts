@@ -1,121 +1,148 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, Mocked } from 'vitest';
 import { handleAuthCallback } from '../authCallback';
 import { storage } from '../../../storage';
+import { createMockReqResNext } from './mockUtils';
+import type { Request, Response, NextFunction } from 'express';
+import { ANILIST_TOKEN_URL, ANILIST_GRAPHQL_URL } from '../../../constants';
 
-const mockFetch = vi.fn();
-global.fetch = mockFetch;
-
-const fakeReq = (body = {}) => ({ body, login: vi.fn((user, cb) => cb && cb()), session: {}, headers: {} });
-const fakeRes = () => {
-  const res: any = { status: vi.fn().mockReturnThis(), json: vi.fn() };
-  return res;
-};
+// Mock environment variables needed by the handler
+process.env.ANILIST_CLIENT_ID = 'mockClientId';
+process.env.ANILIST_CLIENT_SECRET = 'mockClientSecret';
+// Mock frontend URL if needed for redirect tests
+// process.env.FRONTEND_URL = 'http://mockfrontend.com';
 
 describe('handleAuthCallback', () => {
-  let req: any;
-  let res: any;
-  let next: any;
+  let req: Request;
+  let res: Response;
+  let next: NextFunction;
+  let resSpies: ReturnType<typeof createMockReqResNext>['resSpies'];
+  let storeTokenSpy: any;
+  let fetchMock: any;
 
   beforeEach(() => {
-    req = fakeReq();
-    res = fakeRes();
-    next = vi.fn();
-    vi.spyOn(storage, 'storeToken').mockReset();
-    vi.spyOn(storage, 'storeUserInfo').mockReset();
-    vi.spyOn(storage, 'generateApiToken').mockReturnValue('apitoken');
-    mockFetch.mockReset();
-    process.env.ANILIST_CLIENT_ID = 'id';
-    process.env.ANILIST_CLIENT_SECRET = 'secret';
+    vi.clearAllMocks();
+
+    storeTokenSpy = vi.spyOn(storage, 'storeToken').mockResolvedValue(undefined);
+    fetchMock = vi.fn();
+
+    const mocks = createMockReqResNext();
+    req = mocks.req;
+    res = mocks.res;
+    next = mocks.next;
+    resSpies = mocks.resSpies;
   });
 
-  it('returns error if code missing', async () => {
-    req.body = { code: undefined };
-    await handleAuthCallback(req, res, next);
-    expect(res.status).toHaveBeenCalledWith(500);
-    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ error: expect.stringContaining('Authorization code is required') }));
+  it('redirects to frontend error on missing code', async () => {
+    req.query = {};
+    await handleAuthCallback(req, res, next, fetchMock);
+    expect(resSpies.redirect).toHaveBeenCalledWith(expect.stringContaining('#authError=Authorization%20code%20is%20required%20from%20AniList%20redirect'));
+    expect(storeTokenSpy).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(next).not.toHaveBeenCalled();
   });
 
-  it('returns error if client credentials missing', async () => {
-    process.env.ANILIST_CLIENT_ID = '';
-    await handleAuthCallback(req, res, next);
-    expect(res.status).toHaveBeenCalledWith(500);
-    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ error: expect.stringContaining('AniList client credentials are not properly configured') }));
+  it('redirects to frontend error on AniList token exchange failure (non-OK response)', async () => {
+    req.query = { code: 'testcode', state: 'samestate' };
+    fetchMock.mockResolvedValueOnce({
+      ok: false,
+      status: 400,
+      statusText: 'Bad Request',
+      json: async () => ({ error_description: 'Invalid code' })
+    });
+
+    await handleAuthCallback(req, res, next, fetchMock);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith(ANILIST_TOKEN_URL, expect.anything());
+    expect(resSpies.redirect).toHaveBeenCalledWith(expect.stringContaining('#authError=Failed%20to%20get%20access%20token'));
+    expect(storeTokenSpy).not.toHaveBeenCalled();
+    expect(next).not.toHaveBeenCalled();
   });
 
-  it('returns error if token fetch fails', async () => {
-    req.body = { code: 'abc', redirectUri: 'uri' };
-    mockFetch.mockResolvedValueOnce({ ok: false, json: () => Promise.resolve({ message: 'fail' }) });
-    await handleAuthCallback(req, res, next);
-    expect(res.status).toHaveBeenCalledWith(500);
-    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ error: expect.stringContaining('Failed to get access token') }));
+  it('redirects to frontend error if fetch itself throws during token exchange', async () => {
+    req.query = { code: 'testcode', state: 'samestate' };
+    const fetchError = new Error('Network Failed');
+    fetchMock.mockRejectedValueOnce(fetchError);
+
+    await handleAuthCallback(req, res, next, fetchMock);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith(ANILIST_TOKEN_URL, expect.anything());
+    expect(resSpies.redirect).toHaveBeenCalledWith(expect.stringContaining('#authError=Network%20Failed'));
+    expect(storeTokenSpy).not.toHaveBeenCalled();
+    expect(next).not.toHaveBeenCalled();
   });
 
-  it('returns error if user fetch fails', async () => {
-    req.body = { code: 'abc', redirectUri: 'uri' };
-    mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ access_token: 'tok' }) });
-    mockFetch.mockResolvedValueOnce({ ok: false });
-    await handleAuthCallback(req, res, next);
-    expect(res.status).toHaveBeenCalledWith(500);
-    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ error: expect.stringContaining('Failed to get user info') }));
+  it('redirects to frontend error on AniList user fetch failure', async () => {
+    req.query = { code: 'testcode', state: 'samestate' };
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ access_token: 'anilist_token', expires_in: 3600 }),
+    });
+    fetchMock.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      statusText: 'Server Error',
+      json: async () => ({ message: 'Internal Server Error' })
+    });
+
+    await handleAuthCallback(req, res, next, fetchMock);
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenNthCalledWith(1, ANILIST_TOKEN_URL, expect.anything());
+    expect(fetchMock).toHaveBeenNthCalledWith(2, ANILIST_GRAPHQL_URL, expect.anything());
+    expect(resSpies.redirect).toHaveBeenCalledWith(expect.stringContaining('#authError=Failed%20to%20get%20user%20info'));
+    expect(storeTokenSpy).not.toHaveBeenCalled();
+    expect(next).not.toHaveBeenCalled();
   });
 
-  it('handles successful callback and session', async () => {
-    req.body = { code: 'abc', redirectUri: 'uri' };
-    const viewer = { id: 1, name: 'bob', avatar: { medium: 'url' } };
-    mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ access_token: 'tok' }) });
-    mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ data: { Viewer: viewer } }) });
-    req.login = vi.fn((user, cb) => cb());
-    await handleAuthCallback(req, res, next);
-    expect(storage.storeToken).toHaveBeenCalledWith('1', 'tok');
-    expect(storage.storeUserInfo).toHaveBeenCalledWith('1', 'bob', 'url');
-    expect(storage.generateApiToken).toHaveBeenCalledWith('1');
-    expect(req.login).toHaveBeenCalled();
-    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true, user: { id: '1', username: 'bob', avatarUrl: 'url' }, apiToken: 'apitoken', expiresIn: 4 * 3600 }));
+  it('handles error storing token (after successful fetches)', async () => {
+    req.query = { code: 'testcode', state: 'samestate' };
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ access_token: 'anilist_token', expires_in: 3600 }),
+    });
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ data: { Viewer: { id: 123, name: 'TestUser', avatar: { medium: 'url' } } } })
+    });
+    const storeError = new Error('Storage failed');
+    storeTokenSpy.mockRejectedValue(storeError);
+
+    await handleAuthCallback(req, res, next, fetchMock);
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(storeTokenSpy).toHaveBeenCalledWith('123', 'anilist_token');
+    expect(resSpies.redirect).toHaveBeenCalledWith(expect.stringContaining('#authError=Storage%20failed'));
+    expect(next).not.toHaveBeenCalled();
   });
 
-  it('handles login error', async () => {
-    req.body = { code: 'abc', redirectUri: 'uri' };
-    const viewer = { id: 1, name: 'bob', avatar: { medium: 'url' } };
-    mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ access_token: 'tok' }) });
-    mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ data: { Viewer: viewer } }) });
-    req.login = vi.fn((user, cb) => cb('fail'));
-    await handleAuthCallback(req, res, next);
-    expect(res.status).toHaveBeenCalledWith(500);
-    expect(res.json).toHaveBeenCalledWith({ error: 'Failed to establish session' });
-  });
+  it('successfully exchanges code, fetches user, stores token, generates API token, and redirects', async () => {
+    req.query = { code: 'testcode', state: 'samestate' };
+    const tokenPayload = { access_token: 'anilist_token', expires_in: 3600 };
+    fetchMock.mockResolvedValueOnce({ ok: true, json: async () => tokenPayload });
+    const userPayload = { data: { Viewer: { id: 123, name: 'TestUser', avatar: { medium: 'avatar_url' } } } };
+    fetchMock.mockResolvedValueOnce({ ok: true, json: async () => userPayload });
+    const generateApiTokenSpy = vi.spyOn(storage, 'generateApiToken').mockResolvedValue('internal-api-token');
+    const storeUserInfoSpy = vi.spyOn(storage, 'storeUserInfo').mockResolvedValue(undefined);
 
-  it('handles code and redirectUri in req.query', async () => {
-    req.body = {};
-    req.query = { code: 'abc', redirectUri: 'uri' };
-    const viewer = { id: 1, name: 'bob', avatar: { medium: 'url' } };
-    mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ access_token: 'tok' }) });
-    mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ data: { Viewer: viewer } }) });
-    req.login = vi.fn((user, cb) => cb());
-    await handleAuthCallback(req, res, next);
-    expect(storage.storeToken).toHaveBeenCalledWith('1', 'tok');
-    expect(storage.storeUserInfo).toHaveBeenCalledWith('1', 'bob', 'url');
-    expect(storage.generateApiToken).toHaveBeenCalledWith('1');
-    expect(req.login).toHaveBeenCalled();
-    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true, user: { id: '1', username: 'bob', avatarUrl: 'url' }, apiToken: 'apitoken', expiresIn: 4 * 3600 }));
-  });
+    await handleAuthCallback(req, res, next, fetchMock);
 
-  it('handles error without message property in catch', async () => {
-    req.body = { code: 'abc', redirectUri: 'uri' };
-    // Simulate error thrown without .message
-    const error = { foo: 'bar' };
-    const orig = global.fetch;
-    global.fetch = () => { throw error; };
-    await handleAuthCallback(req, res, next);
-    expect(res.status).toHaveBeenCalledWith(500);
-    expect(res.json).toHaveBeenCalledWith({ error: 'Authentication failed' });
-    global.fetch = orig;
-  });
-
-  it('handles tokenRes error without message property', async () => {
-    req.body = { code: 'abc', redirectUri: 'uri' };
-    mockFetch.mockResolvedValueOnce({ ok: false, json: () => Promise.resolve({ foo: 'bar' }), statusText: 'Bad Request' });
-    await handleAuthCallback(req, res, next);
-    expect(res.status).toHaveBeenCalledWith(500);
-    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ error: expect.stringContaining('Failed to get access token: Bad Request') }));
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenNthCalledWith(1, ANILIST_TOKEN_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ grant_type: 'authorization_code', client_id: 'mockClientId', client_secret: 'mockClientSecret', redirect_uri: 'http://localhost:3001/auth/callback', code: 'testcode' })
+    });
+    expect(fetchMock).toHaveBeenNthCalledWith(2, ANILIST_GRAPHQL_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json', Authorization: 'Bearer anilist_token' },
+      body: JSON.stringify({ query: `query { Viewer { id name avatar { medium } } }` })
+    });
+    expect(storeTokenSpy).toHaveBeenCalledWith('123', 'anilist_token');
+    expect(storeUserInfoSpy).toHaveBeenCalledWith('123', 'TestUser', 'avatar_url');
+    expect(generateApiTokenSpy).toHaveBeenCalledWith('123');
+    expect(resSpies.redirect).toHaveBeenCalledWith('http://localhost:5001/#apiToken=internal-api-token&expiresIn=14400');
+    expect(next).not.toHaveBeenCalled();
   });
 });

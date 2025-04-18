@@ -4,7 +4,7 @@ import { LoadingView } from "../components/calendar/LoadingView";
 import { DaySelector } from "../components/calendar/DaySelector";
 import { ShowsList } from "../components/calendar/ShowsList";
 
-export default function CalendarPage() {
+function CalendarPage() {
   // Use our custom hook that combines all calendar functionality
   const {
     selectedDay,
@@ -35,3 +35,5 @@ export default function CalendarPage() {
     </div>
   );
 }
+
+export default CalendarPage;

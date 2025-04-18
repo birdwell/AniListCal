@@ -8,6 +8,9 @@ const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5001';
 // Define the backend callback URL (should match AniList settings)
 const BACKEND_CALLBACK_URL = process.env.BACKEND_CALLBACK_URL || 'http://localhost:3001/auth/callback';
 
+// Define the expected signature for the injected fetch function
+type FetchFunction = (input: RequestInfo | URL, init?: RequestInit | undefined) => Promise<globalThis.Response>;
+
 /**
  * Handles the GET request from AniList OAuth callback.
  * Exchanges authorization code for access token, fetches AniList user info,
@@ -15,8 +18,14 @@ const BACKEND_CALLBACK_URL = process.env.BACKEND_CALLBACK_URL || 'http://localho
  * @param req Express Request
  * @param res Express Response
  * @param next Express NextFunction
+ * @param fetchFn The fetch function to use (allows mocking)
  */
-export const handleAuthCallback = async (req: Request, res: Response, next: NextFunction) => {
+export const handleAuthCallback = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+  fetchFn: FetchFunction // Inject fetch dependency
+) => {
   console.log('[Server Auth Callback] Received request');
   try {
     const clientId = process.env.ANILIST_CLIENT_ID;
@@ -46,8 +55,8 @@ export const handleAuthCallback = async (req: Request, res: Response, next: Next
 
     console.log('[Server Auth Callback] Exchanging code for AniList token...', { clientId, redirectUri: BACKEND_CALLBACK_URL });
 
-    // Exchange authorization code for access token
-    const tokenRes = await fetch(ANILIST_TOKEN_URL, {
+    // Exchange authorization code for access token using injected fetchFn
+    const tokenRes = await fetchFn(ANILIST_TOKEN_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -75,8 +84,8 @@ export const handleAuthCallback = async (req: Request, res: Response, next: Next
 
     console.log(`[Server Auth Callback] Successfully obtained AniList access token (expires in ${expiresInAniList}s). Fetching user info...`);
 
-    // Fetch AniList user info with access token
-    const userRes = await fetch(ANILIST_GRAPHQL_URL, {
+    // Fetch AniList user info with access token using injected fetchFn
+    const userRes = await fetchFn(ANILIST_GRAPHQL_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

@@ -1,10 +1,16 @@
 import type { Request, Response, NextFunction } from 'express';
-import { storage } from '../../storage';
+import { PersistentStorage } from '../../storage';
 
 /**
  * Logs out the user by revoking tokens and destroying session.
+ * @param storageService - The storage service instance.
  */
-export async function handleLogout(req: Request, res: Response, next: NextFunction) {
+export async function handleLogout(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+  storageService: PersistentStorage
+) {
   try {
     let revokedToken = false;
     // Revoke bearer token if present
@@ -12,7 +18,7 @@ export async function handleLogout(req: Request, res: Response, next: NextFuncti
     if (auth?.startsWith('Bearer ')) {
       const token = auth.slice(7);
       console.log('[handleLogout] Attempting to revoke bearer token.');
-      revokedToken = await storage.revokeApiToken(token);
+      revokedToken = await storageService.revokeApiToken(token);
       console.log(`[handleLogout] Bearer token revoked: ${revokedToken}`);
     }
 
@@ -20,7 +26,7 @@ export async function handleLogout(req: Request, res: Response, next: NextFuncti
     const userId = (req as any).userId;
     if (userId) {
       console.log(`[handleLogout] Attempting to revoke all tokens for user ${userId}.`);
-      await storage.revokeToken(userId);
+      await storageService.revokeToken(userId);
       console.log(`[handleLogout] All tokens revoked for user ${userId}.`);
     }
 

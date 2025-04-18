@@ -15,7 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { ThemeProvider } from "@/components/theme-provider";
-import { Calendar } from "./components/ui/calendar";
+import CalendarPage from "./pages/calendar";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const [, setLocation] = useLocation();
@@ -80,7 +80,7 @@ function Router() {
         </div>
       )} />
       <Route path="/" component={() => <ProtectedRoute component={Home} />} />
-      <Route path="/calendar" component={() => <ProtectedRoute component={Calendar} />} />
+      <Route path="/calendar" component={() => <ProtectedRoute component={CalendarPage} />} />
       <Route path="/profile" component={() => <ProtectedRoute component={Profile} />} />
       <Route path="/show/:id" component={() => <ProtectedRoute component={Show} />} />
       <Route component={NotFound} />

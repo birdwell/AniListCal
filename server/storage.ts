@@ -24,7 +24,7 @@ const Keys = {
 /**
  * Token and user storage manager using node-persist
  */
-class PersistentStorage {
+export class PersistentStorage {
   private isInitialized = false;
 
   constructor() {

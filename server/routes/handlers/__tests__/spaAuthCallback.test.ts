@@ -1,19 +1,24 @@
 import { describe, it, expect, vi } from 'vitest';
 import { handleSpaAuthCallback } from '../spaAuthCallback';
+import { createMockReqResNext } from './mockUtils';
+import type { Request, Response } from 'express';
 
 describe('handleSpaAuthCallback', () => {
     it('redirects to login if code is missing', () => {
-        const req: any = { query: {} };
-        const res: any = { redirect: vi.fn() };
+        const { req, res, resSpies } = createMockReqResNext();
         handleSpaAuthCallback(req, res);
-        expect(res.redirect).toHaveBeenCalledWith('/login?error=No_authorization_code_received');
+        expect(resSpies.redirect).toHaveBeenCalledWith('/login?error=No_authorization_code_received');
     });
 
     it('sends HTML if code is present', () => {
-        const req: any = { query: { code: 'abc123' } };
-        const res: any = { send: vi.fn() };
+        const { req, res, reqSpies, resSpies } = createMockReqResNext();
+        req.query.code = 'abc123';
+        reqSpies.get.mockReturnValue('localhost:3000');
+
         handleSpaAuthCallback(req, res);
-        expect(res.send).toHaveBeenCalledWith(expect.stringContaining('sessionStorage.setItem'));
-        expect(res.send).toHaveBeenCalledWith(expect.stringContaining('abc123'));
+
+        expect(reqSpies.get).toHaveBeenCalledWith('host');
+        expect(resSpies.send).toHaveBeenCalledWith(expect.stringContaining('sessionStorage.setItem'));
+        expect(resSpies.send).toHaveBeenCalledWith(expect.stringContaining('abc123'));
     });
 }); 
