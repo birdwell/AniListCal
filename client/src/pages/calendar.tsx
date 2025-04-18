@@ -1,9 +1,8 @@
-import {
-  DaySelector,
-  LoadingView,
-  ShowsList,
-} from "@/components/calendar";
-import { useCalendar } from "@/hooks/useCalendar";
+import React from "react";
+import { useCalendar } from "../hooks/useCalendar";
+import { LoadingView } from "../components/calendar/LoadingView";
+import { DaySelector } from "../components/calendar/DaySelector";
+import { ShowsList } from "../components/calendar/ShowsList";
 
 export default function CalendarPage() {
   // Use our custom hook that combines all calendar functionality
@@ -28,10 +27,10 @@ export default function CalendarPage() {
         setSelectedDay={setSelectedDay}
       />
 
-      <ShowsList 
-        showsForSelectedDate={showsForSelectedDate} 
-        selectedDay={selectedDay} 
-        selectedDate={selectedDate} 
+      <ShowsList
+        showsForSelectedDate={showsForSelectedDate}
+        selectedDay={selectedDay}
+        selectedDate={selectedDate}
       />
     </div>
   );

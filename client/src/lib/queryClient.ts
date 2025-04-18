@@ -1,14 +1,14 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
-import authService from "./auth";
+import { clearAuthData, getApiToken, refreshApiToken } from "./auth";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     // Special handling for authentication errors
     if (res.status === 401) {
       // Clear any stale auth data and trigger redirect in the UI
-      authService.clearAuthData();
+      clearAuthData();
     }
-    
+
     const text = (await res.text()) || res.statusText;
     throw new Error(`${res.status}: ${text}`);
   }
@@ -21,13 +21,13 @@ export async function apiRequest(
 ): Promise<Response> {
   // Check if this is an authenticated request (not login/register)
   const isAuthRequest = !url.includes("/auth/login") && !url.includes("/auth/register");
-  
+
   try {
     const res = await fetch(url, {
       method,
       headers: {
         ...(data ? { "Content-Type": "application/json" } : {}),
-        ...(isAuthRequest && authService.getApiToken() ? { "Authorization": `Bearer ${authService.getApiToken()}` } : {})
+        ...(isAuthRequest && getApiToken() ? { "Authorization": `Bearer ${getApiToken()}` } : {})
       },
       body: data ? JSON.stringify(data) : undefined,
       credentials: "include",
@@ -36,7 +36,7 @@ export async function apiRequest(
     // Handle token refresh if needed
     if (res.status === 401 && isAuthRequest) {
       // Try to refresh the token
-      const refreshed = await authService.refreshApiToken();
+      const refreshed = await refreshApiToken();
       if (refreshed) {
         // Retry the original request with the new token
         return apiRequest(method, url, data);
@@ -56,49 +56,49 @@ export const getQueryFn: <T>(options: {
   on401: UnauthorizedBehavior;
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
-  async ({ queryKey }) => {
-    // Check if this is an authenticated request
-    const url = queryKey[0] as string;
-    const isAuthRequest = !url.includes("/auth/login") && !url.includes("/auth/register");
-    
-    try {
-      const res = await fetch(url, {
-        headers: isAuthRequest && authService.getApiToken() ? {
-          "Authorization": `Bearer ${authService.getApiToken()}`
-        } : {},
-        credentials: "include",
-      });
+    async ({ queryKey }) => {
+      // Check if this is an authenticated request
+      const url = queryKey[0] as string;
+      const isAuthRequest = !url.includes("/auth/login") && !url.includes("/auth/register");
 
-      // Handle token refresh if needed
-      if (res.status === 401 && isAuthRequest) {
-        // Try to refresh the token
-        const refreshed = await authService.refreshApiToken();
-        if (refreshed) {
-          // Retry the query with the new token
-          const retryRes = await fetch(url, {
-            headers: {
-              "Authorization": `Bearer ${authService.getApiToken()}`
-            },
-            credentials: "include",
-          });
-          
-          if (retryRes.ok) {
-            return await retryRes.json();
+      try {
+        const res = await fetch(url, {
+          headers: isAuthRequest && getApiToken() ? {
+            "Authorization": `Bearer ${getApiToken()}`
+          } : {},
+          credentials: "include",
+        });
+
+        // Handle token refresh if needed
+        if (res.status === 401 && isAuthRequest) {
+          // Try to refresh the token
+          const refreshed = await refreshApiToken();
+          if (refreshed) {
+            // Retry the query with the new token
+            const retryRes = await fetch(url, {
+              headers: {
+                "Authorization": `Bearer ${getApiToken()}`
+              },
+              credentials: "include",
+            });
+
+            if (retryRes.ok) {
+              return await retryRes.json();
+            }
           }
         }
-      }
 
-      if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-        return null;
-      }
+        if (unauthorizedBehavior === "returnNull" && res.status === 401) {
+          return null;
+        }
 
-      await throwIfResNotOk(res);
-      return await res.json();
-    } catch (error) {
-      console.error("Query function error:", error);
-      throw error;
-    }
-  };
+        await throwIfResNotOk(res);
+        return await res.json();
+      } catch (error) {
+        console.error("Query function error:", error);
+        throw error;
+      }
+    };
 
 // Configure the QueryClient with improved caching
 export const queryClient = new QueryClient({

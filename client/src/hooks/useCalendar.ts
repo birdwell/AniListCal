@@ -1,11 +1,11 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { format } from 'date-fns';
+import { format, addDays } from 'date-fns';
 import { EntyFragmentFragment, MediaListStatus } from '@/generated/graphql';
 import { fetchUserAnime } from '@/lib/anilist';
-import { getUser } from '@/lib/auth';
 import { isWeeklyShow } from '@/lib/calendar-utils';
 import { commonQueryOptions } from '@/lib/query-config';
+import { queryAniList, getUser, type User } from '@/lib/auth';
 
 const DAYS = [
   'Sunday',
@@ -43,21 +43,24 @@ export function useDaySelection() {
 /**
  * Custom hook to get the next 7 days from today
  */
-export function useNextWeekDates() {
+export function useNextWeekDates(startDate?: Date) {
   return useMemo(() => {
-    const today = new Date();
-    return Array.from({ length: 7 }, (_, i) => {
-      const date = new Date(today);
-      date.setDate(today.getDate() + i);
-      return format(date, 'yyyy-MM-dd');
-    });
-  }, []);
+    const today = startDate || new Date();
+    const dates = [];
+
+    for (let i = 0; i < 7; i++) {
+      const date = addDays(today, i);
+      dates.push(format(date, 'yyyy-MM-dd'));
+    }
+
+    return dates;
+  }, [startDate]);
 }
 
 /**
  * Helper function to group shows by airing date
  */
-function groupShowsByAiringDate(
+export function groupShowsByAiringDate(
   animeEntries: EntyFragmentFragment[] | undefined
 ): Record<string, EntyFragmentFragment[]> {
   if (!animeEntries) return {};
@@ -65,37 +68,70 @@ function groupShowsByAiringDate(
   const today = new Date();
   const todayString = format(today, 'yyyy-MM-dd');
 
-  return animeEntries
+  // Collect entries by date
+  const dateMap: Record<string, EntyFragmentFragment[]> = {};
+
+  animeEntries
     .filter(
       (entry) => entry.media?.nextAiringEpisode && entry.status === 'CURRENT'
     )
-    .reduce((acc, entry) => {
-      if (!entry.media?.nextAiringEpisode) return acc;
-
-      // Create a date object from the timestamp
-      const timestamp = entry.media.nextAiringEpisode.airingAt * 1000;
-
-      // Create a date object that properly accounts for local timezone
+    .forEach((entry) => {
+      // Since we filtered for non-null values above, we can safely assert these exist
+      const airingAt = entry.media!.nextAiringEpisode!.airingAt;
+      const timestamp = airingAt * 1000;
       const nextAiringDate = new Date(timestamp);
-
-      // Format the date in local timezone (YYYY-MM-DD)
       const key = format(nextAiringDate, 'yyyy-MM-dd');
 
-      // Check if this is a weekly show that should also appear on today's calendar
-      if (isWeeklyShow(entry.media.nextAiringEpisode.airingAt)) {
-        // Add it to both today and its actual airing date
-        if (!acc[todayString]) acc[todayString] = [];
-        // Create a copy of the entry for today's display
-        const todayEntry = JSON.parse(JSON.stringify(entry));
-        acc[todayString].push(todayEntry);
+      // Add to its actual airing date
+      if (!dateMap[key]) dateMap[key] = [];
+      dateMap[key].push(entry);
+    });
+
+  // Add weekly shows to today if needed
+  animeEntries
+    .filter(
+      (entry) => entry.media?.nextAiringEpisode && entry.status === 'CURRENT'
+    )
+    .forEach((entry) => {
+      // Since we filtered for non-null values above, we can safely assert these exist
+      const airingAt = entry.media!.nextAiringEpisode!.airingAt;
+      const timestamp = airingAt * 1000;
+      const nextAiringDate = new Date(timestamp);
+      const key = format(nextAiringDate, 'yyyy-MM-dd');
+      if (
+        isWeeklyShow(airingAt) &&
+        key !== todayString
+      ) {
+        // Only add to today if the show airs within the next 7 days
+        const diffDays = Math.floor((nextAiringDate.getTime() - today.getTime()) / (1000 * 3600 * 24));
+        if (diffDays >= 0 && diffDays <= 6) {
+          if (!dateMap[todayString]) dateMap[todayString] = [];
+          // Avoid duplicate (don't add if already present for today)
+          if (!dateMap[todayString].some(e => e.id === entry.id)) {
+            dateMap[todayString].push({ ...entry });
+          }
+        }
       }
+    });
 
-      // Still add it to its actual airing date as well
-      if (!acc[key]) acc[key] = [];
-      acc[key].push(entry);
+  // Sort entries for each date by airing time ascending, then by id ascending for stable order
+  Object.keys(dateMap).forEach(date => {
+    dateMap[date].sort((a, b) => {
+      const aTime = a.media?.nextAiringEpisode?.airingAt ?? 0;
+      const bTime = b.media?.nextAiringEpisode?.airingAt ?? 0;
+      if (aTime !== bTime) return aTime - bTime;
+      return String(a.id).localeCompare(String(b.id));
+    });
+  });
 
-      return acc;
-    }, {} as Record<string, EntyFragmentFragment[]>);
+  // Sort the date keys in ascending order and return a new object
+  const sortedDateKeys = Object.keys(dateMap).sort();
+  const sortedDateMap: Record<string, EntyFragmentFragment[]> = {};
+  for (const date of sortedDateKeys) {
+    sortedDateMap[date] = dateMap[date];
+  }
+
+  return sortedDateMap;
 }
 
 /**
@@ -147,9 +183,8 @@ export function useCalendar() {
 
   // Get entries for the selected date
   const showsForSelectedDate = useMemo(() => {
-    return Object.entries(airingDateMap).filter(
-      ([date]) => date === selectedDate
-    );
+    if (!selectedDate || !airingDateMap) return [];
+    return Object.entries(airingDateMap).filter(([date]) => date === selectedDate);
   }, [airingDateMap, selectedDate]);
 
   return {

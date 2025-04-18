@@ -29,43 +29,43 @@ export function SeriesInfoSection({ show }: SeriesInfoSectionProps) {
   // Format the season and year
   const formatSeason = () => {
     if (!show.season) return null;
-    
+
     const season = show.season.charAt(0) + show.season.slice(1).toLowerCase();
     return show.seasonYear ? `${season} ${show.seasonYear}` : season;
   };
-  
+
   // Format the source
   const formatSource = () => {
     if (!show.source) return null;
-    
+
     return show.source
       .split('_')
       .map(word => word.charAt(0) + word.slice(1).toLowerCase())
       .join(' ');
   };
-  
+
   // Format the format (e.g., TV, MOVIE, OVA)
   const formatFormat = () => {
     if (!show.format) return null;
-    
+
     // Special case for common acronyms
     if (['TV', 'OVA', 'ONA'].includes(show.format)) {
       return show.format;
     }
-    
+
     return show.format
       .split('_')
       .map(word => word.charAt(0) + word.slice(1).toLowerCase())
       .join(' ');
   };
-  
+
   // Format dates
   const formatDate = (date: { year?: number | null; month?: number | null; day?: number | null } | null | undefined) => {
     if (!date || !date.year) return null;
-    
+
     const month = date.month ? new Date(0, date.month - 1).toLocaleString('default', { month: 'short' }) : null;
     const day = date.day;
-    
+
     if (month && day) {
       return `${month} ${day}, ${date.year}`;
     } else if (month) {
@@ -74,12 +74,12 @@ export function SeriesInfoSection({ show }: SeriesInfoSectionProps) {
       return date.year.toString();
     }
   };
-  
+
   // Format the airing period
   const formatAiringPeriod = () => {
     const startDate = formatDate(show.startDate);
     const endDate = formatDate(show.endDate);
-    
+
     if (startDate && endDate) {
       return `${startDate} to ${endDate}`;
     } else if (startDate) {
@@ -88,11 +88,11 @@ export function SeriesInfoSection({ show }: SeriesInfoSectionProps) {
       return null;
     }
   };
-  
+
   // Format country code to country name
   const formatCountry = (countryCode: string | null | undefined) => {
     if (!countryCode) return null;
-    
+
     const countries: Record<string, string> = {
       'JP': 'Japan',
       'KR': 'South Korea',
@@ -105,16 +105,16 @@ export function SeriesInfoSection({ show }: SeriesInfoSectionProps) {
       'DE': 'Germany',
       // Add more as needed
     };
-    
+
     return countries[countryCode] || countryCode;
   };
-  
+
   const country = formatCountry(show.countryOfOrigin);
-  const hasInfo = show.format || show.episodes || show.season || show.source || country || 
-                 show.isAdult || formatAiringPeriod() || (show.studios?.nodes?.length ?? 0) > 0;
-  
+  const hasInfo = show.format || show.episodes || show.season || show.source || country ||
+    show.isAdult || formatAiringPeriod() || (show.studios?.nodes?.length ?? 0) > 0;
+
   console.log("Has series info:", hasInfo);
-  
+
   return (
     <Card>
       <CardHeader className="pb-3">
@@ -136,7 +136,7 @@ export function SeriesInfoSection({ show }: SeriesInfoSectionProps) {
                 </div>
               </div>
             )}
-            
+
             {/* Episodes & Duration */}
             <div className="flex items-center gap-3">
               <Tv2 className="h-4 w-4 text-primary" />
@@ -147,7 +147,7 @@ export function SeriesInfoSection({ show }: SeriesInfoSectionProps) {
                 </div>
               </div>
             </div>
-            
+
             {/* Season */}
             {formatSeason() && (
               <div className="flex items-center gap-3">
@@ -158,7 +158,7 @@ export function SeriesInfoSection({ show }: SeriesInfoSectionProps) {
                 </div>
               </div>
             )}
-            
+
             {/* Source */}
             {formatSource() && (
               <div className="flex items-center gap-3">
@@ -169,7 +169,7 @@ export function SeriesInfoSection({ show }: SeriesInfoSectionProps) {
                 </div>
               </div>
             )}
-            
+
             {/* Country of Origin */}
             {country && (
               <div className="flex items-center gap-3">
@@ -180,7 +180,7 @@ export function SeriesInfoSection({ show }: SeriesInfoSectionProps) {
                 </div>
               </div>
             )}
-            
+
             {/* Adult Content Warning */}
             {show.isAdult && (
               <div className="flex items-center gap-3">
@@ -196,7 +196,7 @@ export function SeriesInfoSection({ show }: SeriesInfoSectionProps) {
                 </div>
               </div>
             )}
-            
+
             {/* Airing Period */}
             {formatAiringPeriod() && (
               <div className="flex items-center gap-3 md:col-span-2">
@@ -207,18 +207,17 @@ export function SeriesInfoSection({ show }: SeriesInfoSectionProps) {
                 </div>
               </div>
             )}
-            
+
             {/* Studios */}
-            {show.studios?.nodes?.filter(studio => studio !== null).length > 0 && (
+            {show.studios?.nodes && show.studios.nodes.length > 0 && (
               <div className="flex items-center gap-3 md:col-span-2">
                 <div className="h-4 w-4 flex items-center justify-center text-primary">🏢</div>
                 <div>
                   <div className="text-sm font-medium">Studios</div>
                   <div className="text-sm text-muted-foreground">
                     {show.studios.nodes
-                      .filter(studio => studio !== null)
-                      .map(studio => studio?.name)
-                      .filter(Boolean)
+                      .filter((studio): studio is NonNullable<typeof studio> => studio !== null)
+                      .map(studio => studio.name)
                       .join(', ')}
                   </div>
                 </div>

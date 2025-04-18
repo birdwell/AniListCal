@@ -22,7 +22,7 @@ const ANILIST_GRAPHQL_URL = "https://graphql.anilist.co";
  * Generate a cache key for anime list requests
  */
 function getAnimeListCacheKey(
-  userId: string,
+  userId: number,
   status: MediaListStatus[]
 ): string {
   return `${userId}-${status.sort().join(",")}`;
@@ -36,7 +36,7 @@ function getAnimeListCacheKey(
  * @returns Array of media list entries
  */
 export async function fetchUserAnime(
-  userId: string,
+  userId: number,
   status: MediaListStatus[] = [
     MediaListStatus.Current,
     MediaListStatus.Planning,
@@ -62,7 +62,7 @@ export async function fetchUserAnime(
     const response = await queryAniList<GetUserMediaListQuery>(
       GET_USER_MEDIA_LIST_QUERY,
       {
-        userId: parseInt(userId, 10),
+        userId,
         status,
       }
     );
@@ -158,7 +158,7 @@ export async function fetchAuthenticatedAnimeDetails(
       return fetchAnimeDetails(id, forceRefresh);
     }
 
-    const userId = parseInt(user.id);
+    const userId = user.id;  // user.id is already a number
     const cacheKey = `auth-${userId}-${id}`;
 
     // Check cache first if not forcing refresh
@@ -177,7 +177,7 @@ export async function fetchAuthenticatedAnimeDetails(
       id
       // We don't need to pass userId here as the server will get it from the auth token
     });
-    
+
     const media = response.data?.Media;
 
     if (!media) {

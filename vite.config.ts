@@ -9,10 +9,11 @@ import graphql from "@rollup/plugin-graphql";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 export default defineConfig({
+  envDir: path.resolve(__dirname),
   plugins: [
-    react(), 
-    runtimeErrorOverlay(), 
-    themePlugin(), 
+    react(),
+    runtimeErrorOverlay(),
+    themePlugin(),
     graphql()
   ],
   resolve: {
@@ -30,6 +31,13 @@ export default defineConfig({
   server: {
     port: 5001,
     strictPort: true,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+        secure: false,
+      }
+    }
   },
   // Enable source maps only for development
   css: {

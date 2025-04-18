@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import authService, { getUser } from "@/lib/auth";
+import { getUser, login } from "@/lib/auth";
 import { SiAnilist } from "react-icons/si";
 import { useState } from "react";
 import { useLocation } from "wouter";
@@ -26,7 +26,7 @@ export default function Login() {
   const handleLogin = async () => {
     setIsLoading(true);
     try {
-      await authService.login();
+      await login();
     } catch (error) {
       console.error('Login error:', error);
       setIsLoading(false);
@@ -51,7 +51,7 @@ export default function Login() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Button 
+          <Button
             className="w-full py-6 text-lg"
             onClick={handleLogin}
             disabled={isLoading}

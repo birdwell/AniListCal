@@ -1,15 +1,15 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Home, Calendar, User, LogOut } from "lucide-react";
-import authService from "@/lib/auth";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { logout } from "@/lib/auth";
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
 
   const handleLogout = async () => {
     try {
-      await authService.logout();
+      await logout();
       // The redirect to login will be handled by the protected route component
     } catch (error) {
       console.error('Logout error:', error);

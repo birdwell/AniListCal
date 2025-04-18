@@ -1,8 +1,7 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import session, { SessionOptions } from "express-session";
 import passport from "passport";
-import connectPgSimple from "connect-pg-simple";
-import { pool } from "../db";
+import MemoryStore from 'memorystore';
 import { AniListUser } from "../types";
 import { storage } from "../storage";
 import { log } from "../vite";
@@ -11,7 +10,7 @@ import rateLimit from "express-rate-limit";
 /**
  * Middleware to validate API tokens
  */
-export function validateApiToken(
+export async function validateApiToken(
   req: Request,
   res: Response,
   next: NextFunction
@@ -22,22 +21,33 @@ export function validateApiToken(
   }
 
   const token = authHeader.split(" ")[1];
-  const tokenData = storage.validateApiToken(token);
+  try {
+    const tokenData = await storage.validateApiToken(token);
 
-  if (!tokenData) {
-    return res.status(401).json({ error: "Invalid or expired token" });
+    if (!tokenData) {
+      return res.status(401).json({ error: "Invalid or expired token" });
+    }
+
+    // Add user info to request for use in protected routes
+    req.userId = tokenData.userId;
+
+    // Add the AniList token to the request if needed for proxy operations
+    const anilistToken = await storage.getToken(tokenData.userId);
+    if (anilistToken) {
+      req.anilistToken = anilistToken;
+    } else {
+      // If the API token is valid but the underlying AniList token is gone, it's an issue
+      console.warn(`[validateApiToken] Valid API token found for user ${tokenData.userId}, but no corresponding AniList token in storage.`);
+      // Decide how to handle this - maybe revoke the API token?
+      await storage.revokeApiToken(token); // Revoke the now useless API token
+      return res.status(401).json({ error: "Associated session data missing, please log in again." });
+    }
+
+    next();
+  } catch (error) {
+    console.error('[validateApiToken] Error during token validation:', error);
+    next(error); // Pass error to the global error handler
   }
-
-  // Add user info to request for use in protected routes
-  req.userId = tokenData.userId;
-
-  // Add the AniList token to the request if needed for proxy operations
-  const anilistToken = storage.getToken(tokenData.userId);
-  if (anilistToken) {
-    req.anilistToken = anilistToken;
-  }
-
-  next();
 }
 
 /**
@@ -72,14 +82,19 @@ export function databaseErrorMiddleware(
 // Add Content Security Policy middleware
 export function addSecurityHeaders(app: Express) {
   app.use((req, res, next) => {
+    // Skip CSP for API endpoints
+    if (req.path.startsWith('/api/')) {
+      return next();
+    }
+
     // Only apply CSP to HTML responses in production
-    if (process.env.NODE_ENV === "production" && !req.path.startsWith('/api/')) {
+    if (process.env.NODE_ENV === "production") {
       // Set Content Security Policy
       res.setHeader(
         "Content-Security-Policy",
         [
           "default-src 'self'",
-          "script-src 'self' 'unsafe-inline'", // Consider removing unsafe-inline in the future
+          "script-src 'self' 'unsafe-inline'",
           "style-src 'self' 'unsafe-inline'",
           "img-src 'self' https://s4.anilist.co https://img.anili.st data:",
           "font-src 'self'",
@@ -107,7 +122,7 @@ export function addRateLimiting(app: Express) {
     // Skip rate limiting in development
     skip: (req) => process.env.NODE_ENV !== 'production',
   });
-  
+
   // Apply a stricter rate limit to authentication endpoints
   const authLimiter = rateLimit({
     windowMs: 60 * 60 * 1000, // 1 hour
@@ -118,57 +133,40 @@ export function addRateLimiting(app: Express) {
     // Skip rate limiting in development
     skip: (req) => process.env.NODE_ENV !== 'production',
   });
-  
+
   // Apply to all requests
   app.use('/api/', apiLimiter);
-  
+
   // Apply to auth endpoints
   app.use('/api/auth/', authLimiter);
 }
 
 export function registerMiddleware(app: Express) {
-  // Add security headers first
-  addSecurityHeaders(app);
-  
-  // Add rate limiting
-  addRateLimiting(app);
-  
-  // Enable CORS for the frontend domain
+  // Enable CORS for the frontend domain - this needs to come first
   app.use((req, res, next) => {
     // In production, only allow specific origins
-    // In development, allow localhost origins
+    // In development, allow all origins
     const productionOrigins = [
       "https://anime-ai-tracker-xtjfxz26j.replit.app",
       "https://2047b52c-bec0-4945-b1b7-feb231404996-00-38qei4b1h64ey.worf.replit.dev:3000/",
       // Add your production domain here
     ];
-    
-    const developmentOrigins = [
-      "http://localhost:5000",
-      "http://localhost:5001",
-      "http://localhost:4173", // Vite preview server
-    ];
-    
-    const allowedOrigins = process.env.NODE_ENV === "production" 
-      ? productionOrigins 
-      : [...productionOrigins, ...developmentOrigins];
-      
+
     const origin = req.headers.origin;
-    if (origin && allowedOrigins.includes(origin)) {
-      res.setHeader("Access-Control-Allow-Origin", origin);
-    } else if (process.env.NODE_ENV !== "production") {
-      // In development, if origin is not in the list, still allow it but log a warning
-      if (origin) {
-        log(`Warning: Request from unknown origin: ${origin}`);
+    if (process.env.NODE_ENV === "production") {
+      if (origin && productionOrigins.includes(origin)) {
         res.setHeader("Access-Control-Allow-Origin", origin);
       }
+    } else {
+      // In development, allow any origin
+      res.setHeader("Access-Control-Allow-Origin", origin || "*");
     }
-    
+
     // Set security headers
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("X-Frame-Options", "DENY");
     res.setHeader("X-XSS-Protection", "1; mode=block");
-    
+
     res.setHeader(
       "Access-Control-Allow-Methods",
       "GET, POST, OPTIONS, PUT, DELETE"
@@ -186,9 +184,35 @@ export function registerMiddleware(app: Express) {
     next();
   });
 
+  // Add security headers after CORS
+  addSecurityHeaders(app);
+
+  // Add rate limiting but exclude the config endpoint
+  const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 100,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: 'Too many requests from this IP, please try again after 15 minutes',
+    skip: (req) => process.env.NODE_ENV !== 'production' || req.path === '/api/config'
+  });
+
+  const authLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000,
+    limit: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: 'Too many login attempts from this IP, please try again after an hour',
+    skip: (req) => process.env.NODE_ENV !== 'production'
+  });
+
+  // Apply rate limiting
+  app.use('/api/', apiLimiter);
+  app.use('/api/auth/', authLimiter);
+
   // Configure session with error handling
   try {
-    const PostgresStore = connectPgSimple(session);
+    const MemoryStoreFactory = MemoryStore(session);
 
     // Ensure a strong session secret is set
     const sessionSecret = process.env.SESSION_SECRET;
@@ -206,9 +230,8 @@ export function registerMiddleware(app: Express) {
         sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax", // CSRF protection
         maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
       },
-      store: new PostgresStore({
-        pool: pool as any,
-        tableName: "session",
+      store: new MemoryStoreFactory({
+        checkPeriod: 86400000 // prune expired entries every 24h
       }),
       name: "sid", // Custom cookie name
     };
@@ -224,14 +247,17 @@ export function registerMiddleware(app: Express) {
 
     passport.deserializeUser(async (id: string, done) => {
       try {
-        const token = storage.getToken(id);
+        // Make storage calls async
+        const token = await storage.getToken(id);
         if (!token) {
+          console.log(`[Passport Deserialize] No AniList token found for user ${id}`);
           return done(null, false);
         }
 
         // Get user info from storage
-        const userInfo = storage.getUserInfo(id);
+        const userInfo = await storage.getUserInfo(id);
         if (!userInfo) {
+          console.log(`[Passport Deserialize] No user info found for user ${id}`);
           return done(null, false);
         }
 
@@ -244,7 +270,7 @@ export function registerMiddleware(app: Express) {
         done(null, user);
       } catch (err) {
         log(`Passport deserialize error: ${err}`);
-        done(null, false); // Continue without user instead of failing
+        done(err); // Pass the error to Passport
       }
     });
   } catch (error) {
