@@ -1,11 +1,11 @@
 import { Search, X, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Dispatch, SetStateAction, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 
 interface SearchBarProps {
   searchQuery: string;
-  setSearchQuery: Dispatch<SetStateAction<string>>;
+  setSearchQuery: (query: string) => void;
   totalResults: number | null;
   isLoading?: boolean;
 }

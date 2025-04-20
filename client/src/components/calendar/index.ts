@@ -1,4 +1,3 @@
-export * from './CalendarCard';
 export * from './DaySelector';
 export * from './LoadingGrid';
 export * from './LoadingView';

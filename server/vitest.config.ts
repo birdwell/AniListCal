@@ -4,6 +4,13 @@ export default defineConfig({
     test: {
         globals: true, // Use global APIs like describe, it, expect
         environment: 'node', // Set environment to Node.js for server tests
+        // Explicitly configure environment options for node
+        environmentOptions: {
+            node: {
+                // Add any specific node options if needed, e.g., experimental features
+                // For now, just defining the block can sometimes help resolution
+            }
+        },
         coverage: {
             provider: 'v8', // Use V8 coverage provider
             reporter: ['text', 'json', 'html'], // Output formats

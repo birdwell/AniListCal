@@ -36,10 +36,6 @@ export function ShowCard({ entry }: ShowCardProps) {
   // Determine target episode for progress comparison
   const targetEpisode = shouldShowPreviousEpisode ? episode - 1 : episode;
 
-  // Determine if we need to show catch-up warning
-  const showCatchUpWarning =
-    shouldShowPreviousEpisode && currentEpisode < episode - 1;
-
   const handleClick = () => {
     if (entry.media?.id) {
       navigate(`/show/${entry.media.id}`);

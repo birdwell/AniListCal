@@ -25,11 +25,9 @@
 - [x] **Configure Coverage:** Set up test coverage reporting (e.g., `vitest --coverage`) and configure thresholds aiming for 100% line/branch/function coverage. *(Config files created)*
 
 ## Backend (`server/`)
-- [ ] **Storage (`storage.ts`):**
+- [x] **Storage (`storage.ts`):**
     - Write unit tests mocking `node-persist` methods (`init`, `setItem`, `getItem`, `removeItem`, etc.).
     - Test token generation, validation (valid/invalid/expired), retrieval, and revocation logic.
-    - Test user info storage and retrieval.
-    - Test cleanup logic (if possible with mocks).
 - [ ] **Handlers (`handlers/*.ts`):**
     - Write unit tests for each handler (`handleAuthCallback`, `handleGetUser`, `handleLogout`, `handleProxy`).
     - Mock the `storage` module completely.
@@ -90,3 +88,42 @@
 ## Iteration
 - [ ] **Refactor for Testability:** As tests are written, refactor code where necessary to improve isolation and testability (e.g., dependency injection, pure functions).
 - [ ] **Address Coverage Gaps:** Analyze coverage reports and write additional tests to cover any missed lines or branches.
+
+# Feature: Tag Filtering (using Zustand)
+
+- [x] **Install Zustand:** Add `zustand` as a project dependency using `yarn`.
+- [x] **Create Zustand Store (`filterStore.ts`):**
+    - Create a new file (`client/src/stores/filterStore.ts`).
+    - Define a Zustand store containing:
+        - `searchQuery: string`
+        - `setSearchQuery: (query: string) => void`
+        - `selectedTags: string[]`
+        - `addTag: (tag: string) => void`
+        - `removeTag: (tag: string) => void`
+        - `clearTags: () => void`
+- [x] **Refactor Search State:**
+    - Modify `AnimeContent.tsx` to use `searchQuery` and `setSearchQuery` from the Zustand store instead of local `useState`.
+    - Update `SearchBar.tsx` props to accept the store's `searchQuery` and `setSearchQuery` function signature `(query: string) => void`.
+- [x] **Data Source / Tag Availability:** Verify that tags are available on the `EntyFragmentFragment`. (Confirmed: `entry.media.tags` and `entry.media.genres` exist).
+- [ ] **Collect & Categorize Tags:** In `AnimeContent.tsx`, gather a unique list of all tags (`entry.media.tags.name`) and genres (`entry.media.genres`) present across all `animeEntries`. Structure this data by category (using `tag.category` and assigning a "Genre" category), e.g., `categorizedTags: Record<string, string[]>`. Sort categories and tags alphabetically.
+- [ ] **UI Component Refactor (`TagFilter.tsx`):**
+    - Update props to accept `categorizedTags: Record<string, string[]>`. 
+    - Add state for an internal text filter (`internalFilterQuery: string`).
+    - Add an `Input` field for the internal text filter.
+    - Display selected tags prominently at the top (clickable for deselection).
+    - Display tags grouped by category.
+    - Filter displayed tags within each category based on `internalFilterQuery`.
+    - Ensure tags in the main list are clickable for selection/deselection and visually indicate selection state.
+    - Keep the "Clear All" button.
+    - Use a `ScrollArea` for the main categorized tag list.
+- [ ] **Integration Refactor (`AnimeContent.tsx`):**
+    - Remove the `Popover` integration.
+    - Add state to manage the visibility of the tag filter section (e.g., `isTagFilterOpen: boolean`).
+    - Use a `Collapsible`, `CollapsibleTrigger`, `CollapsibleContent` structure below the search bar area.
+    - The `Button` with `SlidersHorizontal` becomes the `CollapsibleTrigger`, toggling `isTagFilterOpen`.
+    - Place the refactored `TagFilter` component inside `CollapsibleContent`.
+    - Pass the `categorizedTags` prop to `TagFilter`.
+    - Update the trigger button badge logic if needed.
+- [ ] **Filtering Logic Update:** In `AnimeContent.tsx`, ensure the main filtering logic (`filteredAndTaggedEntries`) correctly uses the `selectedTags` from the store (this part should already be correct from the previous step).
+- [ ] **Update Tests:** Write/update unit/integration tests for the store, `TagFilter`, and `AnimeContent` reflecting the new structure and functionality.
+- [ ] **Styling:** Apply/adjust styling for the collapsible section, internal filter input, selected tags area, and categorized lists. 

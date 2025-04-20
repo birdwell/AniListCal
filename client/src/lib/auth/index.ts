@@ -1,6 +1,7 @@
 // Secure authentication utilities for AniList OAuth with API token proxy
-import { queryClient } from "./queryClient";
-import { CacheService, CACHE_EXPIRY } from "./cache-service";
+
+import { CacheService } from "../cache-service";
+import { queryClient } from "../queryClient";
 
 // Constants
 const ANILIST_AUTH_URL = "https://anilist.co/api/v2/oauth/authorize";
@@ -32,6 +33,12 @@ interface User {
   };
 }
 
+// Response type for the refresh token endpoint
+interface RefreshTokenResponse {
+  apiToken?: string;
+  expiresIn?: number; // Assuming seconds
+}
+
 /**
  * Get client ID from environment
  * @returns Promise resolving to the client ID
@@ -46,6 +53,7 @@ async function getClientId(): Promise<string> {
 
   // If not found in env, throw an error as it's required for auth flow
   console.error("VITE_ANILIST_CLIENT_ID is not defined in the environment.");
+  // Explicitly throw the error here
   throw new Error("Anilist client ID is not configured in the client environment.");
 }
 
@@ -67,27 +75,20 @@ function getRedirectUri(): string {
 /**
  * Start the login flow by redirecting to AniList
  */
-async function login(): Promise<void> {
+export const login = async () => {
+  console.log("Login function called");
   try {
-    // Store the redirect URI for callback validation (server handles this now)
-    const redirectUri = getRedirectUri();
-
-    // Get client ID
+    // Call and await the internal async function getClientId
     const clientId = await getClientId();
-
-    // Construct authorization URL
-    const authUrl = new URL(ANILIST_AUTH_URL);
-    authUrl.searchParams.append("client_id", clientId);
-    authUrl.searchParams.append("redirect_uri", redirectUri);
-    authUrl.searchParams.append("response_type", "code");
-
-    // Redirect to AniList auth page
-    window.location.href = authUrl.toString();
+    const redirectUri = getRedirectUri();
+    console.log(`Redirecting to AniList with Client ID: ${clientId} and Redirect URI: ${redirectUri}`);
+    window.location.href = `https://anilist.co/api/v2/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code`;
   } catch (error) {
     console.error("Failed to initiate login:", error);
+    // Re-throw the error to be caught by the caller or global handler
     throw error;
   }
-}
+};
 
 /**
  * Get the current API token from session storage
@@ -148,24 +149,22 @@ async function logout(): Promise<void> {
   console.log("Initiating logout...");
   const apiToken = getApiToken();
   try {
+    // Construct headers conditionally
+    const headers: HeadersInit = {};
     if (apiToken) {
+      headers["Authorization"] = `Bearer ${apiToken}`;
       console.log("Calling server logout endpoint with API token...");
-      // Call server logout endpoint
-      await fetch(API_ENDPOINTS.AUTH_LOGOUT, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${apiToken}`
-        },
-        credentials: "include" // Include cookies if session is also used server-side
-      });
     } else {
       console.log("No API token found, calling server logout endpoint without token...");
-      // Fallback if no API token but maybe a session exists?
-      await fetch(API_ENDPOINTS.AUTH_LOGOUT, {
-        method: "POST",
-        credentials: "include" // Include cookies
-      });
     }
+
+    // Call server logout endpoint
+    await fetch(API_ENDPOINTS.AUTH_LOGOUT, {
+      method: "POST",
+      headers: headers, // Use the conditionally constructed headers
+      credentials: "include" // Include cookies if session is also used server-side
+    });
+
   } catch (error) {
     console.error("Server logout endpoint failed:", error);
     // Continue with client-side cleanup even if server fails
@@ -243,7 +242,8 @@ async function queryAniList<T = any>(
       try {
         errorBody = await response.json();
       } catch (e) { /* ignore json parsing error */ }
-      throw new Error(errorBody?.error || `AniList API proxy error: ${response.statusText}`);
+      // Throw a more specific error from the proxy response
+      throw new Error(errorBody?.error || `AniList API proxy error: ${response.status} ${response.statusText}`);
     }
 
     const result = await response.json();
@@ -259,18 +259,30 @@ async function queryAniList<T = any>(
         // setLocation('/login'); // Redirect to login?
         throw new Error("Authentication required (GraphQL auth error)");
       }
-      // Re-throw generic GraphQL errors if not auth related
+      // Throw specific GraphQL error message if not auth related
       throw new Error(`GraphQL error: ${result.errors.map((e: any) => e.message).join(', ')}`);
     }
     return result; // Contains { data: ..., errors: ... }
   } catch (error) {
     console.error("AniList query function error:", error);
-    // Check if the error is due to clearing auth data, if so re-throw a specific error
-    if (error instanceof Error && (error.message.includes("Authentication required") || error.message.includes("Authentication expired"))) {
-      throw error; // Re-throw auth specific errors
+    // Re-throw specific errors that were already constructed
+    if (error instanceof Error && (
+      error.message.startsWith("Authentication required") ||
+      error.message.startsWith("AniList API proxy error:") ||
+      error.message.startsWith("GraphQL error:")
+    )) {
+      throw error; // Re-throw the specific error
     }
-    // Throw a generic error for other network/unexpected issues
-    throw new Error("Failed to query AniList");
+    // Only wrap if it's NOT already an Error instance we expected to handle
+    if (error instanceof Error) {
+      // If it's an Error but not one of the specific messages, re-throw it directly
+      // Or potentially wrap it if it signifies a different kind of failure
+      console.warn('Caught unexpected Error instance:', error);
+      throw error; // Re-throwing for now, might need refinement
+    } else {
+      // Wrap non-Error throwables (e.g., strings, numbers)
+      throw new Error("Failed to query AniList due to unexpected issue", { cause: error });
+    }
   }
 }
 
@@ -322,61 +334,63 @@ export function isAuthenticated(): boolean {
 /**
  * Refresh the API token - TODO: Needs implementation if server supports it
  */
-export async function refreshApiToken(): Promise<boolean> {
-  console.warn("refreshApiToken function is not fully implemented.");
-  // This needs a corresponding server endpoint (e.g., /api/auth/refresh)
-  // that uses the AniList refresh token (if applicable) or re-validates the session/existing token
-  // to issue a new apiToken. AniList itself doesn't support refresh tokens currently.
-  // This might involve the server checking its stored AniList token validity
-  // or simply re-issuing the internal apiToken if the server session is still valid.
+export const refreshApiToken = async (): Promise<boolean> => {
+  console.log("Attempting to refresh API token...");
+  const currentToken = getApiToken();
+  if (!currentToken) {
+    console.error("No current API token found, cannot refresh.");
+    return false;
+  }
 
   try {
-    const currentToken = getApiToken();
-    if (!currentToken) return false; // Can't refresh without a current token
-
-    console.log("Attempting to refresh API token...");
+    // TODO: Implement actual refresh logic using a backend endpoint
+    // This requires a backend endpoint that takes the current (potentially expired)
+    // token or refresh token and returns a new one.
+    console.warn("refreshApiToken function is not fully implemented.");
+    // Simulate fetch call
     const response = await fetch(API_ENDPOINTS.AUTH_REFRESH, {
       method: "POST",
-      credentials: "include", // Include session cookies
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${currentToken}` // Send current token for validation
-      }
+        // Include Authorization if your backend requires the old token
+        Authorization: `Bearer ${currentToken}`,
+      },
+      credentials: "include",
     });
 
     if (!response.ok) {
-      console.error("Failed to refresh token, server responded with status:", response.status);
+      console.error(`Failed to refresh token, server responded with status: ${response.status}`);
       if (response.status === 401) {
-        clearAuthData(); // Clear data if refresh is unauthorized
+        console.warn("Refresh token invalid or expired, clearing client data.");
+        clearAuthData(); // Clear data if unauthorized
       }
-      return false; // Indicate refresh failed
-    }
-
-    const data = await response.json();
-    console.log("Token refresh response:", data);
-
-    // Store the new API token and expiry
-    if (data.apiToken && data.expiresIn) {
-      console.log("Storing refreshed API token and expiry.");
-      sessionStorage.setItem(STORAGE_KEYS.API_TOKEN, data.apiToken);
-      const expiryTime = Date.now() + (data.expiresIn * 1000);
-      sessionStorage.setItem(STORAGE_KEYS.TOKEN_EXPIRY, expiryTime.toString());
-      queryClient.invalidateQueries({ queryKey: ["auth"] }); // Invalidate auth state
-      return true; // Indicate refresh succeeded
-    } else {
-      console.warn("Refresh response did not contain apiToken and expiresIn.");
       return false;
     }
 
+    const data: RefreshTokenResponse = await response.json();
+    console.log("Token refresh response:", data);
+
+    if (data.apiToken && data.expiresIn) {
+      console.log("Storing refreshed API token and expiry.");
+      const expiryTimestamp = Date.now() + data.expiresIn * 1000;
+      sessionStorage.setItem(STORAGE_KEYS.API_TOKEN, data.apiToken);
+      sessionStorage.setItem(STORAGE_KEYS.TOKEN_EXPIRY, expiryTimestamp.toString());
+      // Optionally, invalidate queries that depend on auth state
+      queryClient.invalidateQueries({ queryKey: ["auth"] });
+      console.log("Token refreshed successfully.");
+      return true;
+    } else {
+      console.error("Refresh response did not contain valid apiToken and expiresIn.");
+      return false;
+    }
   } catch (error) {
     console.error("Error during token refresh:", error);
     return false;
   }
-}
+};
 
 // Export individual functions and types
 export {
-  login,
   logout,
   getApiToken,
   clearAuthData,
