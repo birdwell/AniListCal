@@ -68,13 +68,13 @@ export function EpisodeTrackingSection({ show }: EpisodeTrackingSectionProps) {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-4">
+          <div className="space-y-4 min-w-0">
             <h3 className="text-sm font-medium text-muted-foreground">
               Your Progress
             </h3>
 
-            <div className="flex items-center gap-4">
-              <div className="text-2xl font-bold">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="text-2xl font-bold flex-shrink-0">
                 <span
                   className={cn(
                     getProgressColor(
@@ -95,8 +95,8 @@ export function EpisodeTrackingSection({ show }: EpisodeTrackingSectionProps) {
                 currentEpisode={currentEpisode}
                 totalEpisodes={totalEpisodes}
                 targetEpisode={nextEpisodeNumber}
-                variant="default"
-                className="ml-2"
+                variant="minimal"
+                className="flex-shrink-0"
               />
             </div>
 
