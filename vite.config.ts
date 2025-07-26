@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
 import graphql from "@rollup/plugin-graphql";
+import themePlugin from "@replit/vite-plugin-shadcn-theme-json";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -10,7 +11,8 @@ export default defineConfig({
   envDir: path.resolve(__dirname),
   plugins: [
     react(),
-    graphql()
+    themePlugin(),
+    graphql(),
   ],
   resolve: {
     alias: {
