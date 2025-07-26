@@ -69,7 +69,7 @@ function getRedirectUri(): string {
   const backendOrigin = process.env.NODE_ENV === 'production'
     ? window.location.origin // Assuming prod backend is same origin or adjust as needed
     : 'http://localhost:3001'; // Development backend URL
-  return `${backendOrigin}/auth/callback`;
+  return `${backendOrigin}/api/auth/callback`;
 }
 
 /**

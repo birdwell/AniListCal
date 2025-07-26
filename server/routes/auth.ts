@@ -19,7 +19,7 @@ export function registerAuthRoutes(app: Express) {
   );
 
   // OAuth callback endpoint - AniList redirects HERE
-  app.get("/auth/callback", (req: Request, res: Response, next: NextFunction) => {
+  app.get("/api/auth/callback", (req: Request, res: Response, next: NextFunction) => {
     handleAuthCallback(req, res, next, fetch);
   });
 
