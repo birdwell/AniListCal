@@ -1,3 +1,4 @@
+import { sentryVitePlugin } from "@sentry/vite-plugin";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path, { dirname } from "path";
@@ -9,11 +10,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 export default defineConfig({
   envDir: path.resolve(__dirname),
-  plugins: [
-    react(),
-    themePlugin(),
-    graphql(),
-  ],
+  plugins: [react(), themePlugin(), graphql(), sentryVitePlugin({
+    org: "birdwell-labs",
+    project: "anilistcal"
+  })],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "client", "src"),
@@ -24,7 +24,7 @@ export default defineConfig({
   build: {
     outDir: path.resolve(__dirname, "dist/public"),
     emptyOutDir: true,
-    sourcemap: process.env.NODE_ENV !== 'production',
+    sourcemap: true,
   },
   server: {
     port: 5001,

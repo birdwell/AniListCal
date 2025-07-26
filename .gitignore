@@ -11,3 +11,6 @@ coverage/
 .persist-storage
 
 SECURITY_CHECKLIST.md
+
+# Sentry Config File
+.env.sentry-build-plugin
