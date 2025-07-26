@@ -1,4 +1,5 @@
 import express, { type Express } from "express";
+import rateLimit from "express-rate-limit";
 import fs from "fs";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
@@ -97,8 +98,16 @@ export function serveStatic(app: Express) {
 
   app.use(express.static(distPath));
 
+  // Rate limiter for fallback to index.html
+  const staticFallbackLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // limit each IP to 100 requests per windowMs
+    standardHeaders: true, // Return rate limit info in the RateLimit-* headers
+    legacyHeaders: false, // Disable the X-RateLimit-* headers
+  });
+
   // fall through to index.html if the file doesn't exist
-  app.use("*", (req, res, next) => {
+  app.use("*", staticFallbackLimiter, (req, res, next) => {
     // Skip API routes - these should be handled by the API handlers
     if (req.originalUrl.startsWith("/api/")) {
       return next();
