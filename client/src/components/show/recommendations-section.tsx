@@ -52,7 +52,7 @@ export function RecommendationsSection({ show }: RecommendationsSectionProps) {
                     {recommendation?.rating && (
                       <div className="absolute top-1 right-1 sm:top-2 sm:right-2 bg-background/80 rounded-full px-1.5 py-0.5 sm:px-2 sm:py-1 text-xs font-medium flex items-center gap-1">
                         <ThumbsUp className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-primary" />
-                        <span className="hidden sm:inline">{recommendation.rating}</span>
+                        <span>{recommendation.rating}</span>
                       </div>
                     )}
                   </div>
