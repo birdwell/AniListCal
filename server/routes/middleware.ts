@@ -149,6 +149,7 @@ export function registerMiddleware(app: Express) {
     const productionOrigins = [
       "https://anime-ai-tracker-xtjfxz26j.replit.app",
       "https://2047b52c-bec0-4945-b1b7-feb231404996-00-38qei4b1h64ey.worf.replit.dev:3000/",
+      "https://anilistcal.onrender.com",
       // Add your production domain here
     ];
 
