@@ -8,4 +8,4 @@ vite.config.ts.*
 .env
 coverage/
 
-.persist-storage/
+.persist-storage

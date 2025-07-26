@@ -6,7 +6,7 @@ import type { AniListUser } from '../../types';
 // Define the frontend URL (replace with environment variable in production)
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5001';
 // Define the backend callback URL (should match AniList settings)
-const BACKEND_CALLBACK_URL = process.env.BACKEND_CALLBACK_URL || 'http://localhost:3001/auth/callback';
+const BACKEND_CALLBACK_URL = process.env.BACKEND_CALLBACK_URL || 'http://localhost:3001/api/auth/callback';
 
 // Define the expected signature for the injected fetch function
 type FetchFunction = (input: RequestInfo | URL, init?: RequestInit | undefined) => Promise<globalThis.Response>;

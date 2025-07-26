@@ -4,7 +4,6 @@ import { CacheService } from "../cache-service";
 import { queryClient } from "../queryClient";
 
 // Constants
-const ANILIST_AUTH_URL = "https://anilist.co/api/v2/oauth/authorize";
 const API_ENDPOINTS = {
   AUTH_LOGOUT: "/api/auth/logout",
   AUTH_USER: "/api/auth/user",
