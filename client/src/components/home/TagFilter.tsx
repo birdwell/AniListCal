@@ -49,7 +49,7 @@ export function TagFilter({ categorizedTags }: TagFilterProps) {
     const hasFilteredResults = Object.keys(filteredCategorizedTags).length > 0;
 
     return (
-        <div className="p-4 bg-background rounded-md border max-w-md w-full">
+        <div className="p-4 bg-background rounded-md border w-full">
             {selectedTags.length > 0 && (
                 <div className="mb-4">
                     <div className="flex justify-between items-center mb-2">

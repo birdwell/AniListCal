@@ -5,43 +5,41 @@ interface HeroSectionProps {
 }
 
 export function HeroSection({ show }: HeroSectionProps) {
-  // Add debug logging
-  console.log("Hero section data:", {
-    title: show.title,
-    bannerImage: show.bannerImage,
-    coverImage: show.coverImage,
-  });
-  return (
-    <div className="relative h-[300px] md:h-[400px] -mx-4 sm:mx-0 sm:rounded-lg overflow-hidden z-0 bg-muted/30">
-      {/* Background color container */}
-      <div className="absolute inset-0 bg-gradient-to-r from-background/80 via-transparent to-background/80" />
+  const bannerSrc = show.bannerImage || show.coverImage?.extraLarge || show.coverImage?.large;
 
-      {/* Image container with max width to keep it contained */}
-      <div className="absolute inset-0 max-w-5xl mx-auto flex items-center justify-center">
+  return (
+    <div className="relative h-[250px] md:h-[350px] -mx-4 sm:mx-0 sm:rounded-lg overflow-hidden bg-muted group">
+      {/* Banner Image */}
+      {bannerSrc && (
         <img
-          src={
-            show.bannerImage ||
-            show.coverImage?.extraLarge ||
-            show.coverImage?.large ||
-            "https://via.placeholder.com/1200x400?text=No+Image+Available"
-          }
-          alt={show.title?.english || show.title?.romaji || "Anime"}
-          className="object-fill object-top h-full"
+          src={bannerSrc}
+          alt={show.title?.english || show.title?.romaji || ""}
+          className="absolute inset-0 w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
           onError={(e) => {
-            e.currentTarget.src = "https://via.placeholder.com/1200x400?text=No+Image+Available";
+            // Hide the image element if loading fails
+            e.currentTarget.style.display = 'none';
           }}
         />
-      </div>
+      )}
+      {/* Fallback background if no image */}
+      {!bannerSrc && (
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-muted to-primary/10"></div>
+      )}
 
-      {/* Gradient overlay for text readability */}
-      <div className="absolute inset-0 bg-gradient-to-t from-background to-transparent" />
-      <div className="absolute bottom-0 left-0 right-0 p-6 space-y-4">
-        <div className="space-y-2">
-          <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold">
+
+      {/* Overlay for contrast */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+
+      {/* Content */}
+      <div className="absolute bottom-0 left-0 right-0 p-4 md:p-6 text-white">
+        <div className="max-w-4xl mx-auto"> {/* Optional: Constrain text width */}
+          <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold drop-shadow-lg">
             {show.title?.english || show.title?.romaji || "Unknown Title"}
           </h1>
           {show.title?.native && (
-            <p className="text-lg text-muted-foreground">{show.title.native}</p>
+            <p className="text-lg text-muted-foreground drop-shadow-md">
+              {show.title.native}
+            </p>
           )}
         </div>
       </div>

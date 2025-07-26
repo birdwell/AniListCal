@@ -176,7 +176,7 @@ export function AnimeContent({
               {selectedTags.length > 0 && (
                 <Badge
                   variant="secondary"
-                  className="absolute -top-2 -right-2 h-4 w-4 p-0 flex items-center justify-center text-xs rounded-full"
+                  className="absolute -top-1.5 -right-1.5 h-3.5 w-3.5 p-0 flex items-center justify-center text-[10px] rounded-full"
                 >
                   {selectedTags.length}
                 </Badge>

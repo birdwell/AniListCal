@@ -6,7 +6,6 @@ A web application that integrates with AniList to create calendar events for you
 
 - Node.js (v18 or higher recommended)
 - npm or yarn package manager
-- A PostgreSQL database (using Neon Database)
 
 ## Getting Started
 
@@ -24,9 +23,6 @@ npm install
 3. Set up your environment variables:
 Create a `.env` file in the root directory with the following variables (adjust values as needed):
 ```env
-# Database
-DATABASE_URL=your_neon_database_url
-
 # Server Settings
 NODE_ENV=development
 # Optional: Specify a port for the server if needed, defaults to 3000

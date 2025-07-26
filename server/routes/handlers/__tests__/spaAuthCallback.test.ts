@@ -1,7 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { handleSpaAuthCallback } from '../spaAuthCallback';
 import { createMockReqResNext } from './mockUtils';
-import type { Request, Response } from 'express';
 
 describe('handleSpaAuthCallback', () => {
     it('redirects to login if code is missing', () => {

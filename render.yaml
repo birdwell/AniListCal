@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: anilistcal
+    env: node
+    buildCommand: yarn build
+    startCommand: yarn start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
