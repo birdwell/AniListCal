@@ -36,8 +36,8 @@ vi.mock('../../cache-service', async (importOriginal) => {
 // Mock fetch
 global.fetch = vi.fn();
 
-// Mock sessionStorage
-const sessionStorageMock = (() => {
+// Mock localStorage
+const localStorageMock = (() => {
     let store: Record<string, string> = {};
     return {
         getItem: vi.fn((key: string): string | null => store[key] || null),
@@ -52,7 +52,7 @@ const sessionStorageMock = (() => {
         }),
     };
 })();
-Object.defineProperty(window, 'sessionStorage', { value: sessionStorageMock });
+Object.defineProperty(window, 'localStorage', { value: localStorageMock });
 
 // Mock window.location.href
 const originalLocation = window.location;
@@ -93,7 +93,7 @@ describe('Authentication Utilities (auth.ts)', async () => {
     beforeEach(() => {
         // Reset mocks and storage before each test
         vi.clearAllMocks(); // Clears calls, instances, etc. for ALL mocks
-        sessionStorageMock.clear();
+        localStorageMock.clear();
         locationHrefSpy.mockClear();
         // Reset Date.now mock if used
         vi.useRealTimers();
@@ -108,8 +108,8 @@ describe('Authentication Utilities (auth.ts)', async () => {
     const setValidToken = (expiryOffsetMs = 3600 * 1000) => {
         const expiryTime = Date.now() + expiryOffsetMs;
         // Use the keys exported by the actual auth module
-        sessionStorageMock.setItem(auth.STORAGE_KEYS.API_TOKEN, MOCK_API_TOKEN);
-        sessionStorageMock.setItem(auth.STORAGE_KEYS.TOKEN_EXPIRY, expiryTime.toString());
+        localStorageMock.setItem(auth.STORAGE_KEYS.API_TOKEN, MOCK_API_TOKEN);
+        localStorageMock.setItem(auth.STORAGE_KEYS.TOKEN_EXPIRY, expiryTime.toString());
     };
 
     // --- Test Cases ---
@@ -119,7 +119,7 @@ describe('Authentication Utilities (auth.ts)', async () => {
             await auth.login();
             // Construct expected URL string directly to match implementation
             const clientId = 'test-client-id';
-            const redirectUri = 'http://localhost:3001/auth/callback'; // Assuming dev
+            const redirectUri = 'http://localhost:3001/api/auth/callback'; // Fixed to match implementation
             const expectedUrlString = `https://anilist.co/api/v2/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code`;
 
             expect(locationHrefSpy).toHaveBeenCalledTimes(1);
@@ -137,17 +137,17 @@ describe('Authentication Utilities (auth.ts)', async () => {
     });
 
     describe('getApiToken()', () => {
-        it('should return token from sessionStorage', () => {
+        it('should return token from localStorage', () => {
             setValidToken();
             expect(auth.getApiToken()).toBe(MOCK_API_TOKEN);
             // Use the actual keys from the auth module
-            expect(sessionStorageMock.getItem).toHaveBeenCalledWith(auth.STORAGE_KEYS.API_TOKEN);
+            expect(localStorageMock.getItem).toHaveBeenCalledWith(auth.STORAGE_KEYS.API_TOKEN);
         });
 
-        it('should return null if token not in sessionStorage', () => {
+        it('should return null if token not in localStorage', () => {
             expect(auth.getApiToken()).toBeNull();
             // Use the actual keys from the auth module
-            expect(sessionStorageMock.getItem).toHaveBeenCalledWith(auth.STORAGE_KEYS.API_TOKEN);
+            expect(localStorageMock.getItem).toHaveBeenCalledWith(auth.STORAGE_KEYS.API_TOKEN);
         });
     });
 
@@ -159,7 +159,7 @@ describe('Authentication Utilities (auth.ts)', async () => {
             vi.setSystemTime(now);
             expect(auth.isTokenExpired()).toBe(false);
             // Use the actual keys from the auth module
-            expect(sessionStorageMock.getItem).toHaveBeenCalledWith(auth.STORAGE_KEYS.TOKEN_EXPIRY);
+            expect(localStorageMock.getItem).toHaveBeenCalledWith(auth.STORAGE_KEYS.TOKEN_EXPIRY);
         });
 
         it('should return true for a token nearing expiry (within threshold)', () => {
@@ -182,20 +182,20 @@ describe('Authentication Utilities (auth.ts)', async () => {
 
         it('should return true if expiry time is not set', () => {
             // Set only the token, not the expiry
-            sessionStorageMock.setItem(auth.STORAGE_KEYS.API_TOKEN, MOCK_API_TOKEN);
+            localStorageMock.setItem(auth.STORAGE_KEYS.API_TOKEN, MOCK_API_TOKEN);
             expect(auth.isTokenExpired()).toBe(true);
             // Use the actual keys from the auth module
-            expect(sessionStorageMock.getItem).toHaveBeenCalledWith(auth.STORAGE_KEYS.TOKEN_EXPIRY);
+            expect(localStorageMock.getItem).toHaveBeenCalledWith(auth.STORAGE_KEYS.TOKEN_EXPIRY);
         });
     });
 
     describe('clearAuthData()', () => {
-        it('should remove token and expiry from sessionStorage', () => {
+        it('should remove token and expiry from localStorage', () => {
             setValidToken();
             auth.clearAuthData();
             // Use the actual keys from the auth module
-            expect(sessionStorageMock.removeItem).toHaveBeenCalledWith(auth.STORAGE_KEYS.API_TOKEN);
-            expect(sessionStorageMock.removeItem).toHaveBeenCalledWith(auth.STORAGE_KEYS.TOKEN_EXPIRY);
+            expect(localStorageMock.removeItem).toHaveBeenCalledWith(auth.STORAGE_KEYS.API_TOKEN);
+            expect(localStorageMock.removeItem).toHaveBeenCalledWith(auth.STORAGE_KEYS.TOKEN_EXPIRY);
         });
 
         it('should invalidate auth queries in queryClient', () => {
@@ -231,8 +231,8 @@ describe('Authentication Utilities (auth.ts)', async () => {
                 credentials: "include"
             });
             // Use the actual keys from the auth module
-            expect(sessionStorageMock.removeItem).toHaveBeenCalledWith(auth.STORAGE_KEYS.API_TOKEN);
-            expect(sessionStorageMock.removeItem).toHaveBeenCalledWith(auth.STORAGE_KEYS.TOKEN_EXPIRY);
+            expect(localStorageMock.removeItem).toHaveBeenCalledWith(auth.STORAGE_KEYS.API_TOKEN);
+            expect(localStorageMock.removeItem).toHaveBeenCalledWith(auth.STORAGE_KEYS.TOKEN_EXPIRY);
             expect(mockInvalidateQueries).toHaveBeenCalled();
         });
 
@@ -246,8 +246,8 @@ describe('Authentication Utilities (auth.ts)', async () => {
                 credentials: "include"
             });
             // Use the actual keys from the auth module
-            expect(sessionStorageMock.removeItem).toHaveBeenCalledWith(auth.STORAGE_KEYS.API_TOKEN);
-            expect(sessionStorageMock.removeItem).toHaveBeenCalledWith(auth.STORAGE_KEYS.TOKEN_EXPIRY);
+            expect(localStorageMock.removeItem).toHaveBeenCalledWith(auth.STORAGE_KEYS.API_TOKEN);
+            expect(localStorageMock.removeItem).toHaveBeenCalledWith(auth.STORAGE_KEYS.TOKEN_EXPIRY);
             expect(mockInvalidateQueries).toHaveBeenCalled();
         });
 
@@ -257,8 +257,8 @@ describe('Authentication Utilities (auth.ts)', async () => {
             await auth.logout();
             expect(fetch).toHaveBeenCalledTimes(1);
             // Use the actual keys from the auth module
-            expect(sessionStorageMock.removeItem).toHaveBeenCalledWith(auth.STORAGE_KEYS.API_TOKEN);
-            expect(sessionStorageMock.removeItem).toHaveBeenCalledWith(auth.STORAGE_KEYS.TOKEN_EXPIRY);
+            expect(localStorageMock.removeItem).toHaveBeenCalledWith(auth.STORAGE_KEYS.API_TOKEN);
+            expect(localStorageMock.removeItem).toHaveBeenCalledWith(auth.STORAGE_KEYS.TOKEN_EXPIRY);
             expect(mockInvalidateQueries).toHaveBeenCalled();
         });
     });
@@ -299,12 +299,28 @@ describe('Authentication Utilities (auth.ts)', async () => {
             vi.useFakeTimers();
             setValidToken(-1000);
             vi.setSystemTime(Date.now());
+            
+            // Mock the refresh endpoint to return an error
+            (fetch as Mock).mockResolvedValueOnce({
+                ok: false,
+                status: 401,
+                json: () => Promise.resolve({ error: 'Token expired' })
+            });
+            
             await expect(auth.queryAniList(testQuery))
-                .rejects.toThrow("Authentication required (token expired)");
-            expect(fetch).not.toHaveBeenCalled();
+                .rejects.toThrow("Authentication required (token expired and refresh failed)");
+            
+            // Should call refresh endpoint first
+            expect(fetch).toHaveBeenCalledWith('/api/auth/refresh-token', expect.objectContaining({
+                method: 'POST',
+                headers: expect.objectContaining({
+                    'Authorization': 'Bearer mock-api-token-123'
+                })
+            }));
+            
             // Use the actual keys from the auth module
-            expect(sessionStorageMock.removeItem).toHaveBeenCalledWith(auth.STORAGE_KEYS.API_TOKEN);
-            expect(sessionStorageMock.removeItem).toHaveBeenCalledWith(auth.STORAGE_KEYS.TOKEN_EXPIRY);
+            expect(localStorageMock.removeItem).toHaveBeenCalledWith(auth.STORAGE_KEYS.API_TOKEN);
+            expect(localStorageMock.removeItem).toHaveBeenCalledWith(auth.STORAGE_KEYS.TOKEN_EXPIRY);
         });
 
         it('should throw auth error and clear data if proxy returns 401', async () => {
@@ -318,8 +334,8 @@ describe('Authentication Utilities (auth.ts)', async () => {
                 .rejects.toThrow("Authentication required (proxy returned 401)");
             expect(fetch).toHaveBeenCalledTimes(1);
             // Use the actual keys from the auth module
-            expect(sessionStorageMock.removeItem).toHaveBeenCalledWith(auth.STORAGE_KEYS.API_TOKEN);
-            expect(sessionStorageMock.removeItem).toHaveBeenCalledWith(auth.STORAGE_KEYS.TOKEN_EXPIRY);
+            expect(localStorageMock.removeItem).toHaveBeenCalledWith(auth.STORAGE_KEYS.API_TOKEN);
+            expect(localStorageMock.removeItem).toHaveBeenCalledWith(auth.STORAGE_KEYS.TOKEN_EXPIRY);
         });
 
         it('should throw proxy error if proxy returns non-401 error', async () => {
@@ -335,7 +351,7 @@ describe('Authentication Utilities (auth.ts)', async () => {
             await expect(auth.queryAniList(testQuery))
                 .rejects.toThrow(mockErrorBody.error); // Expect original error message
             expect(fetch).toHaveBeenCalledTimes(1);
-            expect(sessionStorageMock.removeItem).not.toHaveBeenCalled(); // Don't clear data on non-auth error
+            expect(localStorageMock.removeItem).not.toHaveBeenCalled(); // Don't clear data on non-auth error
         });
 
         it('should throw GraphQL error if response contains non-auth errors', async () => {
@@ -349,7 +365,7 @@ describe('Authentication Utilities (auth.ts)', async () => {
             await expect(auth.queryAniList(testQuery))
                 .rejects.toThrow(`GraphQL error: ${mockGraphQLError.errors[0].message}`);
             expect(fetch).toHaveBeenCalledTimes(1);
-            expect(sessionStorageMock.removeItem).not.toHaveBeenCalled();
+            expect(localStorageMock.removeItem).not.toHaveBeenCalled();
         });
 
         it('should throw auth error and clear data if response contains GraphQL auth error', async () => {
@@ -363,8 +379,8 @@ describe('Authentication Utilities (auth.ts)', async () => {
                 .rejects.toThrow("Authentication required (GraphQL auth error)");
             expect(fetch).toHaveBeenCalledTimes(1);
             // Use the actual keys from the auth module
-            expect(sessionStorageMock.removeItem).toHaveBeenCalledWith(auth.STORAGE_KEYS.API_TOKEN);
-            expect(sessionStorageMock.removeItem).toHaveBeenCalledWith(auth.STORAGE_KEYS.TOKEN_EXPIRY);
+            expect(localStorageMock.removeItem).toHaveBeenCalledWith(auth.STORAGE_KEYS.API_TOKEN);
+            expect(localStorageMock.removeItem).toHaveBeenCalledWith(auth.STORAGE_KEYS.TOKEN_EXPIRY);
         });
 
         it('should throw generic fetch error if fetch itself fails', async () => {
@@ -459,8 +475,8 @@ describe('Authentication Utilities (auth.ts)', async () => {
                 headers: expect.objectContaining({ Authorization: `Bearer ${MOCK_API_TOKEN}` })
             }));
             // Use the actual keys from the auth module
-            expect(sessionStorageMock.setItem).toHaveBeenCalledWith(auth.STORAGE_KEYS.API_TOKEN, newToken);
-            const setItemCalls = sessionStorageMock.setItem.mock.calls;
+            expect(localStorageMock.setItem).toHaveBeenCalledWith(auth.STORAGE_KEYS.API_TOKEN, newToken);
+            const setItemCalls = localStorageMock.setItem.mock.calls;
             // Use the actual keys from the auth module
             const lastExpiryCall = setItemCalls.filter(call => call[0] === auth.STORAGE_KEYS.TOKEN_EXPIRY).pop();
             const actualExpiry = parseInt(lastExpiryCall?.[1] || '0', 10);
@@ -480,8 +496,8 @@ describe('Authentication Utilities (auth.ts)', async () => {
             expect(result).toBe(false);
             expect(fetch).toHaveBeenCalledTimes(1);
             // Use the actual keys from the auth module
-            expect(sessionStorageMock.removeItem).toHaveBeenCalledWith(auth.STORAGE_KEYS.API_TOKEN);
-            expect(sessionStorageMock.removeItem).toHaveBeenCalledWith(auth.STORAGE_KEYS.TOKEN_EXPIRY);
+            expect(localStorageMock.removeItem).toHaveBeenCalledWith(auth.STORAGE_KEYS.API_TOKEN);
+            expect(localStorageMock.removeItem).toHaveBeenCalledWith(auth.STORAGE_KEYS.TOKEN_EXPIRY);
         });
 
         it('should return false if refresh returns other non-OK status', async () => {
@@ -491,17 +507,17 @@ describe('Authentication Utilities (auth.ts)', async () => {
             const result = await auth.refreshApiToken();
             expect(result).toBe(false);
             expect(fetch).toHaveBeenCalledTimes(1);
-            expect(sessionStorageMock.removeItem).not.toHaveBeenCalled(); // Don't clear data on other errors
+            expect(localStorageMock.removeItem).not.toHaveBeenCalled(); // Don't clear data on other errors
         });
 
         it('should return false if refresh response is missing token data', async () => {
             setValidToken();
             (fetch as Mock).mockResolvedValueOnce({ ok: true, json: async () => ({}) });
-            sessionStorageMock.setItem.mockClear();
+            localStorageMock.setItem.mockClear();
             const result = await auth.refreshApiToken();
             expect(result).toBe(false);
             expect(fetch).toHaveBeenCalledTimes(1);
-            const setItemCallsAfter = sessionStorageMock.setItem.mock.calls;
+            const setItemCallsAfter = localStorageMock.setItem.mock.calls;
             // Use the actual keys from the auth module
             expect(setItemCallsAfter.some(call => call[0] === auth.STORAGE_KEYS.API_TOKEN)).toBe(false);
         });
