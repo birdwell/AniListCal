@@ -9,3 +9,5 @@ vite.config.ts.*
 coverage/
 
 .persist-storage
+
+SECURITY_CHECKLIST.md
