@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { format } from 'date-fns';
 // Use a type-only import for MediaListStatus to avoid the import error
 import { groupShowsByAiringDate } from '../hooks/useCalendar';
+import { getDayName } from '../lib/calendar-utils';
 
 describe('groupShowsByAiringDate', () => {
   // Mock data for testing
@@ -107,5 +108,25 @@ describe('groupShowsByAiringDate', () => {
     // The show should be grouped by the local date, not UTC date
     expect(Object.keys(result)).toContain(expectedDate);
     expect(result[expectedDate][0].id).toBe('5');
+  });
+});
+
+describe('getDayName', () => {
+  it('should return correct day name for various dates', () => {
+    // Test known dates
+    expect(getDayName('2025-01-01')).toBe('Wednesday'); // January 1, 2025 is a Wednesday
+    expect(getDayName('2025-02-28')).toBe('Friday');    // February 28, 2025 is a Friday
+    expect(getDayName('2025-03-01')).toBe('Saturday');  // March 1, 2025 is a Saturday
+    expect(getDayName('2025-12-25')).toBe('Thursday');  // December 25, 2025 is a Thursday
+  });
+
+  it('should handle different years correctly', () => {
+    expect(getDayName('2024-02-29')).toBe('Thursday'); // Leap year date
+    expect(getDayName('2023-01-01')).toBe('Sunday');   // January 1, 2023 is a Sunday
+  });
+
+  it('should handle edge cases', () => {
+    expect(getDayName('2000-01-01')).toBe('Saturday'); // Y2K date
+    expect(getDayName('1970-01-01')).toBe('Thursday'); // Unix epoch start date
   });
 });

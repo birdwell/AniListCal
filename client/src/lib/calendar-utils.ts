@@ -1,6 +1,17 @@
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 /**
+ * Extracts the day name from a date string
+ * @param dateStr Date string in YYYY-MM-DD format
+ * @returns Day name (e.g., "Monday")
+ */
+export function getDayName(dateStr: string): string {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const date = new Date(year, month - 1, day); // month is 0-indexed in JS Date
+  return DAYS[date.getDay()];
+}
+
+/**
  * Formats a date string into a human-readable format
  * @param dateStr Date string in YYYY-MM-DD format
  * @returns Formatted date string (e.g., "Friday, 28th")

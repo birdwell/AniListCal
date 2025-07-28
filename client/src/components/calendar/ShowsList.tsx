@@ -2,9 +2,7 @@ import { Calendar as CalendarIcon } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { EntyFragmentFragment } from "@/generated/graphql";
 import { ShowCard } from "./ShowCard";
-import { formatDate } from "@/lib/calendar-utils";
-
-const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+import { formatDate, getDayName } from "@/lib/calendar-utils";
 
 interface ShowsListProps {
   showsForSelectedDate: [string, EntyFragmentFragment[]][];
@@ -36,7 +34,7 @@ export function ShowsList({ showsForSelectedDate, selectedDay, selectedDate }: S
       ) : (
         <Card className="animate-in fade-in slide-in-from-bottom-4 duration-500">
           <CardContent className="p-6 text-center text-muted-foreground">
-            No shows airing on {DAYS[selectedDay]}
+            No shows airing on {getDayName(selectedDate)}
           </CardContent>
         </Card>
       )}
