@@ -2,6 +2,7 @@
 
 import { CacheService } from "../cache-service";
 import { queryClient } from "../queryClient";
+import { logger } from "../logger";
 
 // Constants
 const API_ENDPOINTS = {
@@ -46,12 +47,12 @@ async function getClientId(): Promise<string> {
   // Try to get it from import.meta.env first
   const envClientId = import.meta.env.VITE_ANILIST_CLIENT_ID;
   if (envClientId) {
-    console.log("Using client ID from environment:", envClientId);
+    logger.debug("Using client ID from environment:", envClientId);
     return envClientId;
   }
 
   // If not found in env, throw an error as it's required for auth flow
-  console.error("VITE_ANILIST_CLIENT_ID is not defined in the environment.");
+  logger.error("VITE_ANILIST_CLIENT_ID is not defined in the environment.");
   // Explicitly throw the error here
   throw new Error("Anilist client ID is not configured in the client environment.");
 }
@@ -75,15 +76,15 @@ function getRedirectUri(): string {
  * Start the login flow by redirecting to AniList
  */
 export const login = async () => {
-  console.log("Login function called");
+  logger.debug("Login function called");
   try {
     // Call and await the internal async function getClientId
     const clientId = await getClientId();
     const redirectUri = getRedirectUri();
-    console.log(`Redirecting to AniList with Client ID: ${clientId} and Redirect URI: ${redirectUri}`);
+    logger.debug(`Redirecting to AniList with Client ID: ${clientId} and Redirect URI: ${redirectUri}`);
     window.location.href = `https://anilist.co/api/v2/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code`;
   } catch (error) {
-    console.error("Failed to initiate login:", error);
+    logger.error("Failed to initiate login:", error);
     // Re-throw the error to be caught by the caller or global handler
     throw error;
   }
@@ -112,7 +113,7 @@ function isTokenExpired(): boolean {
     isExpired = currentTime >= expiryTime - TOKEN_REFRESH_THRESHOLD_MS;
   }
 
-  console.log('[isTokenExpired Check]', {
+  logger.debug('[isTokenExpired Check]', {
     expiryString,
     expiryTime,
     currentTime,
@@ -127,7 +128,7 @@ function isTokenExpired(): boolean {
  * Clear all auth-related cache and storage
  */
 function clearAuthData(): void {
-  console.log("Clearing client-side auth data...");
+  logger.debug("Clearing client-side auth data...");
   // Clear session storage items
   sessionStorage.removeItem(STORAGE_KEYS.API_TOKEN);
   sessionStorage.removeItem(STORAGE_KEYS.TOKEN_EXPIRY);
@@ -136,7 +137,7 @@ function clearAuthData(): void {
   authCache.clear();
 
   // Invalidate auth-related queries
-  console.log("Invalidating auth queries...");
+  logger.debug("Invalidating auth queries...");
   queryClient.invalidateQueries({ queryKey: ["auth"] });
   queryClient.invalidateQueries({ queryKey: ["auth", "user"] });
 }
@@ -145,16 +146,16 @@ function clearAuthData(): void {
  * Log out the current user
  */
 async function logout(): Promise<void> {
-  console.log("Initiating logout...");
+  logger.debug("Initiating logout...");
   const apiToken = getApiToken();
   try {
     // Construct headers conditionally
     const headers: HeadersInit = {};
     if (apiToken) {
       headers["Authorization"] = `Bearer ${apiToken}`;
-      console.log("Calling server logout endpoint with API token...");
+      logger.debug("Calling server logout endpoint with API token...");
     } else {
-      console.log("No API token found, calling server logout endpoint without token...");
+      logger.debug("No API token found, calling server logout endpoint without token...");
     }
 
     // Call server logout endpoint
@@ -165,7 +166,7 @@ async function logout(): Promise<void> {
     });
 
   } catch (error) {
-    console.error("Server logout endpoint failed:", error);
+    logger.error("Server logout endpoint failed:", error);
     // Continue with client-side cleanup even if server fails
   } finally {
     // Always clear client-side data on logout attempt
@@ -189,7 +190,7 @@ async function queryAniList<T = any>(
   // Add detailed logging before the check
   const expiryString = sessionStorage.getItem(STORAGE_KEYS.TOKEN_EXPIRY);
   const expiryTimestamp = expiryString ? parseInt(expiryString, 10) : null;
-  console.log('[queryAniList Check]', {
+  logger.debug('[queryAniList Check]', {
     apiTokenPresent: !!apiToken,
     tokenIsExpired: tokenIsExpired,
     expiryString: expiryString,
@@ -200,14 +201,14 @@ async function queryAniList<T = any>(
   });
 
   if (!apiToken) {
-    console.warn("[queryAniList] No API token found in session storage.");
+    logger.warn("[queryAniList] No API token found in session storage.");
     // Consider redirecting to login immediately?
     // setLocation('/login');
     throw new Error("Authentication required (no token)");
   }
 
   if (tokenIsExpired) {
-    console.warn("[queryAniList] API token is expired or nearing expiry.");
+    logger.warn("[queryAniList] API token is expired or nearing expiry.");
     clearAuthData(); // Clear data if token is expired
     // setLocation('/login'); // Redirect to login?
     throw new Error("Authentication required (token expired)");
@@ -215,7 +216,7 @@ async function queryAniList<T = any>(
 
   // Make request to our server proxy
   try {
-    console.log('Sending request to AniList proxy...');
+    logger.debug('Sending request to AniList proxy...');
     const response = await fetch(API_ENDPOINTS.ANILIST_PROXY, {
       method: "POST",
       headers: {
@@ -229,9 +230,9 @@ async function queryAniList<T = any>(
     });
 
     if (!response.ok) {
-      console.error(`AniList proxy error: ${response.status} ${response.statusText}`);
+      logger.error(`AniList proxy error: ${response.status} ${response.statusText}`);
       if (response.status === 401) {
-        console.log("[queryAniList] Received 401 from proxy, clearing auth data.");
+        logger.debug("[queryAniList] Received 401 from proxy, clearing auth data.");
         clearAuthData(); // Clear data on explicit unauthorized error
         // setLocation('/login'); // Redirect to login?
         throw new Error("Authentication required (proxy returned 401)");
@@ -246,14 +247,14 @@ async function queryAniList<T = any>(
     }
 
     const result = await response.json();
-    console.log('Received response from AniList proxy.');
+    logger.debug('Received response from AniList proxy.');
     // Check for GraphQL errors within the response body
     if (result.errors) {
-      console.error("GraphQL errors:", result.errors);
+      logger.error("GraphQL errors:", result.errors);
       // Handle specific GraphQL errors if needed, e.g., authentication errors
       const isAuthError = result.errors.some((err: any) => err.status === 401 || err.message?.includes('Unauthorized'));
       if (isAuthError) {
-        console.log("[queryAniList] GraphQL error indicates authorization issue, clearing auth data.");
+        logger.debug("[queryAniList] GraphQL error indicates authorization issue, clearing auth data.");
         clearAuthData();
         // setLocation('/login'); // Redirect to login?
         throw new Error("Authentication required (GraphQL auth error)");
@@ -263,7 +264,7 @@ async function queryAniList<T = any>(
     }
     return result; // Contains { data: ..., errors: ... }
   } catch (error) {
-    console.error("AniList query function error:", error);
+    logger.error("AniList query function error:", error);
     // Re-throw specific errors that were already constructed
     if (error instanceof Error && (
       error.message.startsWith("Authentication required") ||
@@ -276,7 +277,7 @@ async function queryAniList<T = any>(
     if (error instanceof Error) {
       // If it's an Error but not one of the specific messages, re-throw it directly
       // Or potentially wrap it if it signifies a different kind of failure
-      console.warn('Caught unexpected Error instance:', error);
+      logger.warn('Caught unexpected Error instance:', error);
       throw error; // Re-throwing for now, might need refinement
     } else {
       // Wrap non-Error throwables (e.g., strings, numbers)
@@ -289,7 +290,7 @@ async function queryAniList<T = any>(
  * Get the current user's data from AniList via proxy
  */
 export async function getUser(): Promise<User | null | undefined> {
-  console.log('Attempting to get user data...');
+  logger.debug('Attempting to get user data...');
   try {
     const response = await queryAniList<{ Viewer: User }>(`
       query {
@@ -302,13 +303,13 @@ export async function getUser(): Promise<User | null | undefined> {
         }
       }
     `);
-    console.log('getUser response:', response);
+    logger.debug('getUser response:', response);
     // If response contains data.Viewer, return it.
     // If response contains errors (like auth error handled in queryAniList), it will throw.
     // If response has neither data nor errors (unlikely), return undefined.
     return response?.data?.Viewer;
   } catch (error) {
-    console.error("Failed to get user:", error);
+    logger.error("Failed to get user:", error);
     // If the error was an auth error from queryAniList, re-throw or handle
     if (error instanceof Error && (error.message.includes("Authentication required") || error.message.includes("Authentication expired"))) {
       // Don't throw here, let the caller (useQuery) handle it. Return null/undefined.
@@ -326,7 +327,7 @@ export function isAuthenticated(): boolean {
   const token = getApiToken();
   const expired = isTokenExpired(); // This will call the logged version
   const result = !!token && !expired;
-  console.log(`[isAuthenticated Check]: token present=${!!token}, expired=${expired}, result=${result}`);
+  logger.debug(`[isAuthenticated Check]: token present=${!!token}, expired=${expired}, result=${result}`);
   return result;
 }
 
@@ -334,10 +335,10 @@ export function isAuthenticated(): boolean {
  * Refresh the API token - TODO: Needs implementation if server supports it
  */
 export const refreshApiToken = async (): Promise<boolean> => {
-  console.log("Attempting to refresh API token...");
+  logger.debug("Attempting to refresh API token...");
   const currentToken = getApiToken();
   if (!currentToken) {
-    console.error("No current API token found, cannot refresh.");
+    logger.error("No current API token found, cannot refresh.");
     return false;
   }
 

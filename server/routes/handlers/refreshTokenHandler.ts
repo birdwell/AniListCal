@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
 import { storage } from '../../storage';
+import { logger } from '../../logger';
 
 /**
  * Generates and returns a new API token for the authenticated user.
@@ -19,7 +20,7 @@ export async function handleRefreshToken(req: Request, res: Response, next: Next
     return res.json({ success: true, apiToken, expiresIn: 4 * 3600 });
 
   } catch (error) {
-    console.error('[handleRefreshToken] Error generating token:', error);
+    logger.error('[handleRefreshToken] Error generating token:', error);
     next(error);
   }
 }

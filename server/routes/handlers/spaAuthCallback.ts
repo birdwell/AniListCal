@@ -1,4 +1,5 @@
-import type { Request, Response } from 'express';
+import { Request, Response } from 'express';
+import { logger } from '../../logger';
 
 /**
  * Sends HTML page for OAuth callback to store auth code in sessionStorage
@@ -7,18 +8,18 @@ import type { Request, Response } from 'express';
  * @param res Express Response
  */
 export function handleSpaAuthCallback(req: Request, res: Response) {
-  console.log('SPA Auth Callback received with code:', req.query.code ? 'present' : 'missing');
+  logger.debug('SPA Auth Callback received with code:', req.query.code ? 'present' : 'missing');
 
   const code = req.query.code as string;
   if (!code) {
-    console.error('No authorization code received in callback');
+    logger.error('No authorization code received in callback');
     return res.redirect('/login?error=No_authorization_code_received');
   }
 
   // Properly escape the code for JavaScript
   const escapedCode = code.replace(/"/g, '\\"');
   const redirectUri = `${req.protocol}://${req.get('host')}/auth/callback`;
-  console.log('Using redirect URI:', redirectUri);
+  logger.debug('Using redirect URI:', redirectUri);
 
   res.send(`
     <!DOCTYPE html>

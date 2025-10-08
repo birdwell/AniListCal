@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { queryAniList } from '@/lib/auth';
+import { queryAniList } from '../lib/auth';
+import { logger } from '../lib/logger';
 import { UPDATE_PROGRESS_MUTATION } from '@/queries/queries';
 import { toast } from '@/hooks/use-toast';
 import { clearAnimeListCache } from '@/lib/anilist';
@@ -44,7 +45,7 @@ export function useUpdateProgress() {
       }
     },
     onError: (error: any) => {
-      console.error('Error updating progress:', error);
+      logger.error('Error updating progress:', error);
       
       // Show error toast
       toast({

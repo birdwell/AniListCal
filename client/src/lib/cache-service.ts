@@ -3,6 +3,8 @@
  * Provides a generic way to cache any type of data with expiration
  */
 
+import { logger } from './logger';
+
 // Default cache expiration times (in milliseconds)
 export const CACHE_EXPIRY = {
   SHORT: 5 * 60 * 1000,        // 5 minutes
@@ -68,7 +70,7 @@ export class CacheService {
       // Manage cache size
       this.pruneCache();
     } catch (error) {
-      console.error(`Error saving to cache (${key}):`, error);
+      logger.error(`Error saving to cache (${key}):`, error);
     }
   }
 
@@ -96,7 +98,7 @@ export class CacheService {
       
       return entry.data;
     } catch (error) {
-      console.error(`Error reading from cache (${key}):`, error);
+      logger.error(`Error reading from cache (${key}):`, error);
       return null;
     }
   }
@@ -110,7 +112,7 @@ export class CacheService {
       const storageKey = this.getKey(key);
       localStorage.removeItem(storageKey);
     } catch (error) {
-      console.error(`Error removing from cache (${key}):`, error);
+      logger.error(`Error removing from cache (${key}):`, error);
     }
   }
 
@@ -121,9 +123,9 @@ export class CacheService {
     try {
       const keys = this.getAllKeys();
       keys.forEach(key => localStorage.removeItem(key));
-      console.log(`Cleared ${keys.length} items from ${this.prefix} cache`);
+      logger.debug(`Cleared ${keys.length} items from ${this.prefix} cache`);
     } catch (error) {
-      console.error(`Error clearing cache:`, error);
+      logger.error(`Error clearing cache:`, error);
     }
   }
 
@@ -157,9 +159,9 @@ export class CacheService {
       
       keysToRemove.forEach(key => localStorage.removeItem(key));
       
-      console.log(`Pruned ${keysToRemove.length} old entries from ${this.prefix} cache`);
+      logger.debug(`Pruned ${keysToRemove.length} old entries from ${this.prefix} cache`);
     } catch (error) {
-      console.error('Error pruning cache:', error);
+      logger.error('Error pruning cache:', error);
     }
   }
 }

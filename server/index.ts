@@ -3,13 +3,14 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import * as dotenv from "dotenv";
 import { createServer } from "http";
+import { logger } from "./logger";
 
 dotenv.config();
 
 // ** Add log here to check loaded env vars **
-console.log(`[Server Startup] Loaded ANILIST_CLIENT_ID: ${process.env.ANILIST_CLIENT_ID}`);
-console.log(`[Server Startup] Loaded FRONTEND_URL: ${process.env.FRONTEND_URL}`); // Check if this is loaded if defined
-console.log(`[Server Startup] Loaded BACKEND_CALLBACK_URL: ${process.env.BACKEND_CALLBACK_URL}`); // Check if this is loaded if defined
+logger.debug(`[Server Startup] Loaded ANILIST_CLIENT_ID: ${process.env.ANILIST_CLIENT_ID}`);
+logger.debug(`[Server Startup] Loaded FRONTEND_URL: ${process.env.FRONTEND_URL}`); // Check if this is loaded if defined
+logger.debug(`[Server Startup] Loaded BACKEND_CALLBACK_URL: ${process.env.BACKEND_CALLBACK_URL}`); // Check if this is loaded if defined
 
 const app = express();
 app.use(express.json());

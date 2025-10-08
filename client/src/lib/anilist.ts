@@ -15,6 +15,7 @@ import {
   CACHE_EXPIRY,
 } from "./cache-service";
 import { queryAniList } from "./auth";
+import { logger } from "./logger";
 
 const ANILIST_GRAPHQL_URL = "https://graphql.anilist.co";
 
@@ -51,12 +52,12 @@ export async function fetchUserAnime(
     if (!forceRefresh) {
       const cachedData = animeListCache.get<EntyFragmentFragment[]>(cacheKey);
       if (cachedData) {
-        console.log("Using cached anime list data");
+        logger.debug("Using cached anime list data");
         return cachedData;
       }
     }
 
-    console.log("Fetching fresh anime list data from AniList API");
+    logger.debug("Fetching fresh anime list data from AniList API");
 
     // Use the queryAniList function which uses the server proxy
     const response = await queryAniList<GetUserMediaListQuery>(
@@ -77,7 +78,7 @@ export async function fetchUserAnime(
 
     return result;
   } catch (error) {
-    console.error("Error fetching anime list:", error);
+    logger.error("Error fetching anime list:", error);
     throw error;
   }
 }
@@ -110,7 +111,7 @@ export async function fetchAnimeDetails(
     if (!forceRefresh) {
       const cachedData = animeDetailsCache.get<MediaFragmentFragment>(cacheKey);
       if (cachedData) {
-        console.log(`Using cached data for anime ID ${id}`);
+        logger.debug(`Using cached data for anime ID ${id}`);
         return cachedData;
       }
     }
@@ -131,7 +132,7 @@ export async function fetchAnimeDetails(
 
     return media;
   } catch (error) {
-    console.error("Error fetching anime details:", error);
+    logger.error("Error fetching anime details:", error);
     throw error;
   }
 }
@@ -154,7 +155,7 @@ export async function fetchAuthenticatedAnimeDetails(
     // Get the current user
     const user = await import("./auth").then(m => m.getUser());
     if (!user) {
-      console.warn("No authenticated user found, falling back to public API");
+      logger.warn("No authenticated user found, falling back to public API");
       return fetchAnimeDetails(id, forceRefresh);
     }
 
@@ -165,7 +166,7 @@ export async function fetchAuthenticatedAnimeDetails(
     if (!forceRefresh) {
       const cachedData = animeDetailsCache.get<MediaFragmentFragment>(cacheKey);
       if (cachedData) {
-        console.log(`Using cached authenticated data for anime ID ${id}`);
+        logger.debug(`Using cached authenticated data for anime ID ${id}`);
         return cachedData;
       }
     }
@@ -189,7 +190,7 @@ export async function fetchAuthenticatedAnimeDetails(
 
     return media;
   } catch (error) {
-    console.error("Error fetching authenticated anime details:", error);
+    logger.error("Error fetching authenticated anime details:", error);
     throw error;
   }
 }

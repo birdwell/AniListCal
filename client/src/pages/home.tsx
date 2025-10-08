@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { getUser } from "@/lib/auth";
 import { fetchUserAnime } from "@/lib/anilist";
+import { logger } from "@/lib/logger";
 import { useState } from "react";
 import {
   LoadingView,
@@ -57,7 +58,7 @@ export default function Home() {
     ...commonQueryOptions,
   });
 
-  console.log(animeEntries);
+  logger.debug(animeEntries);
 
   if (isLoadingUser || isAnimeLoading) {
     return <LoadingView />;
@@ -84,7 +85,6 @@ export default function Home() {
             onToggle={() => setIsCompact(!isCompact)}
           />
         </div>
-
         <AnimeContent
           animeEntries={animeEntries || []}
           sectionStates={sectionStates}

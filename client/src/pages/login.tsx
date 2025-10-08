@@ -6,6 +6,7 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
+import { logger } from "../lib/logger";
 
 export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
@@ -28,7 +29,7 @@ export default function Login() {
     try {
       await login();
     } catch (error) {
-      console.error('Login error:', error);
+      logger.error('Login error:', error);
       setIsLoading(false);
     }
   };
