@@ -114,9 +114,9 @@ function App() {
         console.log("[App Effect] Found apiToken and expiresIn in hash. Storing...");
         const expiryTime = Date.now() + (parseInt(expiresIn, 10) * 1000);
 
-        sessionStorage.setItem(STORAGE_KEYS.API_TOKEN, apiToken);
-        sessionStorage.setItem(STORAGE_KEYS.TOKEN_EXPIRY, expiryTime.toString());
-        console.log("[App Effect] Token stored in sessionStorage.");
+        localStorage.setItem(STORAGE_KEYS.API_TOKEN, apiToken);
+        localStorage.setItem(STORAGE_KEYS.TOKEN_EXPIRY, expiryTime.toString());
+        console.log("[App Effect] Token stored in localStorage.");
 
         console.log("[App Effect] Invalidating auth queries AFTER storing token...");
         queryClient.invalidateQueries({ queryKey: ["auth", "user"] });

@@ -204,7 +204,7 @@ describe('PersistentStorage', () => {
     });
 
     describe('API Tokens', () => {
-        const apiTokenTTL = 4 * 60 * 60 * 1000;
+        const apiTokenTTL = 24 * 60 * 60 * 1000;
         const userIdStr = testUserInfo.userId.toString();
         const userTokensKey = `api_tokens_by_user_${userIdStr}`;
         const apiTokenDataKey = `api_token_${testApiToken}`;

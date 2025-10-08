@@ -10,7 +10,7 @@ const __dirname = path.dirname(__filename);
 
 // Constants
 const TOKEN_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000; // 7 days (for AniList token association)
-const API_TOKEN_EXPIRY_MS = 4 * 60 * 60 * 1000; // 4 hours (for internal API token)
+const API_TOKEN_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours (for internal API token)
 const CLEANUP_INTERVAL_MS = 60 * 60 * 1000; // Clean expired tokens every hour
 
 // Storage Keys (prefixes for node-persist)

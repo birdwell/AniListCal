@@ -17,7 +17,7 @@ export async function handleRefreshToken(req: Request, res: Response, next: Next
     }
 
     const apiToken = await storage.generateApiToken(userId);
-    return res.json({ success: true, apiToken, expiresIn: 4 * 3600 });
+    return res.json({ success: true, apiToken, expiresIn: 24 * 3600 });
 
   } catch (error) {
     logger.error('[handleRefreshToken] Error generating token:', error);

@@ -91,11 +91,11 @@ export const login = async () => {
 };
 
 /**
- * Get the current API token from session storage
+ * Get the current API token from local storage
  * @returns The API token or null if not available
  */
 function getApiToken(): string | null {
-  return sessionStorage.getItem(STORAGE_KEYS.API_TOKEN);
+  return localStorage.getItem(STORAGE_KEYS.API_TOKEN);
 }
 
 /**
@@ -103,7 +103,7 @@ function getApiToken(): string | null {
  * @returns boolean
  */
 function isTokenExpired(): boolean {
-  const expiryString = sessionStorage.getItem(STORAGE_KEYS.TOKEN_EXPIRY);
+  const expiryString = localStorage.getItem(STORAGE_KEYS.TOKEN_EXPIRY);
   const currentTime = Date.now();
   let isExpired = true; // Default to expired if no string
   let expiryTime = null;
@@ -128,10 +128,10 @@ function isTokenExpired(): boolean {
  * Clear all auth-related cache and storage
  */
 function clearAuthData(): void {
-  logger.debug("Clearing client-side auth data...");
-  // Clear session storage items
-  sessionStorage.removeItem(STORAGE_KEYS.API_TOKEN);
-  sessionStorage.removeItem(STORAGE_KEYS.TOKEN_EXPIRY);
+  logger.log("Clearing client-side auth data...");
+  // Clear local storage items
+  localStorage.removeItem(STORAGE_KEYS.API_TOKEN);
+  localStorage.removeItem(STORAGE_KEYS.TOKEN_EXPIRY);
 
   // Clear auth cache
   authCache.clear();
@@ -188,7 +188,7 @@ async function queryAniList<T = any>(
   const tokenIsExpired = isTokenExpired();
 
   // Add detailed logging before the check
-  const expiryString = sessionStorage.getItem(STORAGE_KEYS.TOKEN_EXPIRY);
+  const expiryString = localStorage.getItem(STORAGE_KEYS.TOKEN_EXPIRY);
   const expiryTimestamp = expiryString ? parseInt(expiryString, 10) : null;
   logger.debug('[queryAniList Check]', {
     apiTokenPresent: !!apiToken,
@@ -207,11 +207,25 @@ async function queryAniList<T = any>(
     throw new Error("Authentication required (no token)");
   }
 
+  // If token is close to expiry, try to refresh it first
   if (tokenIsExpired) {
-    logger.warn("[queryAniList] API token is expired or nearing expiry.");
-    clearAuthData(); // Clear data if token is expired
-    // setLocation('/login'); // Redirect to login?
-    throw new Error("Authentication required (token expired)");
+    logger.log("[queryAniList] API token is expired or nearing expiry, attempting refresh...");
+    const refreshSuccess = await refreshApiToken();
+    
+    if (!refreshSuccess) {
+      logger.warn("[queryAniList] Token refresh failed, clearing auth data.");
+      clearAuthData();
+      throw new Error("Authentication required (token expired and refresh failed)");
+    }
+    
+    logger.log("[queryAniList] Token refreshed successfully, proceeding with request.");
+  }
+
+  // Get the (potentially refreshed) token
+  const currentToken = getApiToken();
+  if (!currentToken) {
+    console.error("[queryAniList] No token available after refresh attempt.");
+    throw new Error("Authentication required (no token after refresh)");
   }
 
   // Make request to our server proxy
@@ -221,7 +235,7 @@ async function queryAniList<T = any>(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiToken}` // Use the internally stored API token
+        "Authorization": `Bearer ${currentToken}` // Use the current (potentially refreshed) API token
       },
       body: JSON.stringify({
         query,
@@ -234,7 +248,6 @@ async function queryAniList<T = any>(
       if (response.status === 401) {
         logger.debug("[queryAniList] Received 401 from proxy, clearing auth data.");
         clearAuthData(); // Clear data on explicit unauthorized error
-        // setLocation('/login'); // Redirect to login?
         throw new Error("Authentication required (proxy returned 401)");
       }
       // Try to parse error message from backend
@@ -256,7 +269,6 @@ async function queryAniList<T = any>(
       if (isAuthError) {
         logger.debug("[queryAniList] GraphQL error indicates authorization issue, clearing auth data.");
         clearAuthData();
-        // setLocation('/login'); // Redirect to login?
         throw new Error("Authentication required (GraphQL auth error)");
       }
       // Throw specific GraphQL error message if not auth related
@@ -332,7 +344,7 @@ export function isAuthenticated(): boolean {
 }
 
 /**
- * Refresh the API token - TODO: Needs implementation if server supports it
+ * Refresh the API token when needed
  */
 export const refreshApiToken = async (): Promise<boolean> => {
   logger.debug("Attempting to refresh API token...");
@@ -343,16 +355,11 @@ export const refreshApiToken = async (): Promise<boolean> => {
   }
 
   try {
-    // TODO: Implement actual refresh logic using a backend endpoint
-    // This requires a backend endpoint that takes the current (potentially expired)
-    // token or refresh token and returns a new one.
-    console.warn("refreshApiToken function is not fully implemented.");
-    // Simulate fetch call
+    console.log("Calling refresh endpoint...");
     const response = await fetch(API_ENDPOINTS.AUTH_REFRESH, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        // Include Authorization if your backend requires the old token
         Authorization: `Bearer ${currentToken}`,
       },
       credentials: "include",
@@ -373,8 +380,8 @@ export const refreshApiToken = async (): Promise<boolean> => {
     if (data.apiToken && data.expiresIn) {
       console.log("Storing refreshed API token and expiry.");
       const expiryTimestamp = Date.now() + data.expiresIn * 1000;
-      sessionStorage.setItem(STORAGE_KEYS.API_TOKEN, data.apiToken);
-      sessionStorage.setItem(STORAGE_KEYS.TOKEN_EXPIRY, expiryTimestamp.toString());
+      localStorage.setItem(STORAGE_KEYS.API_TOKEN, data.apiToken);
+      localStorage.setItem(STORAGE_KEYS.TOKEN_EXPIRY, expiryTimestamp.toString());
       // Optionally, invalidate queries that depend on auth state
       queryClient.invalidateQueries({ queryKey: ["auth"] });
       console.log("Token refreshed successfully.");

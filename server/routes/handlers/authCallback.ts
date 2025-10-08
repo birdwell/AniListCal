@@ -126,7 +126,7 @@ export const handleAuthCallback = async (
     // Generate internal API token for the client (now async)
     logger.debug(`[Server Auth Callback] Generating internal API token for user ${userId}...`);
     const internalApiToken = await storage.generateApiToken(userId);
-    const internalTokenExpiresIn = 4 * 3600; // 4 hours in seconds
+    const internalTokenExpiresIn = 24 * 3600; // 24 hours in seconds
 
     logger.debug(`[Server Auth Callback] Generated internal API token for user ${userId}. Redirecting to frontend...`);
 
