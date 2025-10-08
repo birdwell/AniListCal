@@ -4,6 +4,7 @@ import passport from "passport";
 import MemoryStore from 'memorystore';
 import { AniListUser } from "../types";
 import { storage } from "../storage";
+import { logger } from '../logger';
 import { log } from "../vite";
 import rateLimit from "express-rate-limit";
 
@@ -37,7 +38,7 @@ export async function validateApiToken(
       req.anilistToken = anilistToken;
     } else {
       // If the API token is valid but the underlying AniList token is gone, it's an issue
-      console.warn(`[validateApiToken] Valid API token found for user ${tokenData.userId}, but no corresponding AniList token in storage.`);
+      logger.warn(`[validateApiToken] Valid API token found for user ${tokenData.userId}, but no corresponding AniList token in storage.`);
       // Decide how to handle this - maybe revoke the API token?
       await storage.revokeApiToken(token); // Revoke the now useless API token
       return res.status(401).json({ error: "Associated session data missing, please log in again." });
@@ -45,7 +46,7 @@ export async function validateApiToken(
 
     next();
   } catch (error) {
-    console.error('[validateApiToken] Error during token validation:', error);
+    logger.error('[validateApiToken] Error during token validation:', error);
     next(error); // Pass error to the global error handler
   }
 }
@@ -251,14 +252,14 @@ export function registerMiddleware(app: Express) {
         // Make storage calls async
         const token = await storage.getToken(id);
         if (!token) {
-          console.log(`[Passport Deserialize] No AniList token found for user ${id}`);
+          logger.debug(`[Passport Deserialize] No AniList token found for user ${id}`);
           return done(null, false);
         }
 
         // Get user info from storage
         const userInfo = await storage.getUserInfo(id);
         if (!userInfo) {
-          console.log(`[Passport Deserialize] No user info found for user ${id}`);
+          logger.debug(`[Passport Deserialize] No user info found for user ${id}`);
           return done(null, false);
         }
 

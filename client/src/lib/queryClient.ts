@@ -1,5 +1,6 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 import { clearAuthData, getApiToken, refreshApiToken } from "./auth";
+import { logger } from './logger';
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
@@ -46,7 +47,7 @@ export async function apiRequest(
     await throwIfResNotOk(res);
     return res;
   } catch (error) {
-    console.error("API request error:", error);
+    logger.error("API request error:", error);
     throw error;
   }
 }
@@ -95,7 +96,7 @@ export const getQueryFn: <T>(options: {
         await throwIfResNotOk(res);
         return await res.json();
       } catch (error) {
-        console.error("Query function error:", error);
+        logger.error("Query function error:", error);
         throw error;
       }
     };

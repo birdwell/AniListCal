@@ -1,5 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
+import { storage } from '../../storage';
 import { ANILIST_GRAPHQL_URL } from '../../constants';
+import { logger } from '../../logger';
 
 /**
  * Proxies GraphQL requests to AniList API using stored access token.
@@ -40,7 +42,7 @@ export async function handleProxy(req: Request, res: Response, next: NextFunctio
     const data = await apiRes.json();
     return res.json(data);
   } catch (error: any) {
-    console.error('AniList proxy error:', error);
+    logger.error('AniList proxy error:', error);
     return res.status(500).json({ error: 'Failed to proxy request to AniList' });
   }
 }

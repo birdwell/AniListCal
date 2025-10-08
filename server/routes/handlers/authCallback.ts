@@ -2,6 +2,7 @@ import type { Request, Response, NextFunction } from 'express';
 import { storage } from '../../storage';
 import { ANILIST_GRAPHQL_URL, ANILIST_TOKEN_URL } from '../../constants';
 import type { AniListUser } from '../../types';
+import { logger } from '../../logger';
 
 // Define the frontend URL (replace with environment variable in production)
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5001';
@@ -26,19 +27,19 @@ export const handleAuthCallback = async (
   next: NextFunction,
   fetchFn: FetchFunction // Inject fetch dependency
 ) => {
-  console.log('[Server Auth Callback] Received request');
+  logger.debug('[Server Auth Callback] Received request');
   try {
     const clientId = process.env.ANILIST_CLIENT_ID;
     const clientSecret = process.env.ANILIST_CLIENT_SECRET;
 
     if (!clientId || !clientSecret) {
-      console.error('[Server Auth Callback] AniList client credentials not configured on server.');
+      logger.error('[Server Auth Callback] AniList client credentials not configured on server.');
       throw new Error('Server configuration error.');
     }
 
     // Get code from query parameters (GET request)
     const code = req.query?.code as string | undefined;
-    console.log(`[Server Auth Callback] Received code: ${code ? 'present' : 'missing'}`);
+    logger.debug(`[Server Auth Callback] Received code: ${code ? 'present' : 'missing'}`);
 
     if (!code) {
       throw new Error('Authorization code is required from AniList redirect.');
@@ -53,7 +54,7 @@ export const handleAuthCallback = async (
       code,
     };
 
-    console.log('[Server Auth Callback] Exchanging code for AniList token...', { clientId, redirectUri: BACKEND_CALLBACK_URL });
+    logger.debug('[Server Auth Callback] Exchanging code for AniList token...', { clientId, redirectUri: BACKEND_CALLBACK_URL });
 
     // Exchange authorization code for access token using injected fetchFn
     const tokenRes = await fetchFn(ANILIST_TOKEN_URL, {
@@ -65,11 +66,11 @@ export const handleAuthCallback = async (
       body: JSON.stringify(payload),
     });
 
-    console.log(`[Server Auth Callback] AniList token response status: ${tokenRes.status}`);
+    logger.debug(`[Server Auth Callback] AniList token response status: ${tokenRes.status}`);
 
     if (!tokenRes.ok) {
       const err = await tokenRes.json().catch(() => ({ message: 'Failed to parse error response' }));
-      console.error('[Server Auth Callback] Failed to get access token:', err);
+      logger.error('[Server Auth Callback] Failed to get access token:', err);
       throw new Error(`Failed to get access token: ${err.error_description || err.message || tokenRes.statusText}`);
     }
 
@@ -78,11 +79,11 @@ export const handleAuthCallback = async (
     const expiresInAniList = tokenData.expires_in; // Original expiry from AniList (usually 1 year)
 
     if (!accessToken) {
-      console.error('[Server Auth Callback] Access token missing in AniList response body.');
+      logger.error('[Server Auth Callback] Access token missing in AniList response body.');
       throw new Error('Access token missing in AniList response.');
     }
 
-    console.log(`[Server Auth Callback] Successfully obtained AniList access token (expires in ${expiresInAniList}s). Fetching user info...`);
+    logger.debug(`[Server Auth Callback] Successfully obtained AniList access token (expires in ${expiresInAniList}s). Fetching user info...`);
 
     // Fetch AniList user info with access token using injected fetchFn
     const userRes = await fetchFn(ANILIST_GRAPHQL_URL, {
@@ -97,11 +98,11 @@ export const handleAuthCallback = async (
       }),
     });
 
-    console.log(`[Server Auth Callback] AniList user info response status: ${userRes.status}`);
+    logger.debug(`[Server Auth Callback] AniList user info response status: ${userRes.status}`);
 
     if (!userRes.ok) {
       const err = await userRes.json().catch(() => ({ message: 'Failed to parse error response' }));
-      console.error('[Server Auth Callback] Failed to get user info:', err);
+      logger.error('[Server Auth Callback] Failed to get user info:', err);
       throw new Error(`Failed to get user info: ${err.message || userRes.statusText}`);
     }
 
@@ -109,25 +110,25 @@ export const handleAuthCallback = async (
     const viewer = userData.data?.Viewer;
 
     if (!viewer || !viewer.id) {
-      console.error('[Server Auth Callback] Viewer data missing in AniList GraphQL response.');
+      logger.error('[Server Auth Callback] Viewer data missing in AniList GraphQL response.');
       throw new Error('Failed to parse user info from AniList.');
     }
 
     const userId = viewer.id.toString();
-    console.log(`[Server Auth Callback] Fetched user info for ID: ${userId}, Name: ${viewer.name}`);
+    logger.debug(`[Server Auth Callback] Fetched user info for ID: ${userId}, Name: ${viewer.name}`);
 
     // Store token and user info using async storage
-    console.log(`[Server Auth Callback] Storing AniList token and user info for user ${userId}...`);
+    logger.debug(`[Server Auth Callback] Storing AniList token and user info for user ${userId}...`);
     await storage.storeToken(userId, accessToken);
     await storage.storeUserInfo(userId, viewer.name, viewer.avatar?.medium);
-    console.log(`[Server Auth Callback] AniList token and user info stored.`);
+    logger.debug(`[Server Auth Callback] AniList token and user info stored.`);
 
     // Generate internal API token for the client (now async)
-    console.log(`[Server Auth Callback] Generating internal API token for user ${userId}...`);
+    logger.debug(`[Server Auth Callback] Generating internal API token for user ${userId}...`);
     const internalApiToken = await storage.generateApiToken(userId);
     const internalTokenExpiresIn = 24 * 3600; // 24 hours in seconds
 
-    console.log(`[Server Auth Callback] Generated internal API token for user ${userId}. Redirecting to frontend...`);
+    logger.debug(`[Server Auth Callback] Generated internal API token for user ${userId}. Redirecting to frontend...`);
 
     // Redirect back to frontend with internal token and expiry in hash
     const redirectUrl = new URL(FRONTEND_URL);
@@ -137,7 +138,7 @@ export const handleAuthCallback = async (
 
   } catch (error: any) {
     // Error handling: Redirect to frontend with an error message
-    console.error('[Server Auth Callback] Error during callback processing:', error);
+    logger.error('[Server Auth Callback] Error during callback processing:', error);
     const frontendUrl = new URL(FRONTEND_URL);
     frontendUrl.hash = `authError=${encodeURIComponent(error.message || 'Unknown authentication error')}`;
     res.redirect(frontendUrl.toString());

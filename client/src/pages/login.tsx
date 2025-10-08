@@ -6,6 +6,7 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
+import { logger } from "../lib/logger";
 
 export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
@@ -28,7 +29,7 @@ export default function Login() {
     try {
       await login();
     } catch (error) {
-      console.error('Login error:', error);
+      logger.error('Login error:', error);
       setIsLoading(false);
     }
   };
@@ -43,14 +44,28 @@ export default function Login() {
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-background">
-      <Card className="w-full max-w-md mx-4">
+      <Card className="w-full max-w-lg mx-4">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">Welcome to Anime Tracker</CardTitle>
-          <CardDescription>
-            Connect with your Anilist account to manage your anime watchlist
+          <CardTitle className="text-3xl font-bold mb-2">Welcome to AniListCal</CardTitle>
+          <CardDescription className="text-base leading-relaxed">
+            Track your anime watching schedule with ease. Connect your AniList account to automatically sync your watchlist and get calendar events for airing shows.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          <div className="text-sm text-muted-foreground space-y-2">
+            <div className="flex items-start gap-2">
+              <span className="text-primary">•</span>
+              <span>Never miss an episode with automatic calendar integration</span>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="text-primary">•</span>
+              <span>Track currently airing shows and their broadcast times</span>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="text-primary">•</span>
+              <span>Sync with your existing AniList watchlist</span>
+            </div>
+          </div>
           <Button
             className="w-full py-6 text-lg"
             onClick={handleLogin}
@@ -61,7 +76,7 @@ export default function Login() {
             ) : (
               <SiAnilist className="mr-2 h-5 w-5" />
             )}
-            {isLoading ? "Connecting..." : "Continue with Anilist"}
+            {isLoading ? "Connecting..." : "Continue with AniList"}
           </Button>
         </CardContent>
       </Card>
