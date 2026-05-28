@@ -13,8 +13,8 @@ declare global {
     }
 
     interface Request {
-      userId?: string; // User ID from API token
-      anilistToken?: string; // AniList token from API token auth
+      userId?: string; // Set by requireAuth from Passport session
+      anilistToken?: string; // Loaded server-side for AniList proxy calls
     }
   }
 }

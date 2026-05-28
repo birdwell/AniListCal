@@ -32,11 +32,13 @@ Login uses **`GET /api/auth/login`** (server OAuth + session cookie). `VITE_ANIL
 
 **Not used:** `DATABASE_URL` — persistence is `node-persist` (`.persist-storage/`) for AniList OAuth tokens, not Postgres.
 
-**Sessions (auth migration in progress):**
+**Sessions:**
 
 - Local dev: in-memory sessions by default (no Redis required).
 - Production: set **`REDIS_URL`** (Railway Redis add-on) so login sessions survive deploys/restarts.
 - Optional **`SESSION_MAX_AGE_MS`** — default ~364 days (slightly under AniList’s 1-year access token).
+
+See **`docs/adr/001-passport-session-auth.md`** for the full auth architecture decision record.
 
 **Production reference:** `.env.production.example` — set values in Railway/host dashboard, not in git.
 

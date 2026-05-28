@@ -20,12 +20,6 @@ app.set("trust proxy", 1);
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Global error handler middleware
-app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-  log(`Error: ${err.message}`);
-  res.status(500).json({ error: "Internal server error" });
-});
-
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -103,6 +97,14 @@ async function startServer() {
   } else {
     serveStatic(app);
   }
+
+  app.use((err: Error, _req: Request, res: Response, next: NextFunction) => {
+    log(`Error: ${err.message}`);
+    if (res.headersSent) {
+      return next(err);
+    }
+    res.status(500).json({ error: "Internal server error" });
+  });
 
   httpServer.listen(PORT, "0.0.0.0", () => {
     log(`Server running on http://0.0.0.0:${PORT}/`);
