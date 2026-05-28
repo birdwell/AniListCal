@@ -59,17 +59,31 @@ async function getClientId(): Promise<string> {
 
 /**
  * Get the redirect URI for OAuth - **MUST MATCH ANILIST SETTINGS**
- * @returns The redirect URI pointing to the backend server
  */
-function getRedirectUri(): string {
-  // This now points to the BACKEND server endpoint that handles the callback
-  // Ensure this matches the Redirect URI set in your AniList app settings
-  // AND the URI used by the server when exchanging the code.
-  // Using process.env.NODE_ENV to potentially switch between dev/prod backend URLs
-  const backendOrigin = process.env.NODE_ENV === 'production'
-    ? window.location.origin // Assuming prod backend is same origin or adjust as needed
-    : 'http://localhost:3001'; // Development backend URL
+export function getRedirectUri(): string {
+  // Must match BACKEND_CALLBACK_URL / AniList "Redirect URI".
+  // Split dev (`yarn dev:all`): set VITE_BACKEND_ORIGIN=http://localhost:3001 in .env
+  // Single server (`yarn dev`): omit it — uses current page origin (e.g. http://localhost:5001).
+  const configured = import.meta.env.VITE_BACKEND_ORIGIN?.replace(/\/$/, "");
+  const backendOrigin = configured || window.location.origin;
   return `${backendOrigin}/api/auth/callback`;
+}
+
+/** Build the AniList OAuth authorize URL (same URL the login button navigates to). */
+export function buildAniListLoginUrl(clientId: string, redirectUri?: string): string {
+  const params = new URLSearchParams({
+    client_id: clientId,
+    redirect_uri: redirectUri ?? getRedirectUri(),
+    response_type: "code",
+  });
+  return `https://anilist.co/api/v2/oauth/authorize?${params.toString()}`;
+}
+
+/** Login URL when VITE_ANILIST_CLIENT_ID is configured; otherwise null. */
+export function getAniListLoginUrl(): string | null {
+  const clientId = import.meta.env.VITE_ANILIST_CLIENT_ID;
+  if (!clientId) return null;
+  return buildAniListLoginUrl(clientId);
 }
 
 /**
@@ -78,14 +92,14 @@ function getRedirectUri(): string {
 export const login = async () => {
   logger.debug("Login function called");
   try {
-    // Call and await the internal async function getClientId
     const clientId = await getClientId();
     const redirectUri = getRedirectUri();
-    logger.debug(`Redirecting to AniList with Client ID: ${clientId} and Redirect URI: ${redirectUri}`);
-    window.location.href = `https://anilist.co/api/v2/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code`;
+    logger.debug(
+      `Redirecting to AniList with Client ID: ${clientId} and Redirect URI: ${redirectUri}`
+    );
+    window.location.href = buildAniListLoginUrl(clientId, redirectUri);
   } catch (error) {
     logger.error("Failed to initiate login:", error);
-    // Re-throw the error to be caught by the caller or global handler
     throw error;
   }
 };
@@ -333,21 +347,19 @@ export async function getUser(): Promise<User | null | undefined> {
 }
 
 /**
- * Check if user is authenticated client-side
+ * Check if user is authenticated client-side.
+ * A stored session token means "signed in"; expiry is handled by refresh in queryAniList and on app load.
  */
 export function isAuthenticated(): boolean {
-  const token = getApiToken();
-  const expired = isTokenExpired(); // This will call the logged version
-  const result = !!token && !expired;
-  logger.debug(`[isAuthenticated Check]: token present=${!!token}, expired=${expired}, result=${result}`);
-  return result;
+  const hasToken = !!getApiToken();
+  logger.debug(`[isAuthenticated Check]: token present=${hasToken}`);
+  return hasToken;
 }
 
-/**
- * Refresh the API token when needed
- */
-export const refreshApiToken = async (): Promise<boolean> => {
-  logger.debug("Attempting to refresh API token...");
+/** Serialize concurrent refresh calls (e.g. app bootstrap + first GraphQL request). */
+let refreshInFlight: Promise<boolean> | null = null;
+
+async function performTokenRefresh(): Promise<boolean> {
   const currentToken = getApiToken();
   if (!currentToken) {
     logger.error("No current API token found, cannot refresh.");
@@ -355,7 +367,7 @@ export const refreshApiToken = async (): Promise<boolean> => {
   }
 
   try {
-    console.log("Calling refresh endpoint...");
+    logger.debug("Calling refresh endpoint...");
     const response = await fetch(API_ENDPOINTS.AUTH_REFRESH, {
       method: "POST",
       headers: {
@@ -366,33 +378,47 @@ export const refreshApiToken = async (): Promise<boolean> => {
     });
 
     if (!response.ok) {
-      console.error(`Failed to refresh token, server responded with status: ${response.status}`);
+      logger.error(`Failed to refresh token, server responded with status: ${response.status}`);
       if (response.status === 401) {
-        console.warn("Refresh token invalid or expired, clearing client data.");
-        clearAuthData(); // Clear data if unauthorized
+        logger.warn("Refresh token invalid or expired, clearing client data.");
+        clearAuthData();
       }
       return false;
     }
 
     const data: RefreshTokenResponse = await response.json();
-    console.log("Token refresh response:", data);
+    logger.debug("Token refresh response received");
 
     if (data.apiToken && data.expiresIn) {
-      console.log("Storing refreshed API token and expiry.");
       const expiryTimestamp = Date.now() + data.expiresIn * 1000;
       localStorage.setItem(STORAGE_KEYS.API_TOKEN, data.apiToken);
       localStorage.setItem(STORAGE_KEYS.TOKEN_EXPIRY, expiryTimestamp.toString());
-      // Optionally, invalidate queries that depend on auth state
       queryClient.invalidateQueries({ queryKey: ["auth"] });
-      console.log("Token refreshed successfully.");
+      logger.log("Token refreshed successfully.");
       return true;
-    } else {
-      console.error("Refresh response did not contain valid apiToken and expiresIn.");
-      return false;
     }
-  } catch (error) {
-    console.error("Error during token refresh:", error);
+    logger.error("Refresh response did not contain valid apiToken and expiresIn.");
     return false;
+  } catch (error) {
+    logger.error("Error during token refresh:", error);
+    return false;
+  }
+}
+
+/**
+ * Refresh the API token when needed. Concurrent callers share one in-flight request.
+ */
+export const refreshApiToken = async (): Promise<boolean> => {
+  logger.debug("Attempting to refresh API token...");
+  if (refreshInFlight) {
+    return refreshInFlight;
+  }
+  const p = performTokenRefresh();
+  refreshInFlight = p;
+  try {
+    return await p;
+  } finally {
+    refreshInFlight = null;
   }
 };
 

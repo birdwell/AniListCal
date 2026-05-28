@@ -1,38 +1,26 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { getUser, login } from "@/lib/auth";
+import { getAniListLoginUrl, getUser } from "@/lib/auth";
 import { SiAnilist } from "react-icons/si";
-import { useState } from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
-import { logger } from "../lib/logger";
+import { ExternalLink, Loader2 } from "lucide-react";
 
 export default function Login() {
-  const [isLoading, setIsLoading] = useState(false);
   const [, setLocation] = useLocation();
+  const loginUrl = getAniListLoginUrl();
+  const appLoginUrl = `${window.location.origin}/login`;
 
   const { data: user, isLoading: isCheckingAuth } = useQuery({
     queryKey: ["auth", "user"],
     queryFn: getUser,
-    retry: false
+    retry: false,
   });
 
-  // Redirect to home if already logged in
   if (user) {
     setLocation("/");
     return null;
   }
-
-  const handleLogin = async () => {
-    setIsLoading(true);
-    try {
-      await login();
-    } catch (error) {
-      logger.error('Login error:', error);
-      setIsLoading(false);
-    }
-  };
 
   if (isCheckingAuth) {
     return (
@@ -66,18 +54,55 @@ export default function Login() {
               <span>Sync with your existing AniList watchlist</span>
             </div>
           </div>
-          <Button
-            className="w-full py-6 text-lg"
-            onClick={handleLogin}
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-            ) : (
-              <SiAnilist className="mr-2 h-5 w-5" />
-            )}
-            {isLoading ? "Connecting..." : "Continue with AniList"}
-          </Button>
+
+          {loginUrl ? (
+            <Button asChild className="w-full py-6 text-lg">
+              <a href={loginUrl}>
+                <SiAnilist className="mr-2 h-5 w-5" />
+                Sign in on AniList.co
+              </a>
+            </Button>
+          ) : (
+            <p className="rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              Add <code className="font-mono">VITE_ANILIST_CLIENT_ID</code> to your{" "}
+              <code className="font-mono">.env</code> file, then restart the dev server.
+            </p>
+          )}
+
+          <p className="text-xs text-center text-muted-foreground leading-relaxed">
+            AniListCal is an independent app and is not affiliated with AniList.
+            Sign-in happens on{" "}
+            <a
+              href="https://anilist.co"
+              className="underline underline-offset-2 text-primary"
+              rel="noopener noreferrer"
+            >
+              anilist.co
+            </a>
+            , then returns here.
+          </p>
+
+          {import.meta.env.DEV && (
+            <div className="rounded-md border bg-muted/40 px-3 py-2 text-xs text-muted-foreground space-y-1">
+              <p>
+                <strong className="text-foreground">Local dev:</strong>{" "}
+                <code className="font-mono">{appLoginUrl}</code>
+              </p>
+              <p>
+                If sign-in does nothing in Cursor&apos;s preview, use the link below —{" "}
+                <code className="font-mono">yarn dev</code> also opens your system browser on startup.
+              </p>
+              <a
+                href={appLoginUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-primary underline underline-offset-2 hover:text-primary/80"
+              >
+                Open app in system browser
+                <ExternalLink className="h-3 w-3" />
+              </a>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

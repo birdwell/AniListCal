@@ -1,13 +1,17 @@
 import type { Request, Response, NextFunction } from 'express';
-import { storage } from '../../storage';
+import { getInternalApiTokenExpiresInSeconds, storage } from '../../storage';
 import { ANILIST_GRAPHQL_URL, ANILIST_TOKEN_URL } from '../../constants';
 import type { AniListUser } from '../../types';
 import { logger } from '../../logger';
 
-// Define the frontend URL (replace with environment variable in production)
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5001';
-// Define the backend callback URL (should match AniList settings)
-const BACKEND_CALLBACK_URL = process.env.BACKEND_CALLBACK_URL || 'http://localhost:3001/api/auth/callback';
+// Local dev: PORT=5001 → single Express+Vite server (same origin). PORT=3001 → API only while `yarn client` serves UI on 5001.
+const port = parseInt(process.env.PORT || '5001', 10);
+const defaultFrontendUrl =
+  port === 3001 ? 'http://localhost:5001' : `http://localhost:${port}`;
+const FRONTEND_URL = process.env.FRONTEND_URL || defaultFrontendUrl;
+const BACKEND_CALLBACK_URL =
+  process.env.BACKEND_CALLBACK_URL ||
+  `http://localhost:${port}/api/auth/callback`;
 
 // Define the expected signature for the injected fetch function
 type FetchFunction = (input: RequestInfo | URL, init?: RequestInit | undefined) => Promise<globalThis.Response>;
@@ -119,14 +123,18 @@ export const handleAuthCallback = async (
 
     // Store token and user info using async storage
     logger.debug(`[Server Auth Callback] Storing AniList token and user info for user ${userId}...`);
-    await storage.storeToken(userId, accessToken);
+    await storage.storeToken(
+      userId,
+      accessToken,
+      typeof expiresInAniList === 'number' ? expiresInAniList : undefined
+    );
     await storage.storeUserInfo(userId, viewer.name, viewer.avatar?.medium);
     logger.debug(`[Server Auth Callback] AniList token and user info stored.`);
 
     // Generate internal API token for the client (now async)
     logger.debug(`[Server Auth Callback] Generating internal API token for user ${userId}...`);
     const internalApiToken = await storage.generateApiToken(userId);
-    const internalTokenExpiresIn = 24 * 3600; // 24 hours in seconds
+    const internalTokenExpiresIn = getInternalApiTokenExpiresInSeconds();
 
     logger.debug(`[Server Auth Callback] Generated internal API token for user ${userId}. Redirecting to frontend...`);
 

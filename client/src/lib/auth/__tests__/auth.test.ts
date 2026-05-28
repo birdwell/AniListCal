@@ -59,7 +59,11 @@ const originalLocation = window.location;
 // @ts-ignore
 delete window.location;
 // @ts-ignore
-window.location = { ...originalLocation, href: '' };
+window.location = {
+  ...originalLocation,
+  href: '',
+  origin: 'http://localhost:5001',
+};
 const locationHrefSpy = vi.spyOn(window.location, 'href', 'set');
 
 // Mock import.meta.env
@@ -119,7 +123,7 @@ describe('Authentication Utilities (auth.ts)', async () => {
             await auth.login();
             // Construct expected URL string directly to match implementation
             const clientId = 'test-client-id';
-            const redirectUri = 'http://localhost:3001/api/auth/callback'; // Fixed to match implementation
+            const redirectUri = 'http://localhost:5001/api/auth/callback';
             const expectedUrlString = `https://anilist.co/api/v2/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code`;
 
             expect(locationHrefSpy).toHaveBeenCalledTimes(1);
@@ -440,11 +444,11 @@ describe('Authentication Utilities (auth.ts)', async () => {
             expect(auth.isAuthenticated()).toBe(false);
         });
 
-        it('should return false if token is expired', () => {
+        it('should return true if token exists (expiry is handled on request / refresh)', () => {
             vi.useFakeTimers();
-            setValidToken(-1000); // Expired
+            setValidToken(-1000); // Past client expiry; session still "has token" until refresh fails
             vi.setSystemTime(Date.now());
-            expect(auth.isAuthenticated()).toBe(false);
+            expect(auth.isAuthenticated()).toBe(true);
         });
     });
 

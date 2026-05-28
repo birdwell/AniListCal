@@ -8,10 +8,21 @@ import { fileURLToPath } from 'url'; // Import necessary function
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Constants
-const TOKEN_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000; // 7 days (for AniList token association)
-const API_TOKEN_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours (for internal API token)
+// AniList OAuth access tokens are long-lived (docs: ~1 year). Persist for the full `expires_in` from the
+// token response, with this fallback if the field is missing.
+const DEFAULT_ANILIST_EXPIRES_IN_SEC = 365 * 24 * 60 * 60;
+
+// Internal proxy API token: sliding session length (client refresh extends). Override via env in production.
+const API_TOKEN_EXPIRY_MS =
+  Number.parseInt(process.env.INTERNAL_API_TOKEN_TTL_MS || '', 10) ||
+  30 * 24 * 60 * 60 * 1000; // 30 days default
+
 const CLEANUP_INTERVAL_MS = 60 * 60 * 1000; // Clean expired tokens every hour
+
+/** Exposed for auth callback redirect hash and JSON responses */
+export function getInternalApiTokenExpiresInSeconds(): number {
+  return Math.floor(API_TOKEN_EXPIRY_MS / 1000);
+}
 
 // Storage Keys (prefixes for node-persist)
 const Keys = {
@@ -58,17 +69,28 @@ export class PersistentStorage {
     }
   }
 
-  /** Store an AniList token for a user */
-  async storeToken(userId: string, accessToken: string): Promise<void> {
+  /**
+   * Store an AniList access token. Pass `expiresInSeconds` from the OAuth token response
+   * (`expires_in`); when omitted, uses the documented ~1 year default.
+   */
+  async storeToken(
+    userId: string,
+    accessToken: string,
+    expiresInSeconds?: number
+  ): Promise<void> {
     await this.ensureInitialized();
     const key = Keys.ANILIST_TOKEN(userId);
+    const sec =
+      typeof expiresInSeconds === 'number' && Number.isFinite(expiresInSeconds) && expiresInSeconds > 0
+        ? Math.min(expiresInSeconds, 2 * 365 * 24 * 60 * 60) // safety cap: 2 years
+        : DEFAULT_ANILIST_EXPIRES_IN_SEC;
+    const ttlMs = sec * 1000;
     const tokenData: AniListToken = {
       userId,
       accessToken,
-      // Store expiry relative to now for node-persist ttl
-      expiresAt: Date.now() + TOKEN_EXPIRY_MS
+      expiresAt: Date.now() + ttlMs
     };
-    await nodePersist.setItem(key, tokenData, { ttl: TOKEN_EXPIRY_MS });
+    await nodePersist.setItem(key, tokenData, { ttl: ttlMs });
   }
 
   /** Get an AniList token for a user */

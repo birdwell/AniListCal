@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "nodemon",
     "client": "vite",
-    "dev:all": "concurrently \"yarn dev\" \"yarn client\"",
+    "dev:all": "concurrently \"cross-env PORT=3001 yarn dev\" \"yarn client\"",
     "server:once": "tsx server/index.ts",
     "build": "cross-env NODE_ENV=production npx vite build && cross-env NODE_ENV=production npx esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
     "build:dev": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist --sourcemap",

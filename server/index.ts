@@ -4,6 +4,7 @@ import { setupVite, serveStatic, log } from "./vite";
 import * as dotenv from "dotenv";
 import { createServer } from "http";
 import { logger } from "./logger";
+import { getLocalDevAppUrl, openInSystemBrowser } from "./utils/openBrowser";
 
 dotenv.config();
 
@@ -64,7 +65,28 @@ app.use((req, res, next) => {
   next();
 });
 
-const PORT = process.env.PORT || 5001;
+const PORT = parseInt(process.env.PORT || "5001", 10);
+
+function logDevSetupHints(): void {
+  if (process.env.NODE_ENV === "production") return;
+
+  const missing: string[] = [];
+  if (!process.env.ANILIST_CLIENT_ID) missing.push("ANILIST_CLIENT_ID");
+  if (!process.env.ANILIST_CLIENT_SECRET) missing.push("ANILIST_CLIENT_SECRET");
+  if (!process.env.VITE_ANILIST_CLIENT_ID) missing.push("VITE_ANILIST_CLIENT_ID");
+
+  if (missing.length > 0) {
+    log(
+      `Missing .env values: ${missing.join(", ")} — copy .env.example and add your AniList API credentials.`
+    );
+  }
+
+  const appUrl = getLocalDevAppUrl(PORT);
+  log(`Local app: ${appUrl}`);
+  if (PORT === 3001) {
+    log("Split dev: UI is on http://localhost:5001 (API on 3001). Set VITE_BACKEND_ORIGIN=http://localhost:3001 in .env.");
+  }
+}
 
 // Start the server
 async function startServer() {
@@ -78,8 +100,16 @@ async function startServer() {
     serveStatic(app);
   }
 
-  httpServer.listen(PORT, () => {
-    log(`Server running on http://localhost:${PORT}/`);
+  httpServer.listen(PORT, "0.0.0.0", () => {
+    log(`Server running on http://0.0.0.0:${PORT}/`);
+    logDevSetupHints();
+
+    if (
+      process.env.NODE_ENV !== "production" &&
+      process.env.OPEN_BROWSER !== "false"
+    ) {
+      openInSystemBrowser(getLocalDevAppUrl(PORT));
+    }
   });
 
   ["SIGINT", "SIGTERM"].forEach((signal) => {
@@ -94,4 +124,7 @@ async function startServer() {
 }
 
 // Start the server
-startServer();
+startServer().catch((error) => {
+  log(`Failed to start server: ${error instanceof Error ? error.message : error}`);
+  process.exit(1);
+});

@@ -1,0 +1,8 @@
+[build]
+buildCommand = "yarn build"
+
+[deploy]
+startCommand = "yarn start"
+healthcheckPath = "/api/health"
+healthcheckTimeout = 120
+restartPolicyType = "ON_FAILURE"

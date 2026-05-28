@@ -84,10 +84,11 @@ describe('PersistentStorage', () => {
     });
 
     describe('Tokens', () => {
-        it('should store an access token with TTL', async () => {
-            const ttl = 7 * 24 * 60 * 60 * 1000;
+        it('should store an access token with TTL matching AniList expires_in', async () => {
+            const expiresInSec = 3600;
+            const ttl = expiresInSec * 1000;
             const userIdStr = testUserInfo.userId.toString();
-            await storage.storeToken(userIdStr, testToken);
+            await storage.storeToken(userIdStr, testToken, expiresInSec);
             expect(mockSetItem).toHaveBeenCalledTimes(1);
             expect(mockSetItem).toHaveBeenCalledWith(
                 `anilist_token_${userIdStr}`,
@@ -96,6 +97,17 @@ describe('PersistentStorage', () => {
                     accessToken: testToken,
                     expiresAt: expect.any(Number)
                 }),
+                { ttl }
+            );
+        });
+
+        it('should use default 1y TTL when expires_in is not provided', async () => {
+            const ttl = 365 * 24 * 60 * 60 * 1000;
+            const userIdStr = testUserInfo.userId.toString();
+            await storage.storeToken(userIdStr, testToken);
+            expect(mockSetItem).toHaveBeenCalledWith(
+                `anilist_token_${userIdStr}`,
+                expect.objectContaining({ userId: userIdStr, accessToken: testToken }),
                 { ttl }
             );
         });
@@ -204,7 +216,7 @@ describe('PersistentStorage', () => {
     });
 
     describe('API Tokens', () => {
-        const apiTokenTTL = 24 * 60 * 60 * 1000;
+        const apiTokenTTL = 30 * 24 * 60 * 60 * 1000;
         const userIdStr = testUserInfo.userId.toString();
         const userTokensKey = `api_tokens_by_user_${userIdStr}`;
         const apiTokenDataKey = `api_token_${testApiToken}`;

@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from 'express';
-import { storage } from '../../storage';
+import { getInternalApiTokenExpiresInSeconds, storage } from '../../storage';
 import { logger } from '../../logger';
 
 /**
@@ -17,7 +17,7 @@ export async function handleRefreshToken(req: Request, res: Response, next: Next
     }
 
     const apiToken = await storage.generateApiToken(userId);
-    return res.json({ success: true, apiToken, expiresIn: 24 * 3600 });
+    return res.json({ success: true, apiToken, expiresIn: getInternalApiTokenExpiresInSeconds() });
 
   } catch (error) {
     logger.error('[handleRefreshToken] Error generating token:', error);

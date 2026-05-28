@@ -112,7 +112,7 @@ describe('handleAuthCallback', () => {
     await handleAuthCallback(req, res, next, fetchMock);
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(storeTokenSpy).toHaveBeenCalledWith('123', 'anilist_token');
+    expect(storeTokenSpy).toHaveBeenCalledWith('123', 'anilist_token', 3600);
     expect(resSpies.redirect).toHaveBeenCalledWith(expect.stringContaining('#authError=Storage%20failed'));
     expect(next).not.toHaveBeenCalled();
   });
@@ -132,17 +132,17 @@ describe('handleAuthCallback', () => {
     expect(fetchMock).toHaveBeenNthCalledWith(1, ANILIST_TOKEN_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({ grant_type: 'authorization_code', client_id: 'mockClientId', client_secret: 'mockClientSecret', redirect_uri: 'http://localhost:3001/api/auth/callback', code: 'testcode' })
+      body: JSON.stringify({ grant_type: 'authorization_code', client_id: 'mockClientId', client_secret: 'mockClientSecret', redirect_uri: 'http://localhost:5001/api/auth/callback', code: 'testcode' })
     });
     expect(fetchMock).toHaveBeenNthCalledWith(2, ANILIST_GRAPHQL_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json', Authorization: 'Bearer anilist_token' },
       body: JSON.stringify({ query: `query { Viewer { id name avatar { medium } } }` })
     });
-    expect(storeTokenSpy).toHaveBeenCalledWith('123', 'anilist_token');
+    expect(storeTokenSpy).toHaveBeenCalledWith('123', 'anilist_token', 3600);
     expect(storeUserInfoSpy).toHaveBeenCalledWith('123', 'TestUser', 'avatar_url');
     expect(generateApiTokenSpy).toHaveBeenCalledWith('123');
-    expect(resSpies.redirect).toHaveBeenCalledWith('http://localhost:5001/#apiToken=internal-api-token&expiresIn=86400');
+    expect(resSpies.redirect).toHaveBeenCalledWith('http://localhost:5001/#apiToken=internal-api-token&expiresIn=2592000');
     expect(next).not.toHaveBeenCalled();
   });
 });

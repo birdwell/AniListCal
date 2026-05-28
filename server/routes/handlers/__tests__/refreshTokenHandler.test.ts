@@ -41,7 +41,7 @@ describe('handleRefreshToken', () => {
     expect(resSpies.json).toHaveBeenCalledWith({
       success: true,
       apiToken: newApiToken,
-      expiresIn: 86400,
+      expiresIn: 2592000,
     });
     expect(resSpies.status).not.toHaveBeenCalled();
     expect(next).not.toHaveBeenCalled();

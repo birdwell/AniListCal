@@ -95,11 +95,11 @@ export function addSecurityHeaders(app: Express) {
         "Content-Security-Policy",
         [
           "default-src 'self'",
-          "script-src 'self' 'unsafe-inline'",
+          "script-src 'self' 'unsafe-inline' https://cloud.umami.is",
           "style-src 'self' 'unsafe-inline'",
           "img-src 'self' https://s4.anilist.co https://img.anili.st data:",
           "font-src 'self'",
-          "connect-src 'self' https://graphql.anilist.co",
+          "connect-src 'self' https://graphql.anilist.co https://cloud.umami.is",
           "frame-src 'none'",
           "object-src 'none'",
           "base-uri 'self'",
@@ -196,7 +196,7 @@ export function registerMiddleware(app: Express) {
     standardHeaders: true,
     legacyHeaders: false,
     message: 'Too many requests from this IP, please try again after 15 minutes',
-    skip: (req) => process.env.NODE_ENV !== 'production' || req.path === '/api/config'
+    skip: (req) => process.env.NODE_ENV !== 'production' || req.path === '/api/config' || req.path === '/api/health'
   });
 
   const authLimiter = rateLimit({
