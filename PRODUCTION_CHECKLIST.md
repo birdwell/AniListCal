@@ -1,57 +1,47 @@
 # Production Deployment Checklist
 
-## Pre-Deployment
+## Pre-deployment
 
-- [ ] Set up a strong `SESSION_SECRET` in your production environment
-- [ ] Configure proper AniList OAuth credentials for production
-- [ ] Ensure database connection string is correct for production
-- [ ] Update CORS settings with your production domain
-- [ ] Verify Content Security Policy settings are appropriate for your domain
-- [ ] Set `NODE_ENV=production` in your deployment environment
+- [ ] Set a strong `SESSION_SECRET` in production
+- [ ] Configure AniList OAuth credentials for production
+- [ ] Register production redirect URI: `https://your-domain.com/api/auth/callback`
+- [ ] Set `FRONTEND_URL` and `BACKEND_CALLBACK_URL` to your public domain
+- [ ] Add Redis and set `REDIS_URL` on the app service (sessions survive restarts)
+- [ ] Set `NODE_ENV=production`
+- [ ] Do **not** set `PORT` on Railway (platform injects it)
 
-## Build Process
+## Build
 
-- [ ] Run `yarn build` to create production bundles without source maps
+- [ ] Run `yarn build` locally or in CI
 - [ ] Verify the build completes successfully
-- [ ] Check that all static assets are correctly bundled
 
-## Deployment
+## Deploy
 
-- [ ] Deploy the application to your production environment
-- [ ] Set up environment variables on your production server
-- [ ] Configure a process manager (like PM2) to keep the app running
-- [ ] Set up HTTPS with a valid SSL certificate
-- [ ] Configure proper HTTP headers (already handled in code)
-- [ ] Set up logging and monitoring
+- [ ] Deploy to Railway (or your host)
+- [ ] Confirm all environment variables are set on the **app service**
+- [ ] HTTPS is enabled on your public domain
 
-## Post-Deployment Verification
+## Post-deployment verification
 
-- [ ] Verify the application starts correctly
-- [ ] Check the `/api/health` endpoint returns a healthy status
-- [ ] Test user authentication flows
-- [ ] Verify database connections are working
-- [ ] Test core functionality (calendar, show details, etc.)
-- [ ] Check for any console errors or warnings
+- [ ] `GET /api/health` returns `{ "status": "ok" }`
+- [ ] `GET /api/auth/login` redirects to AniList OAuth
+- [ ] Full login → callback → home flow works in a real browser
+- [ ] Logout clears the session
+- [ ] GraphQL proxy works for authenticated users (`POST /api/anilist/proxy`)
+- [ ] Session survives a redeploy (with Redis configured)
 
-## Security Considerations
+## Security
 
-- [ ] Ensure all API keys and secrets are properly secured
-- [ ] Verify rate limiting is working correctly
-- [ ] Check that session cookies are secure and HTTP-only
-- [ ] Confirm Content Security Policy is properly enforced
-- [ ] Test for common vulnerabilities (XSS, CSRF, etc.)
+- [ ] AniList client secret and `SESSION_SECRET` are only in the host dashboard, not in git
+- [ ] Session cookie is HttpOnly and secure in production
+- [ ] Rate limiting is active on `/api/` routes
 
-## Performance Optimization
+## Optional follow-ups
 
-- [ ] Verify assets are properly compressed
-- [ ] Check page load times
-- [ ] Consider setting up a CDN for static assets
-- [ ] Implement caching strategies where appropriate
+- [ ] Mount persistent storage for `.persist-storage/` if you want AniList tokens to survive container disk wipes
+- [ ] Set up uptime monitoring on `/api/health`
 
-## Monitoring and Maintenance
+## References
 
-- [ ] Set up uptime monitoring
-- [ ] Configure error tracking
-- [ ] Set up database backup procedures
-- [ ] Create a rollback plan in case of deployment issues
-- [ ] Document the deployment process for future reference
+- [AGENTS.md](AGENTS.md) — local dev and Railway setup
+- [docs/adr/001-passport-session-auth.md](docs/adr/001-passport-session-auth.md) — auth architecture

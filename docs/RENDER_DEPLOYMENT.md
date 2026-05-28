@@ -66,10 +66,14 @@ Ensure your `package.json` has the correct scripts (already configured):
    NODE_ENV=production
    ANILIST_CLIENT_ID=your_anilist_client_id
    ANILIST_CLIENT_SECRET=your_anilist_client_secret
-   VITE_ANILIST_CLIENT_ID=your_anilist_client_id
    SESSION_SECRET=your_strong_random_secret
+   FRONTEND_URL=https://your-app-name.onrender.com
+   BACKEND_CALLBACK_URL=https://your-app-name.onrender.com/api/auth/callback
+   REDIS_URL=your_redis_url
    PORT=10000
    ```
+
+   Login uses server-side OAuth (`GET /api/auth/login`) with HttpOnly session cookies. Redis is recommended so sessions survive restarts. See [docs/adr/001-passport-session-auth.md](../adr/001-passport-session-auth.md).
 
    **Generate SESSION_SECRET**:
    ```bash

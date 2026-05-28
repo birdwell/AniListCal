@@ -4,38 +4,85 @@ A web application that integrates with AniList to create calendar events for you
 
 ## Prerequisites
 
-- Node.js (v18 or higher recommended)
-- npm or yarn package manager
+- Node.js 18+
+- Yarn (recommended) or npm
 
-## Getting Started
+## Getting started
 
 1. Clone the repository:
+
 ```bash
-git clone https://github.com/yourusername/AniListCal.git
+git clone https://github.com/birdwell/AniListCal.git
 cd AniListCal
 ```
 
 2. Install dependencies:
+
 ```bash
-npm install
+yarn install
 ```
 
-3. Set up your environment variables:
-Create a `.env` file in the root directory with the following variables (adjust values as needed):
-```env
-# Server Settings
-NODE_ENV=development
-# Optional: Specify a port for the server if needed, defaults to 3000
-# PORT=3000
+3. Configure environment variables:
 
-# AniList OAuth Credentials (obtain from AniList API settings)
-# Used by the server for token exchange
+```bash
+cp .env.example .env
+```
+
+Edit `.env` with your AniList OAuth credentials from https://anilist.co/settings/developer
+
+Register this redirect URI for local dev:
+
+```
+http://localhost:5001/api/auth/callback
+```
+
+Required variables:
+
+```env
 ANILIST_CLIENT_ID=your_anilist_client_id
 ANILIST_CLIENT_SECRET=your_anilist_client_secret
-
-# Used by the client-side Vite build (must be prefixed with VITE_)
-VITE_ANILIST_CLIENT_ID=your_anilist_client_id
+SESSION_SECRET=any_long_random_string
 ```
 
-4. Push the database schema:
-``
+4. Run the app:
+
+```bash
+yarn dev
+```
+
+Open http://localhost:5001 in Chrome, Safari, or Firefox (OAuth redirects do not work in embedded IDE previews).
+
+## Authentication
+
+Login uses server-side OAuth with an HttpOnly session cookie. The browser never stores AniList or API tokens.
+
+- Login: `GET /api/auth/login`
+- Logout: `POST /api/auth/logout`
+
+See [docs/adr/001-passport-session-auth.md](docs/adr/001-passport-session-auth.md) for architecture details.
+
+## Production (Railway)
+
+Set these on the app service:
+
+```env
+NODE_ENV=production
+ANILIST_CLIENT_ID=...
+ANILIST_CLIENT_SECRET=...
+SESSION_SECRET=...
+REDIS_URL=redis://...
+FRONTEND_URL=https://anilistcal.com
+BACKEND_CALLBACK_URL=https://anilistcal.com/api/auth/callback
+```
+
+Do not set `PORT` on Railway — the platform injects it.
+
+Build and start: `yarn build` · `yarn start` · Health check: `GET /api/health`
+
+More detail: [AGENTS.md](AGENTS.md)
+
+## Tests
+
+```bash
+yarn test
+```

@@ -28,9 +28,9 @@ ANILIST_CLIENT_SECRET=...
 SESSION_SECRET=...           # any long random string
 ```
 
-Login uses **`GET /api/auth/login`** (server OAuth + session cookie). `VITE_ANILIST_CLIENT_ID` is **not required** — it was only used for the old client-side OAuth redirect.
+Login uses **`GET /api/auth/login`** (server OAuth + session cookie).
 
-**Not used:** `DATABASE_URL` — persistence is `node-persist` (`.persist-storage/`) for AniList OAuth tokens, not Postgres.
+**Not used:** `DATABASE_URL`, `VITE_ANILIST_CLIENT_ID` — persistence is `node-persist` (`.persist-storage/`) for AniList OAuth tokens; login is fully server-side.
 
 **Sessions:**
 
