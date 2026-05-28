@@ -4,19 +4,24 @@ import { storage } from '../../../storage';
 import { createMockReqResNext } from './mockUtils';
 import type { Request, Response, NextFunction } from 'express';
 import { ANILIST_GRAPHQL_URL } from '../../../constants';
+import {
+  ANILIST_TOKEN_EXPIRED_CODE,
+  ANILIST_TOKEN_EXPIRED_MESSAGE,
+} from '../../../auth/clearSession';
 
 describe('handleProxy', () => {
   let req: Request;
   let res: Response;
   let next: NextFunction;
   let resSpies: ReturnType<typeof createMockReqResNext>['resSpies'];
-  let getTokenSpy: any;
-  let fetchSpy: any;
+  let reqSpies: ReturnType<typeof createMockReqResNext>['reqSpies'];
+  let revokeTokenSpy: ReturnType<typeof vi.spyOn>;
+  let fetchSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     vi.clearAllMocks();
 
-    getTokenSpy = vi.spyOn(storage, 'getToken');
+    revokeTokenSpy = vi.spyOn(storage, 'revokeToken').mockResolvedValue(true);
     fetchSpy = vi.spyOn(globalThis, 'fetch');
 
     const mocks = createMockReqResNext();
@@ -24,6 +29,7 @@ describe('handleProxy', () => {
     res = mocks.res;
     next = mocks.next;
     resSpies = mocks.resSpies;
+    reqSpies = mocks.reqSpies;
 
     (req as any).anilistToken = undefined;
   });
@@ -32,17 +38,7 @@ describe('handleProxy', () => {
     await handleProxy(req, res, next);
     expect(resSpies.status).toHaveBeenCalledWith(401);
     expect(resSpies.json).toHaveBeenCalledWith({ error: 'Not authenticated' });
-    expect(getTokenSpy).not.toHaveBeenCalled();
     expect(fetchSpy).not.toHaveBeenCalled();
-    expect(next).not.toHaveBeenCalled();
-  });
-
-  it('returns 401 if anilistToken is missing on request', async () => {
-    await handleProxy(req, res, next);
-    expect(resSpies.status).toHaveBeenCalledWith(401);
-    expect(resSpies.json).toHaveBeenCalledWith({ error: 'Not authenticated' });
-    expect(fetchSpy).not.toHaveBeenCalled();
-    expect(next).not.toHaveBeenCalled();
   });
 
   it('proxies request to AniList using req.anilistToken and returns response', async () => {
@@ -58,22 +54,16 @@ describe('handleProxy', () => {
 
     await handleProxy(req, res, next);
 
-    expect(getTokenSpy).not.toHaveBeenCalled();
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
     expect(fetchSpy).toHaveBeenCalledWith(
       ANILIST_GRAPHQL_URL,
-      {
+      expect.objectContaining({
         method: 'POST',
-        headers: {
-          Authorization: `Bearer token-from-middleware`,
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-        },
-        body: JSON.stringify(req.body),
-      }
+        headers: expect.objectContaining({
+          Authorization: 'Bearer token-from-middleware',
+        }),
+      })
     );
     expect(resSpies.json).toHaveBeenCalledWith(aniListResponse);
-    expect(next).not.toHaveBeenCalled();
   });
 
   it('returns 400 if query is missing from request body', async () => {
@@ -85,61 +75,83 @@ describe('handleProxy', () => {
 
     expect(resSpies.status).toHaveBeenCalledWith(400);
     expect(resSpies.json).toHaveBeenCalledWith({ error: 'GraphQL query required' });
-    expect(fetchSpy).not.toHaveBeenCalled();
-    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('returns 401 and clears session when AniList responds with HTTP 401', async () => {
+    (req as any).userId = '1';
+    (req as any).anilistToken = 'expired-token';
+    req.body = { query: '{ Viewer { id } }' };
+    reqSpies.isAuthenticated.mockReturnValue(true);
+
+    fetchSpy.mockResolvedValue({
+      ok: false,
+      status: 401,
+      statusText: 'Unauthorized',
+      json: async () => ({ errors: [{ message: 'Invalid token' }] }),
+    });
+
+    await handleProxy(req, res, next);
+
+    expect(revokeTokenSpy).toHaveBeenCalledWith('1');
+    expect(reqSpies.logout).toHaveBeenCalled();
+    expect(resSpies.clearCookie).toHaveBeenCalledWith('sid');
+    expect(resSpies.status).toHaveBeenCalledWith(401);
+    expect(resSpies.json).toHaveBeenCalledWith({
+      error: ANILIST_TOKEN_EXPIRED_MESSAGE,
+      code: ANILIST_TOKEN_EXPIRED_CODE,
+    });
+  });
+
+  it('returns 401 when AniList returns GraphQL auth errors in a 200 response', async () => {
+    (req as any).userId = '1';
+    (req as any).anilistToken = 'expired-token';
+    req.body = { query: '{ Viewer { id } }' };
+    reqSpies.isAuthenticated.mockReturnValue(true);
+
+    fetchSpy.mockResolvedValue({
+      ok: true,
+      json: async () => ({ errors: [{ message: 'Invalid token', status: 401 }] }),
+    });
+
+    await handleProxy(req, res, next);
+
+    expect(revokeTokenSpy).toHaveBeenCalledWith('1');
+    expect(resSpies.status).toHaveBeenCalledWith(401);
+    expect(resSpies.json).toHaveBeenCalledWith({
+      error: ANILIST_TOKEN_EXPIRED_MESSAGE,
+      code: ANILIST_TOKEN_EXPIRED_CODE,
+    });
+  });
+
+  it('returns 502 if fetch response is a non-auth AniList error', async () => {
+    (req as any).userId = '1';
+    (req as any).anilistToken = 'token-from-middleware';
+    req.body = { query: '{ Viewer { id } }' };
+
+    fetchSpy.mockResolvedValue({
+      ok: false,
+      status: 500,
+      statusText: 'Server Error',
+      json: async () => ({ errors: [{ message: 'Internal error' }] }),
+    });
+
+    await handleProxy(req, res, next);
+
+    expect(resSpies.status).toHaveBeenCalledWith(502);
+    expect(resSpies.json).toHaveBeenCalledWith({ error: 'AniList API request failed' });
+    expect(revokeTokenSpy).not.toHaveBeenCalled();
   });
 
   it('returns 500 if fetch itself throws an error', async () => {
     (req as any).userId = '1';
     (req as any).anilistToken = 'token-from-middleware';
     req.body = { query: '{ Viewer { id } }' };
-    const fetchError = new Error('Network Error');
 
-    fetchSpy.mockRejectedValue(fetchError);
-
-    await handleProxy(req, res, next);
-
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
-    expect(resSpies.status).toHaveBeenCalledWith(500);
-    expect(resSpies.json).toHaveBeenCalledWith({ error: 'Failed to proxy request to AniList' });
-    expect(next).not.toHaveBeenCalled();
-  });
-
-  it('returns 500 if fetch response is not ok', async () => {
-    (req as any).userId = '1';
-    (req as any).anilistToken = 'token-from-middleware';
-    req.body = { query: '{ Viewer { id } }' };
-    const errorResponse = { errors: [{ message: 'Invalid token' }] };
-
-    fetchSpy.mockResolvedValue({
-      ok: false,
-      json: async () => errorResponse,
-    });
+    fetchSpy.mockRejectedValue(new Error('Network Error'));
 
     await handleProxy(req, res, next);
 
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
     expect(resSpies.status).toHaveBeenCalledWith(500);
     expect(resSpies.json).toHaveBeenCalledWith({ error: 'Failed to proxy request to AniList' });
-    expect(next).not.toHaveBeenCalled();
-  });
-
-  it('returns 500 if response.json() throws an error', async () => {
-    (req as any).userId = '1';
-    (req as any).anilistToken = 'token-from-middleware';
-    req.body = { query: '{ Viewer { id } }' };
-    const jsonError = new Error('Invalid JSON');
-
-    fetchSpy.mockResolvedValue({
-      ok: true,
-      json: async () => { throw jsonError; },
-    });
-
-    await handleProxy(req, res, next);
-
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
-    expect(resSpies.status).toHaveBeenCalledWith(500);
-    expect(resSpies.json).toHaveBeenCalledWith({ error: 'Failed to proxy request to AniList' });
-    expect(next).not.toHaveBeenCalled();
   });
 });

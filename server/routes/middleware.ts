@@ -1,55 +1,10 @@
 import type { Express, Request, Response, NextFunction } from "express";
-import session, { SessionOptions } from "express-session";
-import passport from "passport";
-import MemoryStore from 'memorystore';
-import { AniListUser } from "../types";
-import { storage } from "../storage";
+import session, { type Store } from "express-session";
 import { logger } from '../logger';
 import { log } from "../vite";
 import rateLimit from "express-rate-limit";
-
-/**
- * Middleware to validate API tokens
- */
-export async function validateApiToken(
-  req: Request,
-  res: Response,
-  next: NextFunction
-) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ error: "Authentication required" });
-  }
-
-  const token = authHeader.split(" ")[1];
-  try {
-    const tokenData = await storage.validateApiToken(token);
-
-    if (!tokenData) {
-      return res.status(401).json({ error: "Invalid or expired token" });
-    }
-
-    // Add user info to request for use in protected routes
-    req.userId = tokenData.userId;
-
-    // Add the AniList token to the request if needed for proxy operations
-    const anilistToken = await storage.getToken(tokenData.userId);
-    if (anilistToken) {
-      req.anilistToken = anilistToken;
-    } else {
-      // If the API token is valid but the underlying AniList token is gone, it's an issue
-      logger.warn(`[validateApiToken] Valid API token found for user ${tokenData.userId}, but no corresponding AniList token in storage.`);
-      // Decide how to handle this - maybe revoke the API token?
-      await storage.revokeApiToken(token); // Revoke the now useless API token
-      return res.status(401).json({ error: "Associated session data missing, please log in again." });
-    }
-
-    next();
-  } catch (error) {
-    logger.error('[validateApiToken] Error during token validation:', error);
-    next(error); // Pass error to the global error handler
-  }
-}
+import { buildSessionOptions } from "../auth/sessionConfig";
+import { configurePassport, passport } from "../auth/passport";
 
 /**
  * Middleware to handle database errors
@@ -142,7 +97,7 @@ export function addRateLimiting(app: Express) {
   app.use('/api/auth/', authLimiter);
 }
 
-export function registerMiddleware(app: Express) {
+export function registerMiddleware(app: Express, sessionStore: Store) {
   // Enable CORS for the frontend domain - this needs to come first
   app.use((req, res, next) => {
     // In production, only allow specific origins
@@ -214,67 +169,14 @@ export function registerMiddleware(app: Express) {
 
   // Configure session with error handling
   try {
-    const MemoryStoreFactory = MemoryStore(session);
-
-    // Ensure a strong session secret is set
-    const sessionSecret = process.env.SESSION_SECRET;
-    if (!sessionSecret && process.env.NODE_ENV === "production") {
+    if (!process.env.SESSION_SECRET && process.env.NODE_ENV === "production") {
       log("WARNING: No SESSION_SECRET set in production. Using a default secret is insecure.");
     }
 
-    const sessionOptions: SessionOptions = {
-      secret: sessionSecret || "anime-calendar-secret-do-not-use-in-production",
-      resave: false,
-      saveUninitialized: false,
-      cookie: {
-        secure: process.env.NODE_ENV === "production",
-        httpOnly: true, // Prevents JavaScript access to the cookie
-        sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax", // CSRF protection
-        maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
-      },
-      store: new MemoryStoreFactory({
-        checkPeriod: 86400000 // prune expired entries every 24h
-      }),
-      name: "sid", // Custom cookie name
-    };
-
-    app.use(session(sessionOptions) as any);
+    configurePassport();
+    app.use(session(buildSessionOptions(sessionStore)) as any);
     app.use(passport.initialize() as any);
     app.use(passport.session());
-
-    // Configure passport
-    passport.serializeUser((user: AniListUser, done) => {
-      done(null, user.id);
-    });
-
-    passport.deserializeUser(async (id: string, done) => {
-      try {
-        // Make storage calls async
-        const token = await storage.getToken(id);
-        if (!token) {
-          logger.debug(`[Passport Deserialize] No AniList token found for user ${id}`);
-          return done(null, false);
-        }
-
-        // Get user info from storage
-        const userInfo = await storage.getUserInfo(id);
-        if (!userInfo) {
-          logger.debug(`[Passport Deserialize] No user info found for user ${id}`);
-          return done(null, false);
-        }
-
-        const user: AniListUser = {
-          id,
-          username: userInfo.username,
-          avatarUrl: userInfo.avatarUrl,
-        };
-
-        done(null, user);
-      } catch (err) {
-        log(`Passport deserialize error: ${err}`);
-        done(err); // Pass the error to Passport
-      }
-    });
   } catch (error) {
     log(`Session setup error: ${error}`);
     // Continue without session support in case of setup errors

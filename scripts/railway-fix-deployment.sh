@@ -32,7 +32,7 @@ if railway variable list 2>/dev/null | grep -q '^PORT='; then
   railway variable delete PORT -y 2>/dev/null || railway variable delete PORT
 fi
 
-for key in NODE_ENV ANILIST_CLIENT_ID ANILIST_CLIENT_SECRET VITE_ANILIST_CLIENT_ID SESSION_SECRET; do
+for key in NODE_ENV ANILIST_CLIENT_ID ANILIST_CLIENT_SECRET VITE_ANILIST_CLIENT_ID SESSION_SECRET REDIS_URL; do
   if ! railway variable list 2>/dev/null | grep -q "^${key}="; then
     echo "WARNING: ${key} is not set in Railway"
   fi

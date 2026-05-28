@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { registerMiddleware } from "./middleware";
 import { registerConfigRoutes } from "./config";
 import { registerAuthRoutes } from "./auth";
+import { createSessionStore, type SessionStoreSetup } from "../auth/session";
 
 declare global {
   namespace Express {
@@ -18,8 +19,10 @@ declare global {
   }
 }
 
-export function registerAllRoutes(app: Express) {
-  registerMiddleware(app);
+export async function registerAllRoutes(app: Express): Promise<SessionStoreSetup> {
+  const sessionSetup = await createSessionStore();
+  registerMiddleware(app, sessionSetup.store);
   registerConfigRoutes(app);
   registerAuthRoutes(app);
+  return sessionSetup;
 }

@@ -4,7 +4,7 @@ import { logger } from '../../logger';
 
 /**
  * Returns the current authenticated user's information.
- * Requires validateApiToken middleware to set req.userId.
+ * Requires requireAuth middleware to set req.userId.
  * @param req Express Request with userId property
  * @param res Express Response
  * @param next Express NextFunction
@@ -12,7 +12,7 @@ import { logger } from '../../logger';
 export async function handleGetUser(req: Request, res: Response, next: NextFunction) {
   const userId = (req as any).userId;
   if (!userId) {
-    // This should theoretically be caught by validateApiToken first
+    // This should theoretically be caught by requireAuth first
     logger.warn('[handleGetUser] userId not found on request despite protected route.');
     return res.status(401).json({ error: 'Not authenticated' });
   }

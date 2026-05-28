@@ -25,11 +25,18 @@ yarn dev
 ```env
 ANILIST_CLIENT_ID=...
 ANILIST_CLIENT_SECRET=...
-VITE_ANILIST_CLIENT_ID=...   # same value as ANILIST_CLIENT_ID
 SESSION_SECRET=...           # any long random string
 ```
 
-**Not used:** `DATABASE_URL` — persistence is `node-persist` (`.persist-storage/`), not Postgres.
+Login uses **`GET /api/auth/login`** (server OAuth + session cookie). `VITE_ANILIST_CLIENT_ID` is **not required** — it was only used for the old client-side OAuth redirect.
+
+**Not used:** `DATABASE_URL` — persistence is `node-persist` (`.persist-storage/`) for AniList OAuth tokens, not Postgres.
+
+**Sessions (auth migration in progress):**
+
+- Local dev: in-memory sessions by default (no Redis required).
+- Production: set **`REDIS_URL`** (Railway Redis add-on) so login sessions survive deploys/restarts.
+- Optional **`SESSION_MAX_AGE_MS`** — default ~364 days (slightly under AniList’s 1-year access token).
 
 **Production reference:** `.env.production.example` — set values in Railway/host dashboard, not in git.
 
@@ -42,6 +49,8 @@ Register redirect URIs at https://anilist.co/settings/developer
 | Local | `http://localhost:5001/api/auth/callback` |
 | Production | `https://anilistcal.com/api/auth/callback` |
 
+**Login:** `GET /api/auth/login` — server OAuth; session cookie set on callback.
+
 Client ID and secret in `.env` must match **that** AniList app. Dev and prod may use different app IDs.
 
 ### Common OAuth errors
@@ -53,6 +62,7 @@ Client ID and secret in `.env` must match **that** AniList app. Dev and prod may
 
 - **Do not set `PORT`** in Railway — the platform injects it.
 - Set `FRONTEND_URL` and `BACKEND_CALLBACK_URL` to the public domain (e.g. `https://anilistcal.com`).
+- Add a **Redis** service and set **`REDIS_URL`** (sessions persist across deploys).
 - Build: `yarn build` · Start: `yarn start`
 - Health check: `GET /api/health`
 - Helper script (after `railway login` + `railway link`): `./scripts/railway-fix-deployment.sh`

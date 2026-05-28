@@ -1,37 +1,25 @@
-import type { Express, Request, Response, NextFunction } from "express";
-import { validateApiToken } from "./middleware";
-import { handleAuthCallback } from "./handlers/authCallback";
+import type { Express } from "express";
+import { requireAuth } from "../auth/requireAuth";
 import { handleGetUser } from "./handlers/getUserHandler";
-import { handleRefreshToken } from "./handlers/refreshTokenHandler";
+import { handleGetSession } from "./handlers/sessionHandler";
 import { handleProxy } from "./handlers/proxyHandler";
 import { handleLogout } from "./handlers/logoutHandler";
 import { storage } from "../storage";
+import { passport } from "../auth/passport";
+import { handleAniListCallback } from "../auth/anilistCallback";
 
-/**
- * Registers authentication and AniList proxy routes on the Express app.
- * Applies token validation middleware where appropriate.
- */
 export function registerAuthRoutes(app: Express) {
-  // Protect API routes
-  app.use(
-    ["/api/anilist", "/api/auth/user", "/api/auth/refresh-token"],
-    validateApiToken
-  );
+  app.get("/api/auth/session", handleGetSession);
 
-  // OAuth callback endpoint - AniList redirects HERE
-  app.get("/api/auth/callback", (req: Request, res: Response, next: NextFunction) => {
-    handleAuthCallback(req, res, next, fetch);
-  });
+  app.use(["/api/anilist", "/api/auth/user"], requireAuth);
 
-  // Session and token endpoints
+  app.get("/api/auth/login", passport.authenticate("anilist"));
+  app.get("/api/auth/callback", handleAniListCallback);
+
   app.get("/api/auth/user", handleGetUser);
-  app.post("/api/auth/refresh-token", handleRefreshToken);
-
-  // AniList GraphQL proxy
   app.post("/api/anilist/proxy", handleProxy);
 
-  // Logout endpoint
-  app.post("/api/auth/logout", (req: Request, res: Response, next: NextFunction) => {
+  app.post("/api/auth/logout", (req, res, next) => {
     handleLogout(req, res, next, storage);
   });
 }

@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { registerAllRoutes } from "./routes/index";
+import type { SessionStoreSetup } from "./auth/session";
 
-export function registerRoutes(app: Express) {
-  // Use the modular route registration system
-  registerAllRoutes(app);
+export async function registerRoutes(app: Express): Promise<SessionStoreSetup> {
+  return registerAllRoutes(app);
 }

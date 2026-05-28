@@ -10,17 +10,6 @@ export interface AniListToken {
   expiresAt: number;
 }
 
-export interface ApiToken {
-  token: string;
-  userId: string;
-  expiresAt: number;
-}
-
-export interface RefreshTokenResponse {
-  apiToken: string;
-  expiresIn: number;
-}
-
 export interface AniListGraphQLResponse<T> {
   data?: T;
   errors?: Array<{

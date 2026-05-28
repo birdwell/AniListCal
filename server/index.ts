@@ -5,6 +5,7 @@ import * as dotenv from "dotenv";
 import { createServer } from "http";
 import { logger } from "./logger";
 import { getLocalDevAppUrl, openInSystemBrowser } from "./utils/openBrowser";
+import { closeSessionStore, type SessionStoreSetup } from "./auth/session";
 
 dotenv.config();
 
@@ -14,6 +15,8 @@ logger.debug(`[Server Startup] Loaded FRONTEND_URL: ${process.env.FRONTEND_URL}`
 logger.debug(`[Server Startup] Loaded BACKEND_CALLBACK_URL: ${process.env.BACKEND_CALLBACK_URL}`); // Check if this is loaded if defined
 
 const app = express();
+// Railway and other reverse proxies sit in front of Express; needed for secure cookies.
+app.set("trust proxy", 1);
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
@@ -73,7 +76,6 @@ function logDevSetupHints(): void {
   const missing: string[] = [];
   if (!process.env.ANILIST_CLIENT_ID) missing.push("ANILIST_CLIENT_ID");
   if (!process.env.ANILIST_CLIENT_SECRET) missing.push("ANILIST_CLIENT_SECRET");
-  if (!process.env.VITE_ANILIST_CLIENT_ID) missing.push("VITE_ANILIST_CLIENT_ID");
 
   if (missing.length > 0) {
     log(
@@ -88,7 +90,13 @@ function logDevSetupHints(): void {
 async function startServer() {
   const httpServer = createServer(app);
 
-  registerRoutes(app);
+  let sessionSetup: SessionStoreSetup | undefined;
+  try {
+    sessionSetup = await registerRoutes(app);
+  } catch (error) {
+    log(`Failed to initialize routes/session store: ${error instanceof Error ? error.message : error}`);
+    process.exit(1);
+  }
 
   if (process.env.NODE_ENV !== "production") {
     await setupVite(app, httpServer);
@@ -108,13 +116,18 @@ async function startServer() {
     }
   });
 
+  const shutdown = async (signal: string) => {
+    log(`Received ${signal}, shutting down...`);
+    httpServer.close(async () => {
+      await closeSessionStore(sessionSetup);
+      log("Server closed");
+      process.exit(0);
+    });
+  };
+
   ["SIGINT", "SIGTERM"].forEach((signal) => {
     process.on(signal, () => {
-      log(`Received ${signal}, shutting down...`);
-      httpServer.close(() => {
-        log("Server closed");
-        process.exit(0);
-      });
+      void shutdown(signal);
     });
   });
 }

@@ -1,15 +1,16 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
-import { clearAuthData, getApiToken, refreshApiToken } from "./auth";
-import { logger } from './logger';
+import { clearAuthData } from "./auth";
+import { logger } from "./logger";
+
+const AUTH_FETCH_INIT: RequestInit = {
+  credentials: "include",
+};
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
-    // Special handling for authentication errors
     if (res.status === 401) {
-      // Clear any stale auth data and trigger redirect in the UI
       clearAuthData();
     }
-
     const text = (await res.text()) || res.statusText;
     throw new Error(`${res.status}: ${text}`);
   }
@@ -20,29 +21,13 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
-  // Check if this is an authenticated request (not login/register)
-  const isAuthRequest = !url.includes("/auth/login") && !url.includes("/auth/register");
-
   try {
     const res = await fetch(url, {
       method,
-      headers: {
-        ...(data ? { "Content-Type": "application/json" } : {}),
-        ...(isAuthRequest && getApiToken() ? { "Authorization": `Bearer ${getApiToken()}` } : {})
-      },
+      headers: data ? { "Content-Type": "application/json" } : {},
       body: data ? JSON.stringify(data) : undefined,
-      credentials: "include",
+      ...AUTH_FETCH_INIT,
     });
-
-    // Handle token refresh if needed
-    if (res.status === 401 && isAuthRequest) {
-      // Try to refresh the token
-      const refreshed = await refreshApiToken();
-      if (refreshed) {
-        // Retry the original request with the new token
-        return apiRequest(method, url, data);
-      }
-    }
 
     await throwIfResNotOk(res);
     return res;
@@ -58,38 +43,13 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
     async ({ queryKey }) => {
-      // Check if this is an authenticated request
       const url = queryKey[0] as string;
-      const isAuthRequest = !url.includes("/auth/login") && !url.includes("/auth/register");
 
       try {
-        const res = await fetch(url, {
-          headers: isAuthRequest && getApiToken() ? {
-            "Authorization": `Bearer ${getApiToken()}`
-          } : {},
-          credentials: "include",
-        });
-
-        // Handle token refresh if needed
-        if (res.status === 401 && isAuthRequest) {
-          // Try to refresh the token
-          const refreshed = await refreshApiToken();
-          if (refreshed) {
-            // Retry the query with the new token
-            const retryRes = await fetch(url, {
-              headers: {
-                "Authorization": `Bearer ${getApiToken()}`
-              },
-              credentials: "include",
-            });
-
-            if (retryRes.ok) {
-              return await retryRes.json();
-            }
-          }
-        }
+        const res = await fetch(url, AUTH_FETCH_INIT);
 
         if (unauthorizedBehavior === "returnNull" && res.status === 401) {
+          clearAuthData();
           return null;
         }
 
@@ -101,26 +61,18 @@ export const getQueryFn: <T>(options: {
       }
     };
 
-// Configure the QueryClient with improved caching
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       queryFn: getQueryFn({ on401: "returnNull" }),
-      // Don't refetch on window focus for better UX
       refetchOnWindowFocus: false,
-      // Consider data fresh for 5 minutes by default
       staleTime: 5 * 60 * 1000,
-      // Keep unused data in cache for 30 minutes (renamed from cacheTime in React Query v5)
       gcTime: 30 * 60 * 1000,
-      // Don't retry failed requests automatically
       retry: false,
-      // Show loading state immediately for better UX
       throwOnError: false,
     },
     mutations: {
-      // Don't retry failed mutations
       retry: false,
-      // Show error states immediately
       throwOnError: true,
     },
   },

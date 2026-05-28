@@ -1,30 +1,21 @@
-// Secure authentication utilities for AniList OAuth with API token proxy
+// Session-cookie authentication — AniList tokens stay on the server.
 
-import { CacheService } from "../cache-service";
 import { queryClient } from "../queryClient";
 import { logger } from "../logger";
 
-// Constants
 const API_ENDPOINTS = {
+  AUTH_LOGIN: "/api/auth/login",
   AUTH_LOGOUT: "/api/auth/logout",
-  AUTH_USER: "/api/auth/user",
-  AUTH_REFRESH: "/api/auth/refresh-token",
-  ANILIST_PROXY: "/api/anilist/proxy"
+  AUTH_SESSION: "/api/auth/session",
+  ANILIST_PROXY: "/api/anilist/proxy",
 };
 
-// Token refresh threshold (refresh when less than 10 minutes left)
-const TOKEN_REFRESH_THRESHOLD_MS = 10 * 60 * 1000;
+export const ANILIST_TOKEN_EXPIRED_CODE = "ANILIST_TOKEN_EXPIRED";
 
-// Export storage keys for use in App.tsx
-export const STORAGE_KEYS = {
-  API_TOKEN: "api_token",
-  TOKEN_EXPIRY: "api_token_expiry"
+const AUTH_FETCH_INIT: RequestInit = {
+  credentials: "include",
 };
 
-// Create auth-specific cache service
-const authCache = new CacheService("auth_", 5);
-
-// User interface
 interface User {
   id: number;
   name: string;
@@ -33,285 +24,126 @@ interface User {
   };
 }
 
-// Response type for the refresh token endpoint
-interface RefreshTokenResponse {
-  apiToken?: string;
-  expiresIn?: number; // Assuming seconds
+interface SessionResponse {
+  authenticated: boolean;
+  user?: {
+    id: string;
+    username: string;
+    avatarUrl?: string;
+  };
 }
 
-/**
- * Get client ID from environment
- * @returns Promise resolving to the client ID
- */
-async function getClientId(): Promise<string> {
-  // Try to get it from import.meta.env first
-  const envClientId = import.meta.env.VITE_ANILIST_CLIENT_ID;
-  if (envClientId) {
-    logger.debug("Using client ID from environment:", envClientId);
-    return envClientId;
+interface ProxyErrorBody {
+  error?: string;
+  code?: string;
+}
+
+export class AuthError extends Error {
+  code?: string;
+
+  constructor(message: string, code?: string) {
+    super(message);
+    this.name = "AuthError";
+    this.code = code;
   }
-
-  // If not found in env, throw an error as it's required for auth flow
-  logger.error("VITE_ANILIST_CLIENT_ID is not defined in the environment.");
-  // Explicitly throw the error here
-  throw new Error("Anilist client ID is not configured in the client environment.");
 }
 
-/**
- * Get the redirect URI for OAuth - **MUST MATCH ANILIST SETTINGS**
- */
-export function getRedirectUri(): string {
-  return `${window.location.origin}/api/auth/callback`;
-}
-
-/** Build the AniList OAuth authorize URL (same URL the login button navigates to). */
-export function buildAniListLoginUrl(clientId: string, redirectUri?: string): string {
-  const params = new URLSearchParams({
-    client_id: clientId,
-    redirect_uri: redirectUri ?? getRedirectUri(),
-    response_type: "code",
-  });
-  return `https://anilist.co/api/v2/oauth/authorize?${params.toString()}`;
-}
-
-/** Login URL when VITE_ANILIST_CLIENT_ID is configured; otherwise null. */
-export function getAniListLoginUrl(): string | null {
-  const clientId = import.meta.env.VITE_ANILIST_CLIENT_ID;
-  if (!clientId) return null;
-  return buildAniListLoginUrl(clientId);
-}
-
-/**
- * Start the login flow by redirecting to AniList
- */
-export const login = async () => {
-  logger.debug("Login function called");
-  try {
-    const clientId = await getClientId();
-    const redirectUri = getRedirectUri();
-    logger.debug(
-      `Redirecting to AniList with Client ID: ${clientId} and Redirect URI: ${redirectUri}`
-    );
-    window.location.href = buildAniListLoginUrl(clientId, redirectUri);
-  } catch (error) {
-    logger.error("Failed to initiate login:", error);
-    throw error;
-  }
-};
-
-/**
- * Get the current API token from local storage
- * @returns The API token or null if not available
- */
-function getApiToken(): string | null {
-  return localStorage.getItem(STORAGE_KEYS.API_TOKEN);
-}
-
-/**
- * Check if the stored API token is expired or close to expiry
- * @returns boolean
- */
-function isTokenExpired(): boolean {
-  const expiryString = localStorage.getItem(STORAGE_KEYS.TOKEN_EXPIRY);
-  const currentTime = Date.now();
-  let isExpired = true; // Default to expired if no string
-  let expiryTime = null;
-
-  if (expiryString) {
-    expiryTime = parseInt(expiryString, 10);
-    isExpired = currentTime >= expiryTime - TOKEN_REFRESH_THRESHOLD_MS;
-  }
-
-  logger.debug('[isTokenExpired Check]', {
-    expiryString,
-    expiryTime,
-    currentTime,
-    threshold: TOKEN_REFRESH_THRESHOLD_MS,
-    result: isExpired
-  });
-
-  return isExpired;
-}
-
-/**
- * Clear all auth-related cache and storage
- */
-function clearAuthData(): void {
-  logger.log("Clearing client-side auth data...");
-  // Clear local storage items
-  localStorage.removeItem(STORAGE_KEYS.API_TOKEN);
-  localStorage.removeItem(STORAGE_KEYS.TOKEN_EXPIRY);
-
-  // Clear auth cache
-  authCache.clear();
-
-  // Invalidate auth-related queries
-  logger.debug("Invalidating auth queries...");
+function invalidateAuthQueries(): void {
   queryClient.invalidateQueries({ queryKey: ["auth"] });
   queryClient.invalidateQueries({ queryKey: ["auth", "user"] });
+  queryClient.invalidateQueries({ queryKey: ["auth", "session"] });
 }
 
-/**
- * Log out the current user
- */
-async function logout(): Promise<void> {
-  logger.debug("Initiating logout...");
-  const apiToken = getApiToken();
-  try {
-    // Construct headers conditionally
-    const headers: HeadersInit = {};
-    if (apiToken) {
-      headers["Authorization"] = `Bearer ${apiToken}`;
-      logger.debug("Calling server logout endpoint with API token...");
-    } else {
-      logger.debug("No API token found, calling server logout endpoint without token...");
-    }
+/** Clear client-side auth cache after logout or 401. */
+export function clearAuthData(): void {
+  logger.log("Clearing client auth cache...");
+  invalidateAuthQueries();
+}
 
-    // Call server logout endpoint
+/** Redirect to server OAuth login (sets HttpOnly session cookie on callback). */
+export function login(): void {
+  window.location.href = API_ENDPOINTS.AUTH_LOGIN;
+}
+
+export async function logout(): Promise<void> {
+  try {
     await fetch(API_ENDPOINTS.AUTH_LOGOUT, {
       method: "POST",
-      headers: headers, // Use the conditionally constructed headers
-      credentials: "include" // Include cookies if session is also used server-side
+      ...AUTH_FETCH_INIT,
     });
-
   } catch (error) {
     logger.error("Server logout endpoint failed:", error);
-    // Continue with client-side cleanup even if server fails
   } finally {
-    // Always clear client-side data on logout attempt
     clearAuthData();
   }
 }
 
-/**
- * Make an authenticated request to AniList via our server proxy
- * @param query GraphQL query
- * @param variables Query variables
- * @returns Promise resolving to the query result
- */
-async function queryAniList<T = any>(
-  query: string,
-  variables?: any
-): Promise<{ data?: T; errors?: any[] }> {
-  const apiToken = getApiToken();
-  const tokenIsExpired = isTokenExpired();
-
-  // Add detailed logging before the check
-  const expiryString = localStorage.getItem(STORAGE_KEYS.TOKEN_EXPIRY);
-  const expiryTimestamp = expiryString ? parseInt(expiryString, 10) : null;
-  logger.debug('[queryAniList Check]', {
-    apiTokenPresent: !!apiToken,
-    tokenIsExpired: tokenIsExpired,
-    expiryString: expiryString,
-    expiryTimestamp: expiryTimestamp,
-    currentTime: Date.now(),
-    threshold: TOKEN_REFRESH_THRESHOLD_MS,
-    checkResult: !apiToken || tokenIsExpired
-  });
-
-  if (!apiToken) {
-    logger.warn("[queryAniList] No API token found in session storage.");
-    // Consider redirecting to login immediately?
-    // setLocation('/login');
-    throw new Error("Authentication required (no token)");
-  }
-
-  // If token is close to expiry, try to refresh it first
-  if (tokenIsExpired) {
-    logger.log("[queryAniList] API token is expired or nearing expiry, attempting refresh...");
-    const refreshSuccess = await refreshApiToken();
-    
-    if (!refreshSuccess) {
-      logger.warn("[queryAniList] Token refresh failed, clearing auth data.");
-      clearAuthData();
-      throw new Error("Authentication required (token expired and refresh failed)");
-    }
-    
-    logger.log("[queryAniList] Token refreshed successfully, proceeding with request.");
-  }
-
-  // Get the (potentially refreshed) token
-  const currentToken = getApiToken();
-  if (!currentToken) {
-    console.error("[queryAniList] No token available after refresh attempt.");
-    throw new Error("Authentication required (no token after refresh)");
-  }
-
-  // Make request to our server proxy
+export async function checkSession(): Promise<boolean> {
   try {
-    logger.debug('Sending request to AniList proxy...');
-    const response = await fetch(API_ENDPOINTS.ANILIST_PROXY, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${currentToken}` // Use the current (potentially refreshed) API token
-      },
-      body: JSON.stringify({
-        query,
-        variables
-      })
-    });
-
+    const response = await fetch(API_ENDPOINTS.AUTH_SESSION, AUTH_FETCH_INIT);
     if (!response.ok) {
-      logger.error(`AniList proxy error: ${response.status} ${response.statusText}`);
-      if (response.status === 401) {
-        logger.debug("[queryAniList] Received 401 from proxy, clearing auth data.");
-        clearAuthData(); // Clear data on explicit unauthorized error
-        throw new Error("Authentication required (proxy returned 401)");
-      }
-      // Try to parse error message from backend
-      let errorBody;
-      try {
-        errorBody = await response.json();
-      } catch (e) { /* ignore json parsing error */ }
-      // Throw a more specific error from the proxy response
-      throw new Error(errorBody?.error || `AniList API proxy error: ${response.status} ${response.statusText}`);
+      return false;
     }
-
-    const result = await response.json();
-    logger.debug('Received response from AniList proxy.');
-    // Check for GraphQL errors within the response body
-    if (result.errors) {
-      logger.error("GraphQL errors:", result.errors);
-      // Handle specific GraphQL errors if needed, e.g., authentication errors
-      const isAuthError = result.errors.some((err: any) => err.status === 401 || err.message?.includes('Unauthorized'));
-      if (isAuthError) {
-        logger.debug("[queryAniList] GraphQL error indicates authorization issue, clearing auth data.");
-        clearAuthData();
-        throw new Error("Authentication required (GraphQL auth error)");
-      }
-      // Throw specific GraphQL error message if not auth related
-      throw new Error(`GraphQL error: ${result.errors.map((e: any) => e.message).join(', ')}`);
-    }
-    return result; // Contains { data: ..., errors: ... }
+    const data: SessionResponse = await response.json();
+    return data.authenticated === true;
   } catch (error) {
-    logger.error("AniList query function error:", error);
-    // Re-throw specific errors that were already constructed
-    if (error instanceof Error && (
-      error.message.startsWith("Authentication required") ||
-      error.message.startsWith("AniList API proxy error:") ||
-      error.message.startsWith("GraphQL error:")
-    )) {
-      throw error; // Re-throw the specific error
-    }
-    // Only wrap if it's NOT already an Error instance we expected to handle
-    if (error instanceof Error) {
-      // If it's an Error but not one of the specific messages, re-throw it directly
-      // Or potentially wrap it if it signifies a different kind of failure
-      logger.warn('Caught unexpected Error instance:', error);
-      throw error; // Re-throwing for now, might need refinement
-    } else {
-      // Wrap non-Error throwables (e.g., strings, numbers)
-      throw new Error("Failed to query AniList due to unexpected issue", { cause: error });
-    }
+    logger.error("Session check failed:", error);
+    return false;
   }
 }
 
-/**
- * Get the current user's data from AniList via proxy
- */
+async function parseProxyError(response: Response): Promise<ProxyErrorBody | undefined> {
+  try {
+    return await response.json();
+  } catch {
+    return undefined;
+  }
+}
+
+function throwAuthError(message: string, code?: string): never {
+  clearAuthData();
+  throw new AuthError(message, code);
+}
+
+async function queryAniList<T = unknown>(
+  query: string,
+  variables?: Record<string, unknown>
+): Promise<{ data?: T; errors?: { message: string; status?: number }[] }> {
+  const response = await fetch(API_ENDPOINTS.ANILIST_PROXY, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ query, variables }),
+  });
+
+  if (!response.ok) {
+    const errorBody = await parseProxyError(response);
+    if (response.status === 401) {
+      throwAuthError(
+        errorBody?.error || "Authentication required",
+        errorBody?.code
+      );
+    }
+    throw new Error(errorBody?.error || `AniList API proxy error: ${response.status}`);
+  }
+
+  const result = await response.json();
+
+  if (result.errors) {
+    const isAuthError = result.errors.some(
+      (err: { status?: number; message?: string }) =>
+        err.status === 401 || err.message?.includes("Unauthorized")
+    );
+    if (isAuthError) {
+      throwAuthError("Authentication required");
+    }
+    throw new Error(`GraphQL error: ${result.errors.map((e: { message: string }) => e.message).join(", ")}`);
+  }
+
+  return result;
+}
+
 export async function getUser(): Promise<User | null | undefined> {
-  logger.debug('Attempting to get user data...');
   try {
     const response = await queryAniList<{ Viewer: User }>(`
       query {
@@ -324,105 +156,13 @@ export async function getUser(): Promise<User | null | undefined> {
         }
       }
     `);
-    logger.debug('getUser response:', response);
-    // If response contains data.Viewer, return it.
-    // If response contains errors (like auth error handled in queryAniList), it will throw.
-    // If response has neither data nor errors (unlikely), return undefined.
     return response?.data?.Viewer;
   } catch (error) {
-    logger.error("Failed to get user:", error);
-    // If the error was an auth error from queryAniList, re-throw or handle
-    if (error instanceof Error && (error.message.includes("Authentication required") || error.message.includes("Authentication expired"))) {
-      // Don't throw here, let the caller (useQuery) handle it. Return null/undefined.
-      return null; // Indicate user is not available due to auth issue
+    if (error instanceof AuthError) {
+      throw error;
     }
-    // For other errors, maybe re-throw or return null
-    throw error; // Re-throw other unexpected errors
+    throw error;
   }
 }
 
-/**
- * Check if user is authenticated client-side.
- * A stored session token means "signed in"; expiry is handled by refresh in queryAniList and on app load.
- */
-export function isAuthenticated(): boolean {
-  const hasToken = !!getApiToken();
-  logger.debug(`[isAuthenticated Check]: token present=${hasToken}`);
-  return hasToken;
-}
-
-/** Serialize concurrent refresh calls (e.g. app bootstrap + first GraphQL request). */
-let refreshInFlight: Promise<boolean> | null = null;
-
-async function performTokenRefresh(): Promise<boolean> {
-  const currentToken = getApiToken();
-  if (!currentToken) {
-    logger.error("No current API token found, cannot refresh.");
-    return false;
-  }
-
-  try {
-    logger.debug("Calling refresh endpoint...");
-    const response = await fetch(API_ENDPOINTS.AUTH_REFRESH, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${currentToken}`,
-      },
-      credentials: "include",
-    });
-
-    if (!response.ok) {
-      logger.error(`Failed to refresh token, server responded with status: ${response.status}`);
-      if (response.status === 401) {
-        logger.warn("Refresh token invalid or expired, clearing client data.");
-        clearAuthData();
-      }
-      return false;
-    }
-
-    const data: RefreshTokenResponse = await response.json();
-    logger.debug("Token refresh response received");
-
-    if (data.apiToken && data.expiresIn) {
-      const expiryTimestamp = Date.now() + data.expiresIn * 1000;
-      localStorage.setItem(STORAGE_KEYS.API_TOKEN, data.apiToken);
-      localStorage.setItem(STORAGE_KEYS.TOKEN_EXPIRY, expiryTimestamp.toString());
-      queryClient.invalidateQueries({ queryKey: ["auth"] });
-      logger.log("Token refreshed successfully.");
-      return true;
-    }
-    logger.error("Refresh response did not contain valid apiToken and expiresIn.");
-    return false;
-  } catch (error) {
-    logger.error("Error during token refresh:", error);
-    return false;
-  }
-}
-
-/**
- * Refresh the API token when needed. Concurrent callers share one in-flight request.
- */
-export const refreshApiToken = async (): Promise<boolean> => {
-  logger.debug("Attempting to refresh API token...");
-  if (refreshInFlight) {
-    return refreshInFlight;
-  }
-  const p = performTokenRefresh();
-  refreshInFlight = p;
-  try {
-    return await p;
-  } finally {
-    refreshInFlight = null;
-  }
-};
-
-// Export individual functions and types
-export {
-  logout,
-  getApiToken,
-  clearAuthData,
-  queryAniList,
-  type User,
-  isTokenExpired,
-};
+export { queryAniList, type User };

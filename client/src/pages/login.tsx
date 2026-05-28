@@ -1,14 +1,15 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { getAniListLoginUrl, getUser } from "@/lib/auth";
+import { getUser, login } from "@/lib/auth";
 import { SiAnilist } from "react-icons/si";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { ExternalLink, Loader2 } from "lucide-react";
 
 export default function Login() {
   const [, setLocation] = useLocation();
-  const loginUrl = getAniListLoginUrl();
+  const search = useSearch();
+  const errorParam = new URLSearchParams(search).get("error");
   const appLoginUrl = `${window.location.origin}/login`;
 
   const { data: user, isLoading: isCheckingAuth } = useQuery({
@@ -40,6 +41,12 @@ export default function Login() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {errorParam && (
+            <p className="rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              Sign-in failed: {errorParam}
+            </p>
+          )}
+
           <div className="text-sm text-muted-foreground space-y-2">
             <div className="flex items-start gap-2">
               <span className="text-primary">•</span>
@@ -55,19 +62,10 @@ export default function Login() {
             </div>
           </div>
 
-          {loginUrl ? (
-            <Button asChild className="w-full py-6 text-lg">
-              <a href={loginUrl}>
-                <SiAnilist className="mr-2 h-5 w-5" />
-                Sign in on AniList.co
-              </a>
-            </Button>
-          ) : (
-            <p className="rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              Add <code className="font-mono">VITE_ANILIST_CLIENT_ID</code> to your{" "}
-              <code className="font-mono">.env</code> file, then restart the dev server.
-            </p>
-          )}
+          <Button className="w-full py-6 text-lg" onClick={() => login()}>
+            <SiAnilist className="mr-2 h-5 w-5" />
+            Sign in on AniList.co
+          </Button>
 
           <p className="text-xs text-center text-muted-foreground leading-relaxed">
             AniListCal is an independent app and is not affiliated with AniList.
