@@ -65,7 +65,7 @@
     "express-rate-limit": "^7.5.0",
     "express-session": "^1.18.1",
     "graphql": "^16.10.0",
-    "graphql-request": "^7.1.2",
+    "graphql-request": "^7.4.0",
     "input-otp": "^1.2.4",
     "loglevel": "^1.9.2",
     "lucide-react": "^0.453.0",
