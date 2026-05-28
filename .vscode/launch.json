@@ -37,7 +37,6 @@
                 "/@vite/*": "${webRoot}/node_modules/*",
                 "/src/*": "${webRoot}/client/src/*",
                 "/@/*": "${webRoot}/client/src/*",
-                "/@shared/*": "${workspaceFolder}/shared/*",
                 "webpack:///./~/*": "${webRoot}/node_modules/*",
                 "webpack:///./*": "${webRoot}/*",
                 "webpack:///*": "*",
