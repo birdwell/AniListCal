@@ -81,11 +81,7 @@ function logDevSetupHints(): void {
     );
   }
 
-  const appUrl = getLocalDevAppUrl(PORT);
-  log(`Local app: ${appUrl}`);
-  if (PORT === 3001) {
-    log("Split dev: UI is on http://localhost:5001 (API on 3001). Set VITE_BACKEND_ORIGIN=http://localhost:3001 in .env.");
-  }
+  log(`Local app: ${getLocalDevAppUrl(PORT)}`);
 }
 
 // Start the server

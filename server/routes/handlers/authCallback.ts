@@ -4,11 +4,9 @@ import { ANILIST_GRAPHQL_URL, ANILIST_TOKEN_URL } from '../../constants';
 import type { AniListUser } from '../../types';
 import { logger } from '../../logger';
 
-// Local dev: PORT=5001 → single Express+Vite server (same origin). PORT=3001 → API only while `yarn client` serves UI on 5001.
+// Local dev / production: derive callback URLs from PORT unless overridden in env.
 const port = parseInt(process.env.PORT || '5001', 10);
-const defaultFrontendUrl =
-  port === 3001 ? 'http://localhost:5001' : `http://localhost:${port}`;
-const FRONTEND_URL = process.env.FRONTEND_URL || defaultFrontendUrl;
+const FRONTEND_URL = process.env.FRONTEND_URL || `http://localhost:${port}`;
 const BACKEND_CALLBACK_URL =
   process.env.BACKEND_CALLBACK_URL ||
   `http://localhost:${port}/api/auth/callback`;

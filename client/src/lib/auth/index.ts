@@ -61,12 +61,7 @@ async function getClientId(): Promise<string> {
  * Get the redirect URI for OAuth - **MUST MATCH ANILIST SETTINGS**
  */
 export function getRedirectUri(): string {
-  // Must match BACKEND_CALLBACK_URL / AniList "Redirect URI".
-  // Split dev (`yarn dev:all`): set VITE_BACKEND_ORIGIN=http://localhost:3001 in .env
-  // Single server (`yarn dev`): omit it — uses current page origin (e.g. http://localhost:5001).
-  const configured = import.meta.env.VITE_BACKEND_ORIGIN?.replace(/\/$/, "");
-  const backendOrigin = configured || window.location.origin;
-  return `${backendOrigin}/api/auth/callback`;
+  return `${window.location.origin}/api/auth/callback`;
 }
 
 /** Build the AniList OAuth authorize URL (same URL the login button navigates to). */

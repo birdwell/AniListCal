@@ -18,8 +18,6 @@ export function openInSystemBrowser(url: string): void {
   });
 }
 
-/** UI port when API runs on 3001 (`yarn dev:all`); otherwise same as API port. */
-export function getLocalDevAppUrl(apiPort: number): string {
-  const uiPort = apiPort === 3001 ? 5001 : apiPort;
-  return `http://localhost:${uiPort}/login`;
+export function getLocalDevAppUrl(port: number): string {
+  return `http://localhost:${port}/login`;
 }
