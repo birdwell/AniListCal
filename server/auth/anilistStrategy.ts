@@ -63,6 +63,9 @@ export function createAniListStrategy(): OAuth2Strategy {
     verify
   );
 
+  // passport-oauth2 defaults to name "oauth2"; routes use authenticate("anilist").
+  strategy.name = "anilist";
+
   patchAniListTokenExchange(strategy);
 
   strategy.userProfile = (
