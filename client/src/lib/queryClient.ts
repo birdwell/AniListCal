@@ -78,6 +78,9 @@ export const queryClient = new QueryClient({
   },
 });
 
+/** localStorage key for the persisted React Query cache. */
+export const PERSIST_QUERY_KEY = "anilistcal-query-cache";
+
 /** Matches server list snapshot TTL — persisted client cache max age. */
 export const PERSIST_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 

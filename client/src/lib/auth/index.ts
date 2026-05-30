@@ -1,6 +1,7 @@
 // Session-cookie authentication — AniList tokens stay on the server.
 
-import { queryClient } from "../queryClient";
+import { queryClient, PERSIST_QUERY_KEY } from "../queryClient";
+import { queryKeys } from "../queryKeys";
 import { logger } from "../logger";
 
 const API_ENDPOINTS = {
@@ -48,16 +49,18 @@ export class AuthError extends Error {
   }
 }
 
-function invalidateAuthQueries(): void {
-  queryClient.invalidateQueries({ queryKey: ["auth"] });
-  queryClient.invalidateQueries({ queryKey: ["auth", "user"] });
-  queryClient.invalidateQueries({ queryKey: ["auth", "session"] });
-}
-
-/** Clear client-side auth cache after logout or 401. */
+/**
+ * Mark the user as logged out after a 401/expired token.
+ *
+ * We deliberately use `setQueryData` instead of `invalidateQueries`: this runs
+ * from inside the auth query's own error path, and invalidating would
+ * immediately refetch it, hit another 401, and re-enter here — an infinite
+ * refetch loop that storms the proxy until the rate limiter returns 429.
+ * Writing `null` clears the user without scheduling any network request.
+ */
 export function clearAuthData(): void {
   logger.log("Clearing client auth cache...");
-  invalidateAuthQueries();
+  queryClient.setQueryData(queryKeys.authUser, null);
 }
 
 /** Redirect to server OAuth login (sets HttpOnly session cookie on callback). */
@@ -74,7 +77,15 @@ export async function logout(): Promise<void> {
   } catch (error) {
     logger.error("Server logout endpoint failed:", error);
   } finally {
-    clearAuthData();
+    // Always tear down local state and redirect, even if the request failed
+    // (e.g. a 429). Don't depend on a query refetch to detect the logout.
+    queryClient.clear();
+    try {
+      window.localStorage.removeItem(PERSIST_QUERY_KEY);
+    } catch {
+      // localStorage may be unavailable (private mode); ignore.
+    }
+    window.location.href = "/login";
   }
 }
 

@@ -81,13 +81,21 @@ export function registerMiddleware(app: Express, sessionStore: Store) {
 
   addSecurityHeaders(app);
 
+  // Paths exempt from the general API limiter. `req.path` is relative to the
+  // `/api/` mount point, so these omit the prefix. Health checks and
+  // session-management endpoints (logout/session) are cheap and must keep
+  // working even when the proxy budget is exhausted — otherwise a rate-limited
+  // user can never log out.
+  const rateLimitExemptPaths = new Set(["/health", "/auth/logout", "/auth/session"]);
+
   const apiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     limit: 400,
     standardHeaders: true,
     legacyHeaders: false,
     message: "Too many requests from this IP, please try again after 15 minutes",
-    skip: (req) => process.env.NODE_ENV !== "production" || req.path === "/api/health",
+    skip: (req) =>
+      process.env.NODE_ENV !== "production" || rateLimitExemptPaths.has(req.path),
   });
 
   const authLimiter = rateLimit({

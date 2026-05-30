@@ -5,12 +5,13 @@ import {
   queryClient,
   PERSIST_MAX_AGE_MS,
   PERSIST_BUSTER,
+  PERSIST_QUERY_KEY,
   shouldPersistQuery,
 } from "@/lib/queryClient";
 
 const persister = createSyncStoragePersister({
   storage: window.localStorage,
-  key: "anilistcal-query-cache",
+  key: PERSIST_QUERY_KEY,
 });
 
 export function QueryProvider({ children }: { children: ReactNode }) {

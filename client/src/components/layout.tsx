@@ -7,13 +7,9 @@ import { logout } from "@/lib/auth";
 export function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
 
-  const handleLogout = async () => {
-    try {
-      await logout();
-      // The redirect to login will be handled by the protected route component
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
+  const handleLogout = () => {
+    // logout() clears local state and redirects to /login itself.
+    void logout();
   };
 
   return (

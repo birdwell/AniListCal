@@ -14,10 +14,11 @@ export const SHORT_STALE_TIME = 1 * 60 * 1000;
 // Cache time (how long inactive data remains in cache - 1 hour)
 export const DEFAULT_CACHE_TIME = 60 * 60 * 1000;
 
-/** Avoid amplifying 429 rate-limit responses with automatic retries. */
+/** Avoid amplifying rate-limit (429) or auth (401) failures with retries. */
 export function shouldRetryQuery(failureCount: number, error: unknown): boolean {
   if (failureCount >= 2) return false;
   if (error instanceof Error) {
+    if (error.name === "AuthError") return false;
     const message = error.message.toLowerCase();
     if (message.includes("429") || message.includes("too many requests")) {
       return false;

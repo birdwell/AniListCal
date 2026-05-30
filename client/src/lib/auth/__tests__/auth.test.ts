@@ -1,11 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const mockInvalidateQueries = vi.fn();
+const mockClear = vi.fn();
+const mockSetQueryData = vi.fn();
 
 vi.mock("../../queryClient", () => ({
   queryClient: {
-    invalidateQueries: mockInvalidateQueries,
+    clear: mockClear,
+    setQueryData: mockSetQueryData,
   },
+  PERSIST_QUERY_KEY: "anilistcal-query-cache",
 }));
 
 global.fetch = vi.fn();
@@ -44,7 +47,7 @@ describe("auth (session cookies)", () => {
     );
   });
 
-  it("logout calls server and invalidates queries", async () => {
+  it("logout calls server, clears the cache, and redirects to login", async () => {
     (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ ok: true });
     const auth = await import("../../auth");
     await auth.logout();
@@ -52,7 +55,16 @@ describe("auth (session cookies)", () => {
       API_ENDPOINTS.AUTH_LOGOUT,
       expect.objectContaining({ method: "POST", credentials: "include" })
     );
-    expect(mockInvalidateQueries).toHaveBeenCalled();
+    expect(mockClear).toHaveBeenCalled();
+    expect(window.location.href).toBe("/login");
+  });
+
+  it("logout still clears state and redirects when the request fails", async () => {
+    (fetch as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error("429"));
+    const auth = await import("../../auth");
+    await auth.logout();
+    expect(mockClear).toHaveBeenCalled();
+    expect(window.location.href).toBe("/login");
   });
 
   it("getUser returns viewer data from proxy", async () => {
@@ -81,7 +93,7 @@ describe("auth (session cookies)", () => {
     await expect(auth.getUser()).rejects.toMatchObject({
       code: "ANILIST_TOKEN_EXPIRED",
     });
-    expect(mockInvalidateQueries).toHaveBeenCalled();
+    expect(mockSetQueryData).toHaveBeenCalledWith(["auth", "user"], null);
   });
 
   it("getUser returns null on generic 401", async () => {
