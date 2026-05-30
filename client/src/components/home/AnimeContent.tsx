@@ -1,6 +1,7 @@
 import { EntyFragmentFragment, MediaStatus } from "@/generated/graphql";
 import { AnimeSection } from "./AnimeSection";
 import { SearchBar } from "./SearchBar";
+import { ViewToggle } from "./ViewToggle";
 import { useMemo, useState } from "react";
 import { useFuzzySearch } from "@/hooks/useFuzzySearch";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -15,9 +16,9 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 
-export type SectionKey = "airing" | "watching" | "onHold" | "planned";
+type SectionKey = "airing" | "watching" | "onHold" | "planned";
 
-export interface SectionStates {
+interface SectionStates {
   airing: boolean;
   watching: boolean;
   onHold: boolean;
@@ -26,21 +27,26 @@ export interface SectionStates {
 
 interface AnimeContentProps {
   animeEntries: EntyFragmentFragment[];
-  sectionStates: SectionStates;
-  toggleSection: (section: SectionKey) => void;
-  isCompact: boolean;
 }
 
 type Status = "CURRENT" | "PAUSED" | "PLANNING";
 
-export function AnimeContent({
-  animeEntries,
-  sectionStates,
-  toggleSection,
-  isCompact
-}: AnimeContentProps) {
-  // State for controlling the tag filter collapsible section
+export function AnimeContent({ animeEntries }: AnimeContentProps) {
+  const [isCompact, setIsCompact] = useState(true);
+  const [sectionStates, setSectionStates] = useState<SectionStates>({
+    airing: true,
+    watching: false,
+    onHold: false,
+    planned: false,
+  });
   const [isTagFilterOpen, setIsTagFilterOpen] = useState(false);
+
+  const toggleSection = (section: SectionKey) => {
+    setSectionStates((prev) => ({
+      ...prev,
+      [section]: !prev[section],
+    }));
+  };
 
   // Use Zustand store for search query and selected tags
   const searchQuery = useFilterStore((state) => state.searchQuery);
@@ -154,6 +160,13 @@ export function AnimeContent({
 
   return (
     <>
+      <div className="sticky top-0 z-10 pt-2 pb-1 bg-background/80 backdrop-blur-sm">
+        <ViewToggle
+          isCompact={isCompact}
+          onToggle={() => setIsCompact(!isCompact)}
+        />
+      </div>
+
       <div className="mb-4">
         <SearchBar
           searchQuery={searchQuery}
