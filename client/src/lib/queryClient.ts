@@ -84,9 +84,14 @@ export const PERSIST_QUERY_KEY = "anilistcal-query-cache";
 /** Matches server list snapshot TTL — persisted client cache max age. */
 export const PERSIST_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
-export const PERSIST_BUSTER = "v2";
+// Bumped to v3 to discard any persisted `null` auth user written by the old
+// build (which caused freshly logged-in sessions to look logged out).
+export const PERSIST_BUSTER = "v3";
 
 export function shouldPersistQuery(queryKey: readonly unknown[]): boolean {
-  const root = queryKey[0];
-  return root === "/anilist/anime" || root === "auth";
+  // Only persist anime data for offline/instant display. Auth state is never
+  // persisted: the server session is the source of truth and must be
+  // re-verified via getUser on every load. Persisting a `null` user (written
+  // by clearAuthData) would make a freshly logged-in session look logged out.
+  return queryKey[0] === "/anilist/anime";
 }
