@@ -84,4 +84,4 @@ Project skills live under [`.cursor/skills/`](.cursor/skills/) (see [`.cursor/sk
 | **check-pr** | Check the current (or given) PR for review comments, CI failures, and description gaps; fix and resolve. |
 | **greploop** | Iterate Greptile review → fixes → re-review until clean. |
 
-Requires **`gh`** authenticated for `birdwell/AniListCal`. Submodule: `.cursor/skills/greptile` — update with `git submodule update --remote .cursor/skills/greptile`.
+Requires **`gh`** authenticated for `birdwell/AniListCal`. Submodule: `.cursor/skills-vendor/greptile` — update with `git submodule update --remote .cursor/skills-vendor/greptile`.

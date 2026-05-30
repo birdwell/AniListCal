@@ -2,7 +2,7 @@
 
 ## Greptile (PR review)
 
-Upstream: [greptileai/skills](https://github.com/greptileai/skills) (vendored at `greptile/` via git submodule).
+Upstream: [greptileai/skills](https://github.com/greptileai/skills) (vendored at [`.cursor/skills-vendor/greptile/`](../skills-vendor/greptile/) via git submodule; symlinks here avoid duplicate skill discovery).
 
 | Skill | Invoke when |
 |-------|-------------|
@@ -14,7 +14,7 @@ Upstream: [greptileai/skills](https://github.com/greptileai/skills) (vendored at
 **Update vendored skills:**
 
 ```bash
-git submodule update --remote .cursor/skills/greptile
+git submodule update --remote .cursor/skills-vendor/greptile
 ```
 
 **Fresh clone:** run `git submodule update --init --recursive` after `git clone`.
