@@ -1,14 +1,12 @@
-schema: "https://graphql.anilist.co" # Replace with your GraphQL schema URL
-documents: "client/**/*.graphql" # Path to your GraphQL query files
+schema: "https://graphql.anilist.co"
+documents: "client/**/*.graphql"
 generates:
-  client/src/generated/graphql.ts: # Where the generated types will be saved
+  client/src/generated/types.ts:
     plugins:
-      - "typescript"
-      - "typescript-operations"
+      - typescript
     config:
       avoidOptionals: true
       skipTypename: true
-      preResolveTypes: true
       useTypeImports: true
       scalars:
         Int: number
@@ -16,6 +14,29 @@ generates:
         String: string
         Boolean: boolean
         ID: string
+        CountryCode: string
+  client/src/generated/operations.ts:
+    plugins:
+      - typescript-operations
+    config:
+      avoidOptionals: true
+      skipTypename: true
+      useTypeImports: true
+      importSchemaTypesFrom: client/src/generated/types
+      namespacedImportName: Types
+      scalars:
+        Int: number
+        Float: number
+        String: string
+        Boolean: boolean
+        ID: string
+        CountryCode: string
+  client/src/generated/graphql.ts:
+    plugins:
+      - add:
+          content: |
+            export * from "./types";
+            export * from "./operations";
   schema.graphql:
     plugins:
       - schema-ast

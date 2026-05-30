@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MediaListStatus } from "@/generated/graphql";
+import { MediaListStatus } from "@/lib/mediaListStatus";
 import { useUpdateStatus } from "@/hooks/useUpdateStatus";
 import { Button } from "@/components/ui/button";
 import { ListPlus } from "lucide-react";

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { MediaListStatus } from "@/generated/graphql";
+import { MediaListStatus } from "@/lib/mediaListStatus";
 import { useUpdateStatus } from "@/hooks/useUpdateStatus";
 import {
   Select,
