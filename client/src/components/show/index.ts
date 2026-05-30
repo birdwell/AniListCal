@@ -1,3 +1,4 @@
+export * from "./types";
 export * from "./loading-skeleton";
 export * from "./hero-section";
 export * from "./details-section";

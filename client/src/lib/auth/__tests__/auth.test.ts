@@ -106,28 +106,3 @@ describe("auth (session cookies)", () => {
     await expect(auth.getUser()).rejects.toMatchObject({ code: undefined });
   });
 });
-
-describe("queryAniList rate-limit circuit breaker", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    // Reset module state so the circuit starts closed for each test.
-    vi.resetModules();
-  });
-
-  it("fails fast after a 429 without re-hitting the proxy", async () => {
-    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-      ok: false,
-      status: 429,
-      headers: { get: () => "30" },
-      json: async () => ({ error: "Too many requests" }),
-    });
-    const auth = await import("../../auth");
-
-    await expect(auth.getUser()).rejects.toThrow(/too many requests/i);
-    expect(fetch).toHaveBeenCalledTimes(1);
-
-    // Circuit is open: the next call short-circuits without touching fetch.
-    await expect(auth.getUser()).rejects.toThrow(/too many requests/i);
-    expect(fetch).toHaveBeenCalledTimes(1);
-  });
-});

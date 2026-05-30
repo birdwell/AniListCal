@@ -1,47 +1,38 @@
-import { MediaFragmentFragment, MediaListStatus } from "@/generated/graphql";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EpisodeControls } from "@/components/episode-controls";
 import { StatusSelector } from "@/components/status-selector";
 import { Calendar, PlayCircle, Clock, ListChecks } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getProgressColor } from "@/lib/anime-utils";
+import type { EpisodeTrackingSectionData } from "./types";
 
-interface EpisodeTrackingSectionProps {
-  show: MediaFragmentFragment;
+function formatTimeUntilAiring(timeUntilAiring: number) {
+  const days = Math.floor(timeUntilAiring / 86400);
+  const hours = Math.floor((timeUntilAiring % 86400) / 3600);
+  const minutes = Math.floor((timeUntilAiring % 3600) / 60);
+
+  if (days > 0) {
+    return `${days} day${days > 1 ? "s" : ""} left`;
+  }
+  if (hours > 0) {
+    return `${hours}h ${minutes}m left`;
+  }
+  return `${minutes}m left`;
 }
 
-export function EpisodeTrackingSection({ show }: EpisodeTrackingSectionProps) {
-  // Add debug logging
-  console.log("Episode tracking data:", {
-    mediaListEntry: show.mediaListEntry,
-    episodes: show.episodes,
-    nextAiringEpisode: show.nextAiringEpisode,
-  });
-  
-  // @ts-ignore - We know mediaListEntry might not be in the type but it's in the data
-  const currentEpisode = show.mediaListEntry?.progress || 0;
-  const totalEpisodes = show.episodes || 0;
-  const nextEpisodeNumber = show.nextAiringEpisode?.episode;
-
-  const formatTimeUntilAiring = (timeUntilAiring: number) => {
-    const days = Math.floor(timeUntilAiring / 86400);
-    const hours = Math.floor((timeUntilAiring % 86400) / 3600);
-    const minutes = Math.floor((timeUntilAiring % 3600) / 60);
-
-    if (days > 0) {
-      return `${days} day${days > 1 ? "s" : ""} left`;
-    } else if (hours > 0) {
-      return `${hours}h ${minutes}m left`;
-    }
-    return `${minutes}m left`;
-  };
-
-  // If the user doesn't have this in their list, don't show the section
-  // @ts-ignore - We know mediaListEntry might not be in the type but it's in the data
-  if (!show.mediaListEntry) {
-    console.log("No mediaListEntry available, not showing episode tracking section");
+export function EpisodeTrackingSection({
+  id: mediaId,
+  episodes,
+  nextAiringEpisode,
+  mediaListEntry,
+}: EpisodeTrackingSectionData) {
+  if (!mediaListEntry) {
     return null;
   }
+
+  const currentEpisode = mediaListEntry.progress || 0;
+  const totalEpisodes = episodes || 0;
+  const nextEpisodeNumber = nextAiringEpisode?.episode;
 
   return (
     <Card className="overflow-hidden border-t-4 border-t-primary">
@@ -52,7 +43,6 @@ export function EpisodeTrackingSection({ show }: EpisodeTrackingSectionProps) {
         </CardTitle>
       </CardHeader>
       <CardContent className="p-6">
-        {/* Status selector */}
         <div className="mb-4 pb-4 border-b border-border">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div className="flex items-center gap-2">
@@ -60,8 +50,8 @@ export function EpisodeTrackingSection({ show }: EpisodeTrackingSectionProps) {
               <h3 className="text-sm font-medium">Watch Status</h3>
             </div>
             <StatusSelector
-              mediaId={show.id}
-              currentStatus={show.mediaListEntry?.status || null}
+              mediaId={mediaId}
+              currentStatus={mediaListEntry.status || null}
               className="w-full sm:w-auto min-w-[180px]"
             />
           </div>
@@ -91,7 +81,7 @@ export function EpisodeTrackingSection({ show }: EpisodeTrackingSectionProps) {
               </div>
 
               <EpisodeControls
-                mediaId={show.id}
+                mediaId={mediaId}
                 currentEpisode={currentEpisode}
                 totalEpisodes={totalEpisodes}
                 targetEpisode={nextEpisodeNumber}
@@ -121,7 +111,7 @@ export function EpisodeTrackingSection({ show }: EpisodeTrackingSectionProps) {
             )}
           </div>
 
-          {show.nextAiringEpisode && (
+          {nextAiringEpisode && (
             <div className="space-y-4">
               <h3 className="text-sm font-medium text-muted-foreground">
                 Next Episode
@@ -131,25 +121,22 @@ export function EpisodeTrackingSection({ show }: EpisodeTrackingSectionProps) {
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-primary" />
                   <span className="font-medium">
-                    Episode {show.nextAiringEpisode.episode}
+                    Episode {nextAiringEpisode.episode}
                   </span>
                 </div>
 
                 <div className="flex items-center gap-2">
                   <Clock className="h-4 w-4 text-primary" />
                   <span>
-                    {formatTimeUntilAiring(
-                      show.nextAiringEpisode.timeUntilAiring
-                    )}
+                    {formatTimeUntilAiring(nextAiringEpisode.timeUntilAiring)}
                   </span>
                 </div>
 
-                {currentEpisode < show.nextAiringEpisode.episode - 1 && (
+                {currentEpisode < nextAiringEpisode.episode - 1 && (
                   <div className="mt-3 text-sm text-muted-foreground">
                     <span className="font-medium text-warning">
-                      {show.nextAiringEpisode.episode - 1 - currentEpisode}{" "}
-                      episode
-                      {show.nextAiringEpisode.episode - 1 - currentEpisode > 1
+                      {nextAiringEpisode.episode - 1 - currentEpisode} episode
+                      {nextAiringEpisode.episode - 1 - currentEpisode > 1
                         ? "s"
                         : ""}{" "}
                       behind

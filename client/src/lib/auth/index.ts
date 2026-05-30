@@ -1,17 +1,21 @@
 // Session-cookie authentication — AniList tokens stay on the server.
 
 import { queryClient, PERSIST_QUERY_KEY } from "../queryClient";
-import { queryKeys } from "../queryKeys";
 import { logger } from "../logger";
+import { queryAniList, resetRateLimitCircuit } from "../anilistProxy";
+import {
+  ANILIST_TOKEN_EXPIRED_CODE,
+  AuthError,
+  clearAuthData,
+} from "./session";
+
+export { ANILIST_TOKEN_EXPIRED_CODE, AuthError, clearAuthData };
 
 const API_ENDPOINTS = {
   AUTH_LOGIN: "/api/auth/login",
   AUTH_LOGOUT: "/api/auth/logout",
   AUTH_SESSION: "/api/auth/session",
-  ANILIST_PROXY: "/api/anilist/proxy",
 };
-
-export const ANILIST_TOKEN_EXPIRED_CODE = "ANILIST_TOKEN_EXPIRED";
 
 const AUTH_FETCH_INIT: RequestInit = {
   credentials: "include",
@@ -34,35 +38,6 @@ interface SessionResponse {
   };
 }
 
-interface ProxyErrorBody {
-  error?: string;
-  code?: string;
-}
-
-export class AuthError extends Error {
-  code?: string;
-
-  constructor(message: string, code?: string) {
-    super(message);
-    this.name = "AuthError";
-    this.code = code;
-  }
-}
-
-/**
- * Mark the user as logged out after a 401/expired token.
- *
- * We deliberately use `setQueryData` instead of `invalidateQueries`: this runs
- * from inside the auth query's own error path, and invalidating would
- * immediately refetch it, hit another 401, and re-enter here — an infinite
- * refetch loop that storms the proxy until the rate limiter returns 429.
- * Writing `null` clears the user without scheduling any network request.
- */
-export function clearAuthData(): void {
-  logger.log("Clearing client auth cache...");
-  queryClient.setQueryData(queryKeys.authUser, null);
-}
-
 /** Redirect to server OAuth login (sets HttpOnly session cookie on callback). */
 export function login(): void {
   window.location.href = API_ENDPOINTS.AUTH_LOGIN;
@@ -77,6 +52,7 @@ export async function logout(): Promise<void> {
   } catch (error) {
     logger.error("Server logout endpoint failed:", error);
   } finally {
+    resetRateLimitCircuit();
     // Always tear down local state and redirect, even if the request failed
     // (e.g. a 429). Don't depend on a query refetch to detect the logout.
     queryClient.clear();
@@ -103,88 +79,6 @@ export async function checkSession(): Promise<boolean> {
   }
 }
 
-async function parseProxyError(response: Response): Promise<ProxyErrorBody | undefined> {
-  try {
-    return await response.json();
-  } catch {
-    return undefined;
-  }
-}
-
-function throwAuthError(message: string, code?: string): never {
-  clearAuthData();
-  throw new AuthError(message, code);
-}
-
-// Client-side circuit breaker for proxy rate limiting. Once the proxy returns
-// 429, every in-flight query (auth, anime list, details) would otherwise keep
-// hitting the rate-limited endpoint and dig the hole deeper. After one 429 we
-// "open" the circuit and fail fast — without a network request — until the
-// cooldown expires, honoring the server's Retry-After header when present.
-const DEFAULT_RATE_LIMIT_COOLDOWN_MS = 60 * 1000;
-const MAX_RATE_LIMIT_COOLDOWN_MS = 15 * 60 * 1000;
-let rateLimitedUntil = 0;
-
-const RATE_LIMIT_MESSAGE =
-  "Too many requests. Please wait a moment and try again.";
-
-function openRateLimitCircuit(retryAfterHeader: string | null): void {
-  const retryAfterSeconds = Number(retryAfterHeader);
-  const cooldownMs =
-    Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0
-      ? Math.min(retryAfterSeconds * 1000, MAX_RATE_LIMIT_COOLDOWN_MS)
-      : DEFAULT_RATE_LIMIT_COOLDOWN_MS;
-  rateLimitedUntil = Date.now() + cooldownMs;
-}
-
-async function queryAniList<T = unknown>(
-  query: string,
-  variables?: Record<string, unknown>
-): Promise<{ data?: T; errors?: { message: string; status?: number }[] }> {
-  if (Date.now() < rateLimitedUntil) {
-    throw new Error(RATE_LIMIT_MESSAGE);
-  }
-
-  const response = await fetch(API_ENDPOINTS.ANILIST_PROXY, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
-    body: JSON.stringify({ query, variables }),
-  });
-
-  if (!response.ok) {
-    const errorBody = await parseProxyError(response);
-    if (response.status === 401) {
-      throwAuthError(
-        errorBody?.error || "Authentication required",
-        errorBody?.code
-      );
-    }
-    if (response.status === 429) {
-      openRateLimitCircuit(response.headers.get("Retry-After"));
-      throw new Error(errorBody?.error || RATE_LIMIT_MESSAGE);
-    }
-    throw new Error(errorBody?.error || `AniList API proxy error: ${response.status}`);
-  }
-
-  rateLimitedUntil = 0;
-
-  const result = await response.json();
-
-  if (result.errors) {
-    const isAuthError = result.errors.some(
-      (err: { status?: number; message?: string }) =>
-        err.status === 401 || err.message?.includes("Unauthorized")
-    );
-    if (isAuthError) {
-      throwAuthError("Authentication required");
-    }
-    throw new Error(`GraphQL error: ${result.errors.map((e: { message: string }) => e.message).join(", ")}`);
-  }
-
-  return result;
-}
-
 export async function getUser(): Promise<User | null | undefined> {
   try {
     const response = await queryAniList<{ Viewer: User }>(`
@@ -207,4 +101,4 @@ export async function getUser(): Promise<User | null | undefined> {
   }
 }
 
-export { queryAniList, type User };
+export { type User };

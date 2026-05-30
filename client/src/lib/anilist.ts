@@ -7,7 +7,7 @@ import {
   MediaListStatus,
 } from "@/generated/graphql";
 import { GET_USER_MEDIA_LIST_QUERY, GET_MEDIA_QUERY } from "@/queries/queries";
-import { queryAniList } from "./auth";
+import { queryAniList } from "./anilistProxy";
 import { logger } from "./logger";
 
 const ANILIST_GRAPHQL_URL = "https://graphql.anilist.co";

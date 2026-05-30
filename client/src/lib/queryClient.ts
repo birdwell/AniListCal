@@ -1,5 +1,5 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
-import { clearAuthData } from "./auth";
+import { clearAuthData } from "./auth/session";
 import { logger } from "./logger";
 
 const AUTH_FETCH_INIT: RequestInit = {

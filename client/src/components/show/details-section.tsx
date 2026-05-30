@@ -1,48 +1,63 @@
-import { MediaFragmentFragment } from "@/generated/graphql";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar, Info, PlayCircle, Users, AlignLeft, ImageOff } from "lucide-react";
+import { Calendar, Info, PlayCircle, AlignLeft, ImageOff } from "lucide-react";
 import { TagsSection } from "./tags-section";
 import { MetricsSection } from "./metrics-section";
 import { SeriesInfoSection } from "./series-info-section";
 import { RelationsSection } from "./relations-section";
+import type {
+  DetailsOverviewData,
+  DetailsStatusData,
+  MetricsSectionData,
+  RelationsSectionData,
+  SeriesInfoSectionData,
+  TagsSectionData,
+} from "./types";
 
 interface DetailsSectionProps {
-  show: MediaFragmentFragment;
-  coverImageSrc: string | null | undefined;
+  overview: DetailsOverviewData;
+  status: DetailsStatusData;
+  seriesInfo: SeriesInfoSectionData;
+  metrics: MetricsSectionData;
+  tags: TagsSectionData["tags"];
+  relations: RelationsSectionData["relations"];
 }
 
-export function DetailsSection({ show, coverImageSrc }: DetailsSectionProps) {
-  const formatTimeUntilAiring = (timeUntilAiring: number) => {
-    const days = Math.floor(timeUntilAiring / 86400);
-    const hours = Math.floor((timeUntilAiring % 86400) / 3600);
-    const minutes = Math.floor((timeUntilAiring % 3600) / 60);
+function formatTimeUntilAiring(timeUntilAiring: number) {
+  const days = Math.floor(timeUntilAiring / 86400);
+  const hours = Math.floor((timeUntilAiring % 86400) / 3600);
+  const minutes = Math.floor((timeUntilAiring % 3600) / 60);
 
-    if (days > 0) {
-      return `${days} day${days > 1 ? "s" : ""} left`;
-    } else if (hours > 0) {
-      return `${hours}h ${minutes}m left`;
-    }
-    return `${minutes}m left`;
-  };
+  if (days > 0) {
+    return `${days} day${days > 1 ? "s" : ""} left`;
+  }
+  if (hours > 0) {
+    return `${hours}h ${minutes}m left`;
+  }
+  return `${minutes}m left`;
+}
 
-  // Function to safely render HTML content
-  const createMarkup = (htmlContent: string) => {
-    return { __html: htmlContent };
-  };
+function toTitleCase(str: string | null | undefined) {
+  if (!str) return "";
+  return str
+    .toLowerCase()
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
 
-  // Function to convert string to title case
-  const toTitleCase = (str: string | null | undefined) => {
-    if (!str) return "";
-    return str
-      .toLowerCase()
-      .replace(/_/g, " ") // Replace underscores if any
-      .replace(/\b\w/g, (char) => char.toUpperCase()); // Capitalize first letter of each word
-  };
+export function DetailsSection({
+  overview,
+  status,
+  seriesInfo,
+  metrics,
+  tags,
+  relations,
+}: DetailsSectionProps) {
+  const coverImageSrc =
+    overview.coverImage?.extraLarge || overview.coverImage?.large;
 
   return (
     <div className="space-y-6">
-      {/* Overview Card */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-lg flex items-center gap-2">
@@ -51,14 +66,12 @@ export function DetailsSection({ show, coverImageSrc }: DetailsSectionProps) {
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-0">
-          {/* Container for image and text content */}
           <div className="flex flex-col md:flex-row gap-4 md:gap-6">
-            {/* Image Section */}
             {coverImageSrc && (
               <div className="w-32 md:w-48 flex-shrink-0">
                 <img
                   src={coverImageSrc}
-                  alt={`${show.title?.english || show.title?.romaji || "Anime"} Cover`}
+                  alt={`${overview.title?.english || overview.title?.romaji || "Anime"} Cover`}
                   className="rounded-md object-cover w-full h-auto aspect-[2/3] bg-muted"
                 />
               </div>
@@ -69,38 +82,36 @@ export function DetailsSection({ show, coverImageSrc }: DetailsSectionProps) {
               </div>
             )}
 
-            {/* Text Content Section */}
             <div className="flex-grow space-y-4">
               <div className="prose dark:prose-invert prose-sm sm:prose-base max-w-none">
-                {show.description && (
+                {overview.description && (
                   <div
-                    dangerouslySetInnerHTML={createMarkup(show.description)}
+                    dangerouslySetInnerHTML={{ __html: overview.description }}
                     className="text-foreground"
                   />
                 )}
               </div>
               <div className="flex flex-wrap gap-2">
-                {show.genres?.map((genre) => (
-                  <Badge key={genre} variant="secondary">
-                    {genre}
-                  </Badge>
-                ))}
+                {overview.genres?.map((genre) =>
+                  genre ? (
+                    <Badge key={genre} variant="secondary">
+                      {genre}
+                    </Badge>
+                  ) : null
+                )}
               </div>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Grid layout for the information sections */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <SeriesInfoSection show={show} />
-        <MetricsSection show={show} />
+        <SeriesInfoSection {...seriesInfo} />
+        <MetricsSection {...metrics} />
       </div>
 
-      {/* Tags Section - Only render if tags exists */}
-      {show.tags && <TagsSection show={show} />}
+      {tags && <TagsSection tags={tags} />}
 
-      {/* Status Card */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-lg flex items-center gap-2">
@@ -111,27 +122,27 @@ export function DetailsSection({ show, coverImageSrc }: DetailsSectionProps) {
         <CardContent className="pt-0 space-y-4">
           <div className="flex items-center gap-3">
             <Info className="h-4 w-4 text-primary" />
-            <span className="text-sm">Status: {toTitleCase(show.status)}</span>
+            <span className="text-sm">Status: {toTitleCase(status.status)}</span>
           </div>
-          {show.nextAiringEpisode && (
+          {status.nextAiringEpisode && (
             <div className="flex items-center gap-3">
               <Calendar className="h-4 w-4 text-primary" />
               <span className="text-sm">
-                Episode {show.nextAiringEpisode.episode} airing in{" "}
-                {formatTimeUntilAiring(show.nextAiringEpisode.timeUntilAiring)}
+                Episode {status.nextAiringEpisode.episode} airing in{" "}
+                {formatTimeUntilAiring(status.nextAiringEpisode.timeUntilAiring)}
               </span>
             </div>
           )}
           <div className="flex items-center gap-3">
             <PlayCircle className="h-4 w-4 text-primary" />
-            <span className="text-sm">Episodes: {show.episodes || "TBA"}</span>
+            <span className="text-sm">
+              Episodes: {status.episodes || "TBA"}
+            </span>
           </div>
         </CardContent>
       </Card>
 
-
-      {/* Relations Section - Only render if relations exists */}
-      {show.relations && <RelationsSection show={show} />}
+      {relations && <RelationsSection relations={relations} />}
     </div>
   );
 }

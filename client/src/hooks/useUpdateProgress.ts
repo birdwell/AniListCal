@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { queryAniList } from '../lib/auth';
+import { queryAniList } from '../lib/anilistProxy';
 import { logger } from '../lib/logger';
 import { UPDATE_PROGRESS_MUTATION } from '@/queries/queries';
 import { toast } from '@/hooks/use-toast';

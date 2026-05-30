@@ -6,7 +6,8 @@ import { fetchUserAnime } from '@/lib/anilist';
 import { isWeeklyShow } from '@/lib/calendar-utils';
 import { commonQueryOptions } from '@/lib/query-config';
 import { queryKeys } from '@/lib/queryKeys';
-import { queryAniList, getUser, type User } from '@/lib/auth';
+import { getUser, type User } from '@/lib/auth';
+import { queryAniList } from '@/lib/anilistProxy';
 
 const DAYS = [
   'Sunday',
