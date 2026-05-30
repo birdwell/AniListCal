@@ -29,8 +29,6 @@ interface AnimeContentProps {
   animeEntries: EntyFragmentFragment[];
 }
 
-type Status = "CURRENT" | "PAUSED" | "PLANNING";
-
 export function AnimeContent({ animeEntries }: AnimeContentProps) {
   const [isCompact, setIsCompact] = useState(true);
   const [sectionStates, setSectionStates] = useState<SectionStates>({
@@ -120,43 +118,47 @@ export function AnimeContent({ animeEntries }: AnimeContentProps) {
   }, [filteredEntries, selectedTags]);
 
   // Apply status filters *after* search and tag filters
-  const filterAnimeByStatus = (status: Status) => {
-    return filteredAndTaggedEntries?.filter(entry => entry.status === status) || [];
-  };
-
   const currentlyAiring = useMemo(() => {
-    return filteredAndTaggedEntries?.filter(entry =>
-      entry.media?.status === MediaStatus.Releasing
-    ) || [];
+    return (
+      filteredAndTaggedEntries?.filter(
+        (entry) => entry.media?.status === MediaStatus.Releasing
+      ) || []
+    );
   }, [filteredAndTaggedEntries]);
 
-  const watching = useMemo(() => filterAnimeByStatus("CURRENT"), [filterAnimeByStatus]);
-  const onHold = useMemo(() => filterAnimeByStatus("PAUSED"), [filterAnimeByStatus]);
-  const planned = useMemo(() => filterAnimeByStatus("PLANNING"), [filterAnimeByStatus]);
+  const watching = useMemo(
+    () =>
+      filteredAndTaggedEntries?.filter((entry) => entry.status === "CURRENT") ||
+      [],
+    [filteredAndTaggedEntries]
+  );
+
+  const onHold = useMemo(
+    () =>
+      filteredAndTaggedEntries?.filter((entry) => entry.status === "PAUSED") ||
+      [],
+    [filteredAndTaggedEntries]
+  );
+
+  const planned = useMemo(
+    () =>
+      filteredAndTaggedEntries?.filter((entry) => entry.status === "PLANNING") ||
+      [],
+    [filteredAndTaggedEntries]
+  );
 
   // Calculate total results for display (based on filtered + tagged)
   const totalResults = filteredAndTaggedEntries?.length ?? 0;
-  const hasSearchResults = debouncedSearchQuery.trim() !== "" || selectedTags.length > 0;
+  const hasSearchResults =
+    debouncedSearchQuery.trim() !== "" || selectedTags.length > 0;
 
-  // Auto-expand sections when searching
-  useMemo(() => {
-    if (hasSearchResults && totalResults > 0) {
-      // Only auto-expand sections if we have search results and they're not already open
-      const sectionsToExpand: Record<SectionKey, boolean> = {
-        airing: currentlyAiring.length > 0 && !sectionStates.airing,
-        watching: watching.length > 0 && !sectionStates.watching,
-        onHold: onHold.length > 0 && !sectionStates.onHold,
-        planned: planned.length > 0 && !sectionStates.planned
-      };
-
-      // Expand sections with results
-      Object.entries(sectionsToExpand).forEach(([section, shouldExpand]) => {
-        if (shouldExpand) {
-          toggleSection(section as SectionKey);
-        }
-      });
+  // While filtering, auto-open sections that have matches; otherwise use manual state.
+  const isSectionOpen = (section: SectionKey, entryCount: number) => {
+    if (hasSearchResults && totalResults > 0 && entryCount > 0) {
+      return true;
     }
-  }, [debouncedSearchQuery, totalResults, currentlyAiring.length, watching.length, onHold.length, planned.length, sectionStates, toggleSection]);
+    return sectionStates[section];
+  };
 
   return (
     <>
@@ -206,7 +208,7 @@ export function AnimeContent({ animeEntries }: AnimeContentProps) {
       <AnimeSection
         title="Currently Airing"
         entries={currentlyAiring}
-        isOpen={sectionStates.airing}
+        isOpen={isSectionOpen("airing", currentlyAiring.length)}
         onToggle={() => toggleSection("airing")}
         isCompact={isCompact}
       />
@@ -214,7 +216,7 @@ export function AnimeContent({ animeEntries }: AnimeContentProps) {
       <AnimeSection
         title="Watching"
         entries={watching}
-        isOpen={sectionStates.watching}
+        isOpen={isSectionOpen("watching", watching.length)}
         onToggle={() => toggleSection("watching")}
         isCompact={isCompact}
       />
@@ -222,7 +224,7 @@ export function AnimeContent({ animeEntries }: AnimeContentProps) {
       <AnimeSection
         title="On Hold"
         entries={onHold}
-        isOpen={sectionStates.onHold}
+        isOpen={isSectionOpen("onHold", onHold.length)}
         onToggle={() => toggleSection("onHold")}
         isCompact={isCompact}
       />
@@ -230,7 +232,7 @@ export function AnimeContent({ animeEntries }: AnimeContentProps) {
       <AnimeSection
         title="Plan to Watch"
         entries={planned}
-        isOpen={sectionStates.planned}
+        isOpen={isSectionOpen("planned", planned.length)}
         onToggle={() => toggleSection("planned")}
         isCompact={isCompact}
       />

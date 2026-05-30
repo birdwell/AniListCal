@@ -74,7 +74,8 @@ export async function fetchAnimeDetails(
 }
 
 /**
- * Fetches anime details with user-specific data (requires authentication).
+ * Fetches anime details via the authenticated server proxy, including
+ * user-specific fields such as mediaListEntry. Call only from protected routes.
  */
 export async function fetchAuthenticatedAnimeDetails(
   id: number
@@ -82,12 +83,6 @@ export async function fetchAuthenticatedAnimeDetails(
   try {
     if (!id || isNaN(id)) {
       throw new Error("Invalid anime ID provided");
-    }
-
-    const user = await import("./auth").then((m) => m.getUser());
-    if (!user) {
-      logger.warn("No authenticated user found, falling back to public API");
-      return fetchAnimeDetails(id);
     }
 
     const response = await queryAniList<GetMediaQuery>(GET_MEDIA_QUERY, {
