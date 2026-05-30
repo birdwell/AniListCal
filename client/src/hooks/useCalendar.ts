@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { format, addDays } from 'date-fns';
-import { EntyFragmentFragment, MediaListStatus } from '@/generated/graphql';
+import { EntyFragmentFragment } from '@/generated/graphql';
+import { MediaListStatus } from '@/lib/mediaListStatus';
 import { fetchUserAnime } from '@/lib/anilist';
 import { isWeeklyShow } from '@/lib/calendar-utils';
 import { commonQueryOptions } from '@/lib/query-config';
