@@ -81,6 +81,17 @@ export function registerMiddleware(app: Express, sessionStore: Store) {
 
   addSecurityHeaders(app);
 
+  if (!process.env.SESSION_SECRET && process.env.NODE_ENV === "production") {
+    log("WARNING: No SESSION_SECRET set in production. Using a default secret is insecure.");
+  }
+
+  // Session + Passport run before the rate limiter so the limiter can key on
+  // the authenticated user (req.user), not just the client IP.
+  configurePassport();
+  app.use(session(buildSessionOptions(sessionStore)) as any);
+  app.use(passport.initialize() as any);
+  app.use(passport.session());
+
   // Paths exempt from the general API limiter. `req.path` is relative to the
   // `/api/` mount point, so these omit the prefix. Health checks and
   // session-management endpoints (logout/session) are cheap and must keep
@@ -93,7 +104,15 @@ export function registerMiddleware(app: Express, sessionStore: Store) {
     limit: 400,
     standardHeaders: true,
     legacyHeaders: false,
-    message: "Too many requests from this IP, please try again after 15 minutes",
+    message: "Too many requests, please try again after 15 minutes",
+    // Rate limit per authenticated user so multiple people sharing one IP
+    // (mobile carriers, university/corporate NAT) don't drain a single budget.
+    // Falls back to client IP for unauthenticated requests. A custom
+    // keyGenerator also skips the default IPv6 validation warning.
+    keyGenerator: (req) => {
+      const userId = req.user?.id;
+      return userId ? `user:${userId}` : `ip:${req.ip ?? "unknown"}`;
+    },
     skip: (req) =>
       process.env.NODE_ENV !== "production" || rateLimitExemptPaths.has(req.path),
   });
@@ -110,13 +129,4 @@ export function registerMiddleware(app: Express, sessionStore: Store) {
   app.use("/api/", apiLimiter);
   app.use("/api/auth/login", authLimiter);
   app.use("/api/auth/callback", authLimiter);
-
-  if (!process.env.SESSION_SECRET && process.env.NODE_ENV === "production") {
-    log("WARNING: No SESSION_SECRET set in production. Using a default secret is insecure.");
-  }
-
-  configurePassport();
-  app.use(session(buildSessionOptions(sessionStore)) as any);
-  app.use(passport.initialize() as any);
-  app.use(passport.session());
 }

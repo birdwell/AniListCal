@@ -116,10 +116,35 @@ function throwAuthError(message: string, code?: string): never {
   throw new AuthError(message, code);
 }
 
+// Client-side circuit breaker for proxy rate limiting. Once the proxy returns
+// 429, every in-flight query (auth, anime list, details) would otherwise keep
+// hitting the rate-limited endpoint and dig the hole deeper. After one 429 we
+// "open" the circuit and fail fast — without a network request — until the
+// cooldown expires, honoring the server's Retry-After header when present.
+const DEFAULT_RATE_LIMIT_COOLDOWN_MS = 60 * 1000;
+const MAX_RATE_LIMIT_COOLDOWN_MS = 15 * 60 * 1000;
+let rateLimitedUntil = 0;
+
+const RATE_LIMIT_MESSAGE =
+  "Too many requests. Please wait a moment and try again.";
+
+function openRateLimitCircuit(retryAfterHeader: string | null): void {
+  const retryAfterSeconds = Number(retryAfterHeader);
+  const cooldownMs =
+    Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0
+      ? Math.min(retryAfterSeconds * 1000, MAX_RATE_LIMIT_COOLDOWN_MS)
+      : DEFAULT_RATE_LIMIT_COOLDOWN_MS;
+  rateLimitedUntil = Date.now() + cooldownMs;
+}
+
 async function queryAniList<T = unknown>(
   query: string,
   variables?: Record<string, unknown>
 ): Promise<{ data?: T; errors?: { message: string; status?: number }[] }> {
+  if (Date.now() < rateLimitedUntil) {
+    throw new Error(RATE_LIMIT_MESSAGE);
+  }
+
   const response = await fetch(API_ENDPOINTS.ANILIST_PROXY, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -136,12 +161,13 @@ async function queryAniList<T = unknown>(
       );
     }
     if (response.status === 429) {
-      throw new Error(
-        errorBody?.error || "Too many requests. Please wait a moment and try again."
-      );
+      openRateLimitCircuit(response.headers.get("Retry-After"));
+      throw new Error(errorBody?.error || RATE_LIMIT_MESSAGE);
     }
     throw new Error(errorBody?.error || `AniList API proxy error: ${response.status}`);
   }
+
+  rateLimitedUntil = 0;
 
   const result = await response.json();
 
