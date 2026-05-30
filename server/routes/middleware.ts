@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import session, { type Store } from "express-session";
-import rateLimit from "express-rate-limit";
+import rateLimit, { ipKeyGenerator } from "express-rate-limit";
 import { buildSessionOptions } from "../auth/sessionConfig";
 import { configurePassport, passport } from "../auth/passport";
 import { getFrontendUrl } from "../auth/urls";
@@ -127,7 +127,7 @@ export function registerMiddleware(app: Express, sessionStore: Store) {
     message: "Too many requests, please try again after 15 minutes",
     keyGenerator: (req) => {
       const userId = req.user?.id;
-      return userId ? `user:${userId}` : `ip:${req.ip ?? "unknown"}`;
+      return userId ? `user:${userId}` : ipKeyGenerator(req.ip ?? "");
     },
     skip: (req) => process.env.NODE_ENV !== "production",
   });
