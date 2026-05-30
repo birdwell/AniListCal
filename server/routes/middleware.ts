@@ -4,7 +4,6 @@ import rateLimit from "express-rate-limit";
 import { buildSessionOptions } from "../auth/sessionConfig";
 import { configurePassport, passport } from "../auth/passport";
 import { getFrontendUrl } from "../auth/urls";
-import { log } from "../vite";
 
 function getAllowedOrigins(): string[] {
   const origins = new Set<string>();
@@ -80,10 +79,6 @@ export function registerMiddleware(app: Express, sessionStore: Store) {
   });
 
   addSecurityHeaders(app);
-
-  if (!process.env.SESSION_SECRET && process.env.NODE_ENV === "production") {
-    log("WARNING: No SESSION_SECRET set in production. Using a default secret is insecure.");
-  }
 
   // Paths exempt from the general API limiter. `req.path` is relative to the
   // `/api/` mount point, so these omit the prefix. Health checks and

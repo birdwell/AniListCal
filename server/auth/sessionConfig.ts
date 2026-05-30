@@ -20,6 +20,12 @@ export function getSessionCookieName(): string {
 export function buildSessionOptions(store: Store): SessionOptions {
   const sessionSecret = process.env.SESSION_SECRET;
 
+  if (!sessionSecret && process.env.NODE_ENV === "production") {
+    throw new Error(
+      "SESSION_SECRET must be set in production. Refusing to start with a hardcoded default secret."
+    );
+  }
+
   return {
     secret: sessionSecret || "anime-calendar-secret-do-not-use-in-production",
     resave: false,

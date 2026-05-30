@@ -1,5 +1,6 @@
 import nodePersist from 'node-persist';
 import { AniListToken, AniListUser } from './types';
+import { decryptToken, encryptToken } from './tokenCrypto';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -60,7 +61,7 @@ export class PersistentStorage {
     const ttlMs = sec * 1000;
     const tokenData: AniListToken = {
       userId,
-      accessToken,
+      accessToken: encryptToken(accessToken),
       expiresAt: Date.now() + ttlMs
     };
     await nodePersist.setItem(key, tokenData, { ttl: ttlMs });
@@ -75,7 +76,16 @@ export class PersistentStorage {
       if (tokenData) await nodePersist.removeItem(key);
       return null;
     }
-    return tokenData.accessToken;
+
+    try {
+      return decryptToken(tokenData.accessToken);
+    } catch (error) {
+      // Token can't be decrypted (e.g. SESSION_SECRET rotated). Drop it and
+      // force re-authentication rather than returning a broken token.
+      console.warn(`[Storage] Failed to decrypt token for user ${userId}, removing it.`, error);
+      await nodePersist.removeItem(key);
+      return null;
+    }
   }
 
   async storeUserInfo(userId: string, username: string, avatarUrl?: string): Promise<void> {

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { PersistentStorage } from '../storage';
+import { decryptToken } from '../tokenCrypto';
 
 const mockInit = vi.fn().mockResolvedValue(undefined);
 const mockSetItem = vi.fn();
@@ -49,9 +50,17 @@ describe('PersistentStorage', () => {
       await storage.storeToken(userIdStr, testToken, expiresInSec);
       expect(mockSetItem).toHaveBeenCalledWith(
         `anilist_token_${userIdStr}`,
-        expect.objectContaining({ userId: userIdStr, accessToken: testToken }),
+        expect.objectContaining({
+          userId: userIdStr,
+          accessToken: expect.stringMatching(/^enc:v1:/),
+        }),
         { ttl }
       );
+
+      // Stored token is encrypted at rest but round-trips back to the original.
+      const storedToken = mockSetItem.mock.calls[0][1].accessToken;
+      expect(storedToken).not.toBe(testToken);
+      expect(decryptToken(storedToken)).toBe(testToken);
     });
 
     it('should retrieve a stored access token', async () => {

@@ -59,6 +59,9 @@ export function createAniListStrategy(): OAuth2Strategy {
       clientID,
       clientSecret,
       callbackURL: getBackendCallbackUrl(),
+      // Bind the OAuth flow to the initiating session and validate it on the
+      // callback. Prevents login CSRF / authorization-code injection.
+      state: true,
     },
     verify
   );
