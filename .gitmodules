@@ -1,0 +1,6 @@
+[submodule ".cursor/skills-vendor/greptile"]
+	path = .cursor/skills-vendor/greptile
+	url = https://github.com/greptileai/skills.git
+[submodule ".cursor/skills/greptile"]
+	path = .cursor/skills/greptile
+	url = https://github.com/greptileai/skills.git
