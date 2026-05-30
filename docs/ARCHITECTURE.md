@@ -567,12 +567,10 @@ yarn test:coverage   # coverage report
 
 ### Not yet covered
 
-See `todo.md` for planned test work:
-
 - Full OAuth flow integration tests (supertest + cookie jar)
 - `ProtectedRoute` / `App.tsx` component tests
 - E2E login flow (Playwright/Cypress)
-- Tag filter store and UI tests
+- Tag filter store, `TagFilter`, and `AnimeContent` tests
 
 ---
 
@@ -651,7 +649,7 @@ Umami script loaded in `client/index.html`. Allowed in production CSP (`connect-
 | **Legacy query keys** | `["/api/users/current"]` references a removed REST users API; identity is OAuth-only |
 | **Duplicate QueryClientProvider** | `main.tsx` wraps `App` in a provider that duplicates the one inside `App.tsx` |
 | **Token persistence on deploy** | `.persist-storage/` is ephemeral on Railway unless a volume is mounted; users may need to re-login after redeploy even with Redis sessions |
-| **Tag filter tests/polish** | Listed in `todo.md` — filter store and collapsible UI need tests and styling pass |
+| **Tag filter tests/polish** | Filter store and collapsible UI need tests and a styling pass |
 | **No server-side Sentry** | Client errors are tracked; server/proxy errors are log-only |
 | **Timezone display** | Airing times use local `Date`; AniList exposes user timezone but it is not surfaced in the UI |
 
@@ -665,5 +663,4 @@ Umami script loaded in `client/index.html`. Allowed in production CSP (`connect-
 | [AGENTS.md](../AGENTS.md) | Dev setup, env vars, Railway notes |
 | [docs/adr/001-passport-session-auth.md](./adr/001-passport-session-auth.md) | Auth architecture decision |
 | [PRODUCTION_CHECKLIST.md](../PRODUCTION_CHECKLIST.md) | Pre/post deploy verification |
-| [todo.md](../todo.md) | Planned follow-ups |
-| [tags.md](../tags.md) | AniList tag reference for filter categories |
+| [anilist-tags-reference.md](./anilist-tags-reference.md) | AniList tag taxonomy reference (not used at runtime) |
