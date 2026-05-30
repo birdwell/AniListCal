@@ -1,6 +1,4 @@
 import { Switch, Route, useLocation } from "wouter";
-import { queryClient } from "./lib/queryClient";
-import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { useEffect } from "react";
 import { getUser, clearAuthData, AuthError, ANILIST_TOKEN_EXPIRED_CODE } from "./lib/auth";
@@ -16,12 +14,14 @@ import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { ThemeProvider } from "@/components/theme-provider";
 import CalendarPage from "./pages/calendar";
+import { QueryProvider } from "@/components/query-provider";
+import { queryKeys } from "@/lib/queryKeys";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const [, setLocation] = useLocation();
 
   const { data: user, isLoading, isFetched, error } = useQuery({
-    queryKey: ["auth", "user"],
+    queryKey: queryKeys.authUser,
     queryFn: getUser,
     retry: false,
     staleTime: 1000 * 60 * 5,
@@ -92,10 +92,10 @@ function Router() {
 function App() {
   return (
     <ThemeProvider defaultTheme="system" storageKey="anime-tracker-theme">
-      <QueryClientProvider client={queryClient}>
+      <QueryProvider>
         <Router />
         <Toaster />
-      </QueryClientProvider>
+      </QueryProvider>
     </ThemeProvider>
   );
 }

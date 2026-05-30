@@ -2,6 +2,7 @@ import type { Request, Response, NextFunction } from 'express';
 import { PersistentStorage } from '../../storage';
 import { logger } from '../../logger';
 import { getSessionCookieName } from '../../auth/sessionConfig';
+import { invalidateUserAniListCache } from '../../cache/aniListCache';
 
 export async function handleLogout(
   req: Request,
@@ -15,6 +16,7 @@ export async function handleLogout(
     if (userId) {
       logger.debug(`[handleLogout] Revoking AniList token for user ${userId}.`);
       await storageService.revokeToken(userId);
+      await invalidateUserAniListCache(userId);
     }
 
     if (req.isAuthenticated?.()) {

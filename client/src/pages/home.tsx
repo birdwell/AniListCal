@@ -13,6 +13,7 @@ import {
 } from "@/components/home";
 import { commonQueryOptions } from "@/lib/query-config";
 import { MediaListStatus } from "@/generated/graphql";
+import { queryKeys } from "@/lib/queryKeys";
 
 type Status = "CURRENT" | "PAUSED" | "PLANNING";
 
@@ -33,26 +34,28 @@ export default function Home() {
   };
 
   const { data: user, isLoading: isLoadingUser } = useQuery({
-    queryKey: ["/api/users/current"],
+    queryKey: queryKeys.authUser,
     queryFn: getUser,
     ...commonQueryOptions,
   });
+
+  const listStatuses = [
+    MediaListStatus.Current,
+    MediaListStatus.Paused,
+    MediaListStatus.Planning,
+  ];
 
   const {
     data: animeEntries,
     isLoading: isAnimeLoading,
     error: animeError,
   } = useQuery({
-    queryKey: ["/anilist/anime", user?.id],
+    queryKey: user?.id ? queryKeys.animeList(user.id, listStatuses) : ["disabled"],
     queryFn: () => {
       if (!user?.id) {
         throw new Error("Please set your Anilist ID in your profile");
       }
-      return fetchUserAnime(user.id, [
-        MediaListStatus.Current,
-        MediaListStatus.Paused,
-        MediaListStatus.Planning,
-      ]);
+      return fetchUserAnime(user.id, listStatuses);
     },
     enabled: !!user?.id,
     ...commonQueryOptions,

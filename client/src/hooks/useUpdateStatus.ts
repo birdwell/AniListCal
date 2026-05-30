@@ -3,12 +3,23 @@ import { queryAniList } from '../lib/auth';
 import { logger } from '../lib/logger';
 import { UPDATE_STATUS_MUTATION } from '@/queries/queries';
 import { toast } from '@/hooks/use-toast';
-import { clearAnimeListCache } from '@/lib/anilist';
+import { invalidateAnimeQueries } from '@/lib/invalidateAnimeQueries';
+import { queryKeys } from '@/lib/queryKeys';
 import { MediaListStatus } from '@/generated/graphql';
 
 interface UpdateStatusVariables {
   mediaId: number;
   status: MediaListStatus;
+}
+
+interface SaveMediaListEntryResult {
+  SaveMediaListEntry?: {
+    media?: {
+      title: { romaji?: string | null; english?: string | null };
+    };
+    progress?: number | null;
+    status?: MediaListStatus | null;
+  };
 }
 
 /**
@@ -20,20 +31,18 @@ export function useUpdateStatus() {
 
   const { mutate, isPending, isError, error } = useMutation({
     mutationFn: async ({ mediaId, status }: UpdateStatusVariables) => {
-      return queryAniList(UPDATE_STATUS_MUTATION, {
+      return queryAniList<SaveMediaListEntryResult>(UPDATE_STATUS_MUTATION, {
         mediaId,
         status,
       });
     },
     onMutate: async ({ mediaId, status }) => {
-      // Cancel any outgoing refetches
-      await queryClient.cancelQueries({ queryKey: ['/anilist/anime', mediaId] });
+      const detailKey = queryKeys.animeDetail(mediaId);
+      await queryClient.cancelQueries({ queryKey: detailKey });
       
-      // Snapshot the previous value
-      const previousData = queryClient.getQueryData(['/anilist/anime', mediaId]);
+      const previousData = queryClient.getQueryData(detailKey);
       
-      // Optimistically update the cache with the new status
-      queryClient.setQueryData(['/anilist/anime', mediaId], (old: any) => {
+      queryClient.setQueryData(detailKey, (old: any) => {
         if (!old) return old;
         
         return {
@@ -45,30 +54,22 @@ export function useUpdateStatus() {
         };
       });
       
-      // Return a context object with the snapshotted value
-      return { previousData };
+      return { previousData, mediaId };
     },
     onSuccess: (data, variables) => {
-      // Extract the updated media info from the response
       const updatedMedia = data?.data?.SaveMediaListEntry?.media;
       const updatedStatus = data?.data?.SaveMediaListEntry?.status;
       
       if (updatedMedia) {
-        // Format status for display (convert CURRENT to Watching, etc.)
-        const formattedStatus = formatStatus(updatedStatus);
+        const formattedStatus = formatStatus(updatedStatus ?? null);
         
-        // Show success toast
         toast({
           title: "Status Updated",
           description: `${updatedMedia.title.romaji || updatedMedia.title.english}: ${formattedStatus}`,
           variant: "default",
         });
 
-        // Clear cache to force a refresh of anime list data
-        clearAnimeListCache();
-        
-        // Update the specific anime query with the new data
-        queryClient.setQueryData(['/anilist/anime', variables.mediaId], (old: any) => {
+        queryClient.setQueryData(queryKeys.animeDetail(variables.mediaId), (old: any) => {
           if (!old) return old;
           
           return {
@@ -80,24 +81,20 @@ export function useUpdateStatus() {
           };
         });
         
-        // Invalidate relevant queries to trigger refetch
-        queryClient.invalidateQueries({ queryKey: ['userAnime'] });
-        queryClient.invalidateQueries({ queryKey: ['/anilist/anime'] });
+        invalidateAnimeQueries(queryClient);
       }
     },
     onError: (error: any, variables, context) => {
       logger.error('Error updating status:', error);
       
-      // Show error toast
       toast({
         title: "Update Failed",
         description: error?.message || "Failed to update watch status",
         variant: "destructive",
       });
       
-      // Rollback to the previous value if available
       if (context?.previousData) {
-        queryClient.setQueryData(['/anilist/anime', variables.mediaId], context.previousData);
+        queryClient.setQueryData(queryKeys.animeDetail(variables.mediaId), context.previousData);
       }
     },
   });
@@ -109,9 +106,6 @@ export function useUpdateStatus() {
   };
 }
 
-/**
- * Format MediaListStatus enum values to user-friendly strings
- */
 function formatStatus(status: MediaListStatus | null): string {
   if (!status) return 'Unknown';
   

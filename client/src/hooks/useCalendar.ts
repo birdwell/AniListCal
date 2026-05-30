@@ -5,6 +5,7 @@ import { EntyFragmentFragment, MediaListStatus } from '@/generated/graphql';
 import { fetchUserAnime } from '@/lib/anilist';
 import { isWeeklyShow } from '@/lib/calendar-utils';
 import { commonQueryOptions } from '@/lib/query-config';
+import { queryKeys } from '@/lib/queryKeys';
 import { queryAniList, getUser, type User } from '@/lib/auth';
 
 const DAYS = [
@@ -140,19 +141,21 @@ export function groupShowsByAiringDate(
 export function useAnimeCalendarData() {
   // Fetch current user
   const { data: user, isLoading: isLoadingUser } = useQuery({
-    queryKey: ['/api/users/current'],
+    queryKey: queryKeys.authUser,
     queryFn: getUser,
     ...commonQueryOptions,
   });
 
+  const calendarStatuses = [MediaListStatus.Current];
+
   // Fetch anime entries for the current user
   const { data: animeEntries, isLoading: isAnimeLoading } = useQuery({
-    queryKey: ['/anilist/anime', user?.id],
+    queryKey: user?.id ? queryKeys.animeList(user.id, calendarStatuses) : ['disabled'],
     queryFn: () => {
       if (!user?.id) {
         throw new Error('Please set your Anilist ID in your profile');
       }
-      return fetchUserAnime(user.id, [MediaListStatus.Current]);
+      return fetchUserAnime(user.id, calendarStatuses);
     },
     enabled: !!user?.id,
     ...commonQueryOptions,

@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { queryKeys } from "@/lib/queryKeys";
 
 const profileSchema = z.object({
   anilistId: z.string().min(1, "Required"),
@@ -28,7 +29,7 @@ export default function Profile() {
   const queryClient = useQueryClient();
 
   const { data: user, isLoading } = useQuery({
-    queryKey: ["/api/users/current"],
+    queryKey: queryKeys.authUser,
     queryFn: getUser,
   });
 
@@ -39,7 +40,7 @@ export default function Profile() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/users/current"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.authUser });
       toast({
         title: "Profile Updated",
         description: "Your Anilist ID has been saved successfully.",

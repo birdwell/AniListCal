@@ -67,7 +67,7 @@ export const queryClient = new QueryClient({
       queryFn: getQueryFn({ on401: "returnNull" }),
       refetchOnWindowFocus: false,
       staleTime: 5 * 60 * 1000,
-      gcTime: 30 * 60 * 1000,
+      gcTime: 24 * 60 * 60 * 1000,
       retry: false,
       throwOnError: false,
     },
@@ -77,3 +77,13 @@ export const queryClient = new QueryClient({
     },
   },
 });
+
+/** Matches server list snapshot TTL — persisted client cache max age. */
+export const PERSIST_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+
+export const PERSIST_BUSTER = "v2";
+
+export function shouldPersistQuery(queryKey: readonly unknown[]): boolean {
+  const root = queryKey[0];
+  return root === "/anilist/anime" || root === "auth";
+}

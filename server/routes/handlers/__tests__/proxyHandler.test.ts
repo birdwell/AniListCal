@@ -9,6 +9,19 @@ import {
   ANILIST_TOKEN_EXPIRED_MESSAGE,
 } from '../../../auth/clearSession';
 
+vi.mock('../../../cache/aniListCache', () => ({
+  getCachedProxyResponse: vi.fn().mockResolvedValue(null),
+  setCachedProxyResponse: vi.fn().mockResolvedValue(undefined),
+  invalidateUserAniListCache: vi.fn().mockResolvedValue(undefined),
+  isGraphQLMutation: vi.fn((query: string) => /^\s*mutation\b/i.test(query)),
+}));
+
+import {
+  getCachedProxyResponse,
+  setCachedProxyResponse,
+  invalidateUserAniListCache,
+} from '../../../cache/aniListCache';
+
 describe('handleProxy', () => {
   let req: Request;
   let res: Response;
@@ -20,6 +33,7 @@ describe('handleProxy', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(getCachedProxyResponse).mockResolvedValue(null);
 
     revokeTokenSpy = vi.spyOn(storage, 'revokeToken').mockResolvedValue(true);
     fetchSpy = vi.spyOn(globalThis, 'fetch');
@@ -39,6 +53,21 @@ describe('handleProxy', () => {
     expect(resSpies.status).toHaveBeenCalledWith(401);
     expect(resSpies.json).toHaveBeenCalledWith({ error: 'Not authenticated' });
     expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it('returns cached response without calling AniList when cache hits', async () => {
+    (req as any).userId = '1';
+    (req as any).anilistToken = 'token-from-middleware';
+    req.body = { query: '{ Viewer { id } }', variables: {} };
+    const cachedResponse = { data: { Viewer: { id: 123 } } };
+
+    vi.mocked(getCachedProxyResponse).mockResolvedValue(cachedResponse);
+
+    await handleProxy(req, res, next);
+
+    expect(getCachedProxyResponse).toHaveBeenCalledWith('1', '{ Viewer { id } }', {});
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(resSpies.json).toHaveBeenCalledWith(cachedResponse);
   });
 
   it('proxies request to AniList using req.anilistToken and returns response', async () => {
@@ -63,7 +92,34 @@ describe('handleProxy', () => {
         }),
       })
     );
+    expect(setCachedProxyResponse).toHaveBeenCalledWith(
+      '1',
+      '{ Viewer { id } }',
+      { var1: 'value1' },
+      aniListResponse
+    );
     expect(resSpies.json).toHaveBeenCalledWith(aniListResponse);
+  });
+
+  it('invalidates user cache after successful mutation', async () => {
+    (req as any).userId = '1';
+    (req as any).anilistToken = 'token-from-middleware';
+    req.body = {
+      query: 'mutation Update { SaveMediaListEntry(mediaId: 1, progress: 2) { id } }',
+      variables: { mediaId: 1, progress: 2 },
+    };
+    const mutationResponse = { data: { SaveMediaListEntry: { id: 1 } } };
+
+    fetchSpy.mockResolvedValue({
+      ok: true,
+      json: async () => mutationResponse,
+    });
+
+    await handleProxy(req, res, next);
+
+    expect(setCachedProxyResponse).not.toHaveBeenCalled();
+    expect(invalidateUserAniListCache).toHaveBeenCalledWith('1');
+    expect(resSpies.json).toHaveBeenCalledWith(mutationResponse);
   });
 
   it('returns 400 if query is missing from request body', async () => {

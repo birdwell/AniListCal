@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getUser, login } from "@/lib/auth";
+import { queryKeys } from "@/lib/queryKeys";
 import { SiAnilist } from "react-icons/si";
 import { useLocation, useSearch } from "wouter";
 import { useQuery } from "@tanstack/react-query";
@@ -13,7 +14,7 @@ export default function Login() {
   const appLoginUrl = `${window.location.origin}/login`;
 
   const { data: user, isLoading: isCheckingAuth } = useQuery({
-    queryKey: ["auth", "user"],
+    queryKey: queryKeys.authUser,
     queryFn: getUser,
     retry: false,
   });

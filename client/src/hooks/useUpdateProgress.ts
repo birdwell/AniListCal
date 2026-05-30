@@ -3,11 +3,22 @@ import { queryAniList } from '../lib/auth';
 import { logger } from '../lib/logger';
 import { UPDATE_PROGRESS_MUTATION } from '@/queries/queries';
 import { toast } from '@/hooks/use-toast';
-import { clearAnimeListCache } from '@/lib/anilist';
+import { invalidateAnimeQueries } from '@/lib/invalidateAnimeQueries';
+import { MediaListStatus } from '@/generated/graphql';
 
 interface UpdateProgressVariables {
   mediaId: number;
   progress: number;
+}
+
+interface SaveMediaListEntryResult {
+  SaveMediaListEntry?: {
+    media?: {
+      title: { romaji?: string | null; english?: string | null };
+    };
+    progress?: number | null;
+    status?: MediaListStatus | null;
+  };
 }
 
 /**
@@ -19,35 +30,28 @@ export function useUpdateProgress() {
 
   const { mutate, isPending, isError, error } = useMutation({
     mutationFn: async ({ mediaId, progress }: UpdateProgressVariables) => {
-      return queryAniList(UPDATE_PROGRESS_MUTATION, {
+      return queryAniList<SaveMediaListEntryResult>(UPDATE_PROGRESS_MUTATION, {
         mediaId,
         progress,
       });
     },
     onSuccess: (data) => {
-      // Extract the updated media info from the response
       const updatedMedia = data?.data?.SaveMediaListEntry?.media;
       const updatedProgress = data?.data?.SaveMediaListEntry?.progress;
       
       if (updatedMedia) {
-        // Show success toast
         toast({
           title: "Progress Updated",
           description: `${updatedMedia.title.romaji || updatedMedia.title.english}: Episode ${updatedProgress}`,
           variant: "default",
         });
 
-        // Clear cache to force a refresh of anime list data
-        clearAnimeListCache();
-        
-        // Invalidate relevant queries to trigger refetch
-        queryClient.invalidateQueries({ queryKey: ['userAnime'] });
+        invalidateAnimeQueries(queryClient);
       }
     },
     onError: (error: any) => {
       logger.error('Error updating progress:', error);
       
-      // Show error toast
       toast({
         title: "Update Failed",
         description: error?.message || "Failed to update episode progress",

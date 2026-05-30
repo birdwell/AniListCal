@@ -3,6 +3,7 @@ import type { AniListUser } from "../types";
 import { storage } from "../storage";
 import { getBackendCallbackUrl } from "./urls";
 import { logger } from "../logger";
+import { prefetchListSnapshots } from "../cache/prefetchListSnapshots";
 
 export type FetchFunction = (
   input: RequestInfo | URL,
@@ -110,6 +111,8 @@ export async function persistAniListLogin(
     typeof expiresIn === "number" ? expiresIn : undefined
   );
   await storage.storeUserInfo(userId, viewer.name, viewer.avatar?.medium);
+
+  prefetchListSnapshots(userId, accessToken);
 
   return {
     id: userId,

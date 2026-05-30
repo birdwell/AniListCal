@@ -3,6 +3,7 @@ import { registerMiddleware } from "./middleware";
 import { registerConfigRoutes } from "./config";
 import { registerAuthRoutes } from "./auth";
 import { createSessionStore, type SessionStoreSetup } from "../auth/session";
+import { initCacheStore } from "../cache/cacheStore";
 
 declare global {
   namespace Express {
@@ -21,6 +22,7 @@ declare global {
 
 export async function registerAllRoutes(app: Express): Promise<SessionStoreSetup> {
   const sessionSetup = await createSessionStore();
+  initCacheStore(sessionSetup.redisClient as Parameters<typeof initCacheStore>[0]);
   registerMiddleware(app, sessionSetup.store);
   registerConfigRoutes(app);
   registerAuthRoutes(app);

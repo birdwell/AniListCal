@@ -182,10 +182,10 @@ describe("useAnimeCalendarData", () => {
     mockUseQuery.mockImplementation((options: any) => {
       const queryKey = options.queryKey || [];
 
-      if (queryKey[0] === "/api/users/current") {
+      if (queryKey[0] === "auth") {
         return { data: mockUser, isLoading: false };
       }
-      if (queryKey[0] === "/anilist/anime") {
+      if (queryKey[0] === "/anilist/anime" && queryKey[1] === "list") {
         return { data: mockAnimeEntries, isLoading: false };
       }
       return { data: undefined, isLoading: false };
@@ -208,11 +208,11 @@ describe("useAnimeCalendarData", () => {
     });
 
     expect(mockUseQuery).toHaveBeenCalledWith(
-      expect.objectContaining({ queryKey: ["/api/users/current"] })
+      expect.objectContaining({ queryKey: ["auth", "user"] })
     );
 
     expect(mockUseQuery).toHaveBeenCalledWith(
-      expect.objectContaining({ queryKey: ["/anilist/anime", "user123"] })
+      expect.objectContaining({ queryKey: ["/anilist/anime", "list", "user123", "CURRENT"] })
     );
 
     expect(result.current.isLoading).toBe(false);
@@ -257,10 +257,10 @@ describe("useAnimeCalendarData", () => {
     mockUseQuery.mockReset();
     mockUseQuery.mockImplementation((options: any) => {
       const queryKey = options.queryKey || [];
-      if (queryKey[0] === "/api/users/current") {
+      if (queryKey[0] === "auth") {
         return { data: mockUser, isLoading: false };
       }
-      if (queryKey[0] === "/anilist/anime") {
+      if (queryKey[0] === "/anilist/anime" && queryKey[1] === "list") {
         return { data: mockAnimeEntries, isLoading: false };
       }
       return { data: undefined, isLoading: false };
@@ -311,10 +311,10 @@ describe("useCalendar", () => {
     mockUseQuery.mockImplementation((options: any) => {
       const queryKey = options.queryKey || [];
 
-      if (queryKey[0] === "/api/users/current") {
+      if (queryKey[0] === "auth") {
         return { data: mockUser, isLoading: false };
       }
-      if (queryKey[0] === "/anilist/anime") {
+      if (queryKey[0] === "/anilist/anime" && queryKey[1] === "list") {
         return { data: mockAnimeEntries, isLoading: false };
       }
       return { data: undefined, isLoading: false };

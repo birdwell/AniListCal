@@ -17,6 +17,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ListPlus } from "lucide-react";
 import { RecommendationsSection } from "@/components/show/recommendations-section";
 import { ExternalLinksSection } from "@/components/show/external-links-section";
+import { queryKeys } from "@/lib/queryKeys";
 
 export default function ShowPage() {
   const { id } = useParams();
@@ -27,7 +28,7 @@ export default function ShowPage() {
     isLoading,
     error,
   } = useQuery<MediaFragmentFragment>({
-    queryKey: ["/anilist/anime", animeId],
+    queryKey: animeId ? queryKeys.animeDetail(animeId) : ["disabled"],
     queryFn: () => {
       if (!animeId || isNaN(animeId)) {
         throw new Error("Invalid anime ID");
