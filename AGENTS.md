@@ -74,3 +74,14 @@ Client ID and secret in `.env` must match **that** AniList app. Dev and prod may
 ```bash
 yarn test
 ```
+
+## Greptile PR skills
+
+Project skills live under [`.cursor/skills/`](.cursor/skills/) (see [`.cursor/skills/README.md`](.cursor/skills/README.md)).
+
+| Skill | Use when |
+|-------|----------|
+| **check-pr** | Check the current (or given) PR for review comments, CI failures, and description gaps; fix and resolve. |
+| **greploop** | Iterate Greptile review → fixes → re-review until clean. |
+
+Requires **`gh`** authenticated for `birdwell/AniListCal`. Submodule: `.cursor/skills/greptile` — update with `git submodule update --remote .cursor/skills/greptile`.
