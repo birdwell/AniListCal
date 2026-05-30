@@ -124,6 +124,11 @@ async function queryAniList<T = unknown>(
         errorBody?.code
       );
     }
+    if (response.status === 429) {
+      throw new Error(
+        errorBody?.error || "Too many requests. Please wait a moment and try again."
+      );
+    }
     throw new Error(errorBody?.error || `AniList API proxy error: ${response.status}`);
   }
 

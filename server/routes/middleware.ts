@@ -15,6 +15,29 @@ function getAllowedOrigins(): string[] {
   return [...origins];
 }
 
+function buildContentSecurityPolicy(): string {
+  const connectSrc = [
+    "'self'",
+    "https://graphql.anilist.co",
+    "https://cloud.umami.is",
+    "https://api-gateway.umami.dev",
+    "https://*.ingest.us.sentry.io",
+  ];
+
+  return [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline' https://cloud.umami.is",
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' https://s4.anilist.co https://img.anili.st data:",
+    "font-src 'self'",
+    `connect-src ${connectSrc.join(" ")}`,
+    "frame-src 'none'",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+  ].join("; ");
+}
+
 // Add Content Security Policy middleware
 export function addSecurityHeaders(app: Express) {
   app.use((req, res, next) => {
@@ -23,21 +46,7 @@ export function addSecurityHeaders(app: Express) {
     }
 
     if (process.env.NODE_ENV === "production") {
-      res.setHeader(
-        "Content-Security-Policy",
-        [
-          "default-src 'self'",
-          "script-src 'self' 'unsafe-inline' https://cloud.umami.is",
-          "style-src 'self' 'unsafe-inline'",
-          "img-src 'self' https://s4.anilist.co https://img.anili.st data:",
-          "font-src 'self'",
-          "connect-src 'self' https://graphql.anilist.co https://cloud.umami.is",
-          "frame-src 'none'",
-          "object-src 'none'",
-          "base-uri 'self'",
-          "form-action 'self'",
-        ].join("; ")
-      );
+      res.setHeader("Content-Security-Policy", buildContentSecurityPolicy());
     }
     next();
   });
@@ -74,7 +83,7 @@ export function registerMiddleware(app: Express, sessionStore: Store) {
 
   const apiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    limit: 100,
+    limit: 400,
     standardHeaders: true,
     legacyHeaders: false,
     message: "Too many requests from this IP, please try again after 15 minutes",
@@ -83,7 +92,7 @@ export function registerMiddleware(app: Express, sessionStore: Store) {
 
   const authLimiter = rateLimit({
     windowMs: 60 * 60 * 1000,
-    limit: 10,
+    limit: 20,
     standardHeaders: true,
     legacyHeaders: false,
     message: "Too many login attempts from this IP, please try again after an hour",
@@ -91,7 +100,8 @@ export function registerMiddleware(app: Express, sessionStore: Store) {
   });
 
   app.use("/api/", apiLimiter);
-  app.use("/api/auth/", authLimiter);
+  app.use("/api/auth/login", authLimiter);
+  app.use("/api/auth/callback", authLimiter);
 
   if (!process.env.SESSION_SECRET && process.env.NODE_ENV === "production") {
     log("WARNING: No SESSION_SECRET set in production. Using a default secret is insecure.");
