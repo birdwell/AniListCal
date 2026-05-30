@@ -1,3 +1,0 @@
-[submodule ".cursor/skills/greptile"]
-	path = .cursor/skills/greptile
-	url = https://github.com/greptileai/skills.git

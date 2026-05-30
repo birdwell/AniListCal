@@ -9,16 +9,21 @@ import graphql from "@rollup/plugin-graphql";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const projectRoot = __dirname;
+const isVitest = process.env.VITEST === "true" || process.env.VITEST === "1";
 
 export default defineConfig({
   envDir: projectRoot,
   plugins: [
     react(),
     graphql(),
-    sentryVitePlugin({
-      org: "birdwell-labs",
-      project: "anilistcal",
-    }),
+    ...(isVitest
+      ? []
+      : [
+          sentryVitePlugin({
+            org: "birdwell-labs",
+            project: "anilistcal",
+          }),
+        ]),
   ],
   resolve: {
     alias: {
@@ -58,6 +63,7 @@ export default defineConfig({
       provider: "v8",
       reportsDirectory: "./coverage",
       reporter: ["text", "html"],
+      include: ["client/src/**/*.{ts,tsx}", "server/**/*.ts"],
       exclude: ["**/node_modules/**", "**/dist/**", "**/coverage/**"],
     },
   },
