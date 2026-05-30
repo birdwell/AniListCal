@@ -56,7 +56,7 @@ export function AnimeCard({ entry, isCompact = false }: AnimeCardProps) {
         className="overflow-hidden hover:bg-accent/50 transition-colors cursor-pointer border-l-4 border-l-primary/70"
         onClick={handleClick}
       >
-        <div className="flex gap-2 sm:gap-4 p-3 sm:p-4">
+        <div className="flex gap-3 sm:gap-4 p-3 sm:p-4 w-full">
           <div className="h-20 w-14 sm:h-24 sm:w-16 flex-shrink-0 overflow-hidden rounded-md shadow-sm">
             <img
               src={imageUrl}
@@ -64,7 +64,7 @@ export function AnimeCard({ entry, isCompact = false }: AnimeCardProps) {
               className="object-cover w-full h-full"
             />
           </div>
-          <div className="flex flex-col justify-center min-w-0">
+          <div className="flex flex-1 flex-col justify-center min-w-0">
             <h3 className="font-medium text-sm sm:text-base line-clamp-2 mb-1 sm:mb-2">
               {title}
             </h3>

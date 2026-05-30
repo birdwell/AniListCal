@@ -4,7 +4,7 @@ import { setupVite, serveStatic, log } from "./vite";
 import * as dotenv from "dotenv";
 import { createServer } from "http";
 import { logger } from "./logger";
-import { getLocalDevAppUrl, openInSystemBrowser } from "./utils/openBrowser";
+import { getLocalDevAppUrl, openDevBrowserOnce } from "./utils/openBrowser";
 import { closeSessionStore, type SessionStoreSetup } from "./auth/session";
 
 dotenv.config();
@@ -110,11 +110,8 @@ async function startServer() {
     log(`Server running on http://0.0.0.0:${PORT}/`);
     logDevSetupHints();
 
-    if (
-      process.env.NODE_ENV !== "production" &&
-      process.env.OPEN_BROWSER !== "false"
-    ) {
-      openInSystemBrowser(getLocalDevAppUrl(PORT));
+    if (process.env.NODE_ENV !== "production") {
+      openDevBrowserOnce(getLocalDevAppUrl(PORT));
     }
   });
 

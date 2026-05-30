@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook } from "@testing-library/react";
-import { act } from "react-dom/test-utils";
+import { act } from "react";
 import { format } from "date-fns";
 import {
   useDaySelection,

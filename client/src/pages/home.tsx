@@ -55,10 +55,8 @@ export default function Home() {
   }
 
   return (
-    <div className="flex justify-center w-full">
-      <div className="space-y-4 sm:space-y-6 w-full px-3 sm:px-6 md:px-8 max-w-full sm:max-w-sm md:max-w-xl lg:max-w-4xl xl:max-w-6xl">
-        <AnimeContent animeEntries={animeEntries || []} />
-      </div>
+    <div className="w-full mx-auto px-4 sm:px-6 lg:px-10 xl:px-12 2xl:px-16 space-y-4 sm:space-y-6">
+      <AnimeContent animeEntries={animeEntries || []} />
     </div>
   );
 }

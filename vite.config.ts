@@ -27,7 +27,7 @@ export default defineConfig({
   server: {
     port: 5001,
     strictPort: true,
-    open: "/login",
+    open: process.env.OPEN_BROWSER === "false" ? false : "/login",
     proxy: {
       '/api': {
         target: 'http://localhost:5001',
