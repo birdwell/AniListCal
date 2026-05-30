@@ -1,4 +1,6 @@
 /// <reference types="vitest/config" />
+// Vite 8 (Rolldown): intentional v6→v8 jump; CI build + 68 tests pass. See docs/vite-8-upgrade-notes.md.
+// @vitejs/plugin-react v6 uses Oxc (no Babel). Use @rolldown/plugin-babel if Babel plugins are needed later.
 import { sentryVitePlugin } from "@sentry/vite-plugin";
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
@@ -63,6 +65,7 @@ export default defineConfig({
       provider: "v8",
       reportsDirectory: "./coverage",
       reporter: ["text", "html"],
+      all: true,
       include: ["client/src/**/*.{ts,tsx}", "server/**/*.ts"],
       exclude: ["**/node_modules/**", "**/dist/**", "**/coverage/**"],
     },
