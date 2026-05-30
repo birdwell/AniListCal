@@ -1,7 +1,7 @@
 import session, { type Store } from "express-session";
 import MemoryStoreFactory from "memorystore";
 import { RedisStore } from "connect-redis";
-import { createClient } from "redis";
+import { createClient, type RedisClientType } from "redis";
 import { log } from "../vite";
 import { logger } from "../logger";
 import {
@@ -19,7 +19,7 @@ export {
 
 export interface SessionStoreSetup {
   store: Store;
-  redisClient?: ReturnType<typeof createClient>;
+  redisClient?: RedisClientType;
 }
 
 /**
