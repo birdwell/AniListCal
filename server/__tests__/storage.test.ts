@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { decryptToken } from '../tokenCrypto';
+import { decryptToken, encryptToken } from '../tokenCrypto';
 
 const {
   mockInit,
@@ -146,7 +146,7 @@ describe('PersistentStorage (Redis)', () => {
     mockRedisGet.mockResolvedValue(
       JSON.stringify({
         userId: userIdStr,
-        accessToken: testToken,
+        accessToken: encryptToken(testToken),
         expiresAt: Date.now() + 3600000,
       })
     );
@@ -168,11 +168,18 @@ describe('PersistentStorage (Redis)', () => {
   it('stores and retrieves user info in Redis', async () => {
     const userIdStr = testUserInfo.userId.toString();
     const userInfo = { username: testUserInfo.userName, avatarUrl: testUserInfo.avatar };
+    const expiresInSec = 3600;
 
-    await storage.storeUserInfo(userIdStr, testUserInfo.userName, testUserInfo.avatar);
+    await storage.storeUserInfo(
+      userIdStr,
+      testUserInfo.userName,
+      testUserInfo.avatar,
+      expiresInSec
+    );
     expect(mockRedisSet).toHaveBeenCalledWith(
       `anilistcal:store:user:${userIdStr}`,
-      JSON.stringify(userInfo)
+      JSON.stringify(userInfo),
+      { EX: expiresInSec }
     );
 
     mockRedisGet.mockResolvedValue(JSON.stringify(userInfo));

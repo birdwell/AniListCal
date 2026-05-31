@@ -141,14 +141,21 @@ export class PersistentStorage {
     }
   }
 
-  async storeUserInfo(userId: string, username: string, avatarUrl?: string): Promise<void> {
+  async storeUserInfo(
+    userId: string,
+    username: string,
+    avatarUrl?: string,
+    expiresInSeconds?: number
+  ): Promise<void> {
     await this.ensureInitialized();
     const userInfo = { username, avatarUrl };
 
     if (this.useRedis && this.redisClient) {
+      const ttlSec = this.resolveTokenTtlSeconds(expiresInSeconds);
       await this.redisClient.set(
         RedisKeys.USER_INFO(userId),
-        JSON.stringify(userInfo)
+        JSON.stringify(userInfo),
+        { EX: ttlSec }
       );
       return;
     }
