@@ -30,12 +30,12 @@ SESSION_SECRET=...           # any long random string
 
 Login uses **`GET /api/auth/login`** (server OAuth + session cookie).
 
-**Not used:** `DATABASE_URL`, `VITE_ANILIST_CLIENT_ID` — persistence is `node-persist` (`.persist-storage/`) for AniList OAuth tokens; login is fully server-side.
+**Not used:** `DATABASE_URL`, `VITE_ANILIST_CLIENT_ID` — AniList OAuth tokens are stored server-side (Redis in production, `node-persist` locally); login is fully server-side.
 
 **Sessions:**
 
 - Local dev: in-memory sessions by default (no Redis required).
-- Production: set **`REDIS_URL`** (Railway Redis add-on) so login sessions survive deploys/restarts.
+- Production: set **`REDIS_URL`** (Railway Redis add-on) so login sessions **and AniList tokens** survive deploys/restarts.
 - Optional **`SESSION_MAX_AGE_MS`** — default ~364 days (slightly under AniList’s 1-year access token).
 
 See **`docs/adr/001-passport-session-auth.md`** for the full auth architecture decision record.

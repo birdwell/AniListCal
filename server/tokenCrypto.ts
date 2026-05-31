@@ -1,7 +1,7 @@
 import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from "crypto";
 
 /**
- * Encrypts AniList access tokens before they are written to disk (node-persist).
+ * Encrypts AniList access tokens before they are written at rest (Redis or node-persist).
  * Tokens grant full API access to a user's AniList account, so they must not
  * sit in plaintext on the filesystem.
  *

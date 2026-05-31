@@ -6,7 +6,7 @@
 - [ ] Configure AniList OAuth credentials for production
 - [ ] Register production redirect URI: `https://your-domain.com/api/auth/callback`
 - [ ] Set `FRONTEND_URL` and `BACKEND_CALLBACK_URL` to your public domain
-- [ ] Add Redis and set `REDIS_URL` on the app service (sessions survive restarts)
+- [ ] Add Redis and set `REDIS_URL` on the app service (sessions and AniList tokens survive restarts/deploys)
 - [ ] Set `NODE_ENV=production`
 - [ ] Do **not** set `PORT` on Railway (platform injects it)
 
@@ -28,7 +28,7 @@
 - [ ] Full login → callback → home flow works in a real browser
 - [ ] Logout clears the session
 - [ ] GraphQL proxy works for authenticated users (`POST /api/anilist/proxy`)
-- [ ] Session survives a redeploy (with Redis configured)
+- [ ] Session and AniList API access survive a redeploy (requires `REDIS_URL`)
 
 ## Security
 
@@ -38,7 +38,6 @@
 
 ## Optional follow-ups
 
-- [ ] Mount persistent storage for `.persist-storage/` if you want AniList tokens to survive container disk wipes
 - [ ] Set up uptime monitoring on `/api/health`
 
 ## References

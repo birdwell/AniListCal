@@ -31,7 +31,7 @@ Adopt **Passport.js + express-session** with **HttpOnly session cookies**:
 | Session store (production) | Redis via `connect-redis` (`REDIS_URL`) |
 | Session store (local dev) | In-memory (`memorystore`) when `REDIS_URL` is unset |
 | OAuth | `passport-oauth2` strategy named **`anilist`** (server-side redirect flow) |
-| AniList tokens | Stored server-side only (`node-persist`), never exposed to the browser |
+| AniList tokens | Stored server-side only (Redis in production, `node-persist` locally), never exposed to the browser |
 | AniList token expiry | Revoke stored token, destroy session, return `401` with `ANILIST_TOKEN_EXPIRED` |
 
 ### Auth flow (current)
@@ -50,7 +50,7 @@ sequenceDiagram
   Browser->>AniListCal: GET /api/auth/callback
   AniListCal->>AniList: Exchange code for access token (JSON body)
   AniListCal->>AniList: Fetch Viewer profile (GraphQL)
-  AniListCal->>AniListCal: Persist token + user in node-persist
+  AniListCal->>AniListCal: Persist token + user in Redis (or node-persist locally)
   AniListCal->>Redis: Save session (user id)
   AniListCal->>Browser: Set-Cookie sid; redirect to /
   Browser->>AniListCal: POST /api/anilist/proxy (cookie)
@@ -89,9 +89,9 @@ sequenceDiagram
 | Data | Store | Survives deploy? |
 |------|-------|------------------|
 | Session id → user id | Redis (prod) | Yes, when `REDIS_URL` is set |
-| AniList access token + profile | `node-persist` (`.persist-storage/`) | **No** on ephemeral containers unless a volume is mounted |
+| AniList access token + profile | Redis when `REDIS_URL` is set; else `node-persist` (`.persist-storage/`) | Yes with Redis |
 
-Users may need to re-authorize with AniList after a deploy even when Redis sessions survive, if the container disk is wiped. A future improvement could move AniList tokens into Redis or a mounted volume.
+Users may need to re-authorize with AniList after a deploy only when `REDIS_URL` is unset (tokens fall back to ephemeral disk). With Redis configured, sessions and AniList tokens both survive deploys.
 
 ## Environment variables
 
@@ -113,7 +113,7 @@ BACKEND_CALLBACK_URL=https://anilistcal.com/api/auth/callback
 
 **No longer required:** `VITE_ANILIST_CLIENT_ID` (old client-side OAuth redirect).
 
-**Not used:** `DATABASE_URL` — Postgres is not part of auth; tokens use `node-persist`.
+**Not used:** `DATABASE_URL` — Postgres is not part of auth; tokens use Redis (production) or `node-persist` (local dev).
 
 ## Production deployment (Railway)
 
@@ -134,7 +134,7 @@ BACKEND_CALLBACK_URL=https://anilistcal.com/api/auth/callback
 ### Negative / trade-offs
 
 - Production **requires Redis** for durable login sessions.
-- AniList tokens on container disk remain ephemeral without extra storage.
+- AniList tokens on container disk remain ephemeral without Redis; set `REDIS_URL` in production so tokens persist alongside sessions.
 - OAuth login must run in a real browser (not Cursor embedded preview).
 - Slightly more moving parts (Passport, Redis, session middleware) than the old custom tokens.
 

@@ -1,12 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { PersistentStorage } from '../storage';
 import { decryptToken } from '../tokenCrypto';
 
-const mockInit = vi.fn().mockResolvedValue(undefined);
-const mockSetItem = vi.fn();
-const mockGetItem = vi.fn();
-const mockRemoveItem = vi.fn();
-const mockClear = vi.fn();
+const {
+  mockInit,
+  mockSetItem,
+  mockGetItem,
+  mockRemoveItem,
+} = vi.hoisted(() => ({
+  mockInit: vi.fn().mockResolvedValue(undefined),
+  mockSetItem: vi.fn(),
+  mockGetItem: vi.fn(),
+  mockRemoveItem: vi.fn(),
+}));
 
 vi.mock('node-persist', () => ({
   default: {
@@ -14,7 +19,7 @@ vi.mock('node-persist', () => ({
     setItem: mockSetItem,
     getItem: mockGetItem,
     removeItem: mockRemoveItem,
-    clear: mockClear,
+    clear: vi.fn(),
     valuesWithKeyMatch: vi.fn().mockResolvedValue([]),
   },
 }));
@@ -27,14 +32,14 @@ const testUserInfo = {
 
 const testToken = 'test-access-token';
 
-describe('PersistentStorage', () => {
-  let storage: PersistentStorage;
+describe('PersistentStorage (node-persist)', () => {
+  let PersistentStorage: typeof import('../storage').PersistentStorage;
+  let storage: import('../storage').PersistentStorage;
 
   beforeEach(async () => {
-    vi.resetModules();
     vi.clearAllMocks();
-    const storageModule = await import('../storage');
-    storage = new storageModule.PersistentStorage();
+    ({ PersistentStorage } = await import('../storage'));
+    storage = new PersistentStorage();
     await new Promise(setImmediate);
   });
 
@@ -57,7 +62,6 @@ describe('PersistentStorage', () => {
         { ttl }
       );
 
-      // Stored token is encrypted at rest but round-trips back to the original.
       const storedToken = mockSetItem.mock.calls[0][1].accessToken;
       expect(storedToken).not.toBe(testToken);
       expect(decryptToken(storedToken)).toBe(testToken);
@@ -100,5 +104,79 @@ describe('PersistentStorage', () => {
       const retrievedInfo = await storage.getUserInfo(userIdStr);
       expect(retrievedInfo).toEqual(userInfoToStore);
     });
+  });
+});
+
+describe('PersistentStorage (Redis)', () => {
+  const mockRedisGet = vi.fn();
+  const mockRedisSet = vi.fn();
+  const mockRedisDel = vi.fn();
+
+  const redisClient = {
+    get: mockRedisGet,
+    set: mockRedisSet,
+    del: mockRedisDel,
+  };
+
+  let initStorage: typeof import('../storage').initStorage;
+  let storage: import('../storage').PersistentStorage;
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    ({ initStorage } = await import('../storage'));
+    storage = initStorage(redisClient);
+  });
+
+  it('stores encrypted tokens in Redis with EX TTL', async () => {
+    const userIdStr = testUserInfo.userId.toString();
+    const expiresInSec = 3600;
+
+    await storage.storeToken(userIdStr, testToken, expiresInSec);
+
+    expect(mockRedisSet).toHaveBeenCalledWith(
+      `anilistcal:store:token:${userIdStr}`,
+      expect.stringContaining('"accessToken":"enc:v1:'),
+      { EX: expiresInSec }
+    );
+    expect(mockInit).not.toHaveBeenCalled();
+  });
+
+  it('retrieves and decrypts a token from Redis', async () => {
+    const userIdStr = testUserInfo.userId.toString();
+    mockRedisGet.mockResolvedValue(
+      JSON.stringify({
+        userId: userIdStr,
+        accessToken: testToken,
+        expiresAt: Date.now() + 3600000,
+      })
+    );
+
+    const token = await storage.getToken(userIdStr);
+    expect(mockRedisGet).toHaveBeenCalledWith(`anilistcal:store:token:${userIdStr}`);
+    expect(token).toBe(testToken);
+  });
+
+  it('revokes tokens via Redis DEL', async () => {
+    const userIdStr = testUserInfo.userId.toString();
+    mockRedisGet.mockResolvedValue('{"userId":"123"}');
+
+    const revoked = await storage.revokeToken(userIdStr);
+    expect(revoked).toBe(true);
+    expect(mockRedisDel).toHaveBeenCalledWith(`anilistcal:store:token:${userIdStr}`);
+  });
+
+  it('stores and retrieves user info in Redis', async () => {
+    const userIdStr = testUserInfo.userId.toString();
+    const userInfo = { username: testUserInfo.userName, avatarUrl: testUserInfo.avatar };
+
+    await storage.storeUserInfo(userIdStr, testUserInfo.userName, testUserInfo.avatar);
+    expect(mockRedisSet).toHaveBeenCalledWith(
+      `anilistcal:store:user:${userIdStr}`,
+      JSON.stringify(userInfo)
+    );
+
+    mockRedisGet.mockResolvedValue(JSON.stringify(userInfo));
+    const retrieved = await storage.getUserInfo(userIdStr);
+    expect(retrieved).toEqual(userInfo);
   });
 });
