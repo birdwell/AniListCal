@@ -42,11 +42,6 @@ export class PersistentStorage {
       this.isInitialized = true;
       logger.debug('[Storage] Using Redis for AniList tokens and user info.');
     } else {
-      if (process.env.NODE_ENV === 'production') {
-        console.warn(
-          '[Storage] REDIS_URL is not set — AniList tokens use ephemeral disk storage and will be lost on deploy. Set REDIS_URL to persist tokens alongside sessions.'
-        );
-      }
       void this.initializeNodePersist();
     }
   }
@@ -227,5 +222,10 @@ export let storage: PersistentStorage = new PersistentStorage();
  */
 export function initStorage(redisClient?: RedisClientForStorage): PersistentStorage {
   storage = new PersistentStorage(redisClient);
+  if (!redisClient && process.env.NODE_ENV === 'production') {
+    console.warn(
+      '[Storage] REDIS_URL is not set — AniList tokens use ephemeral disk storage and will be lost on deploy. Set REDIS_URL to persist tokens alongside sessions.'
+    );
+  }
   return storage;
 }

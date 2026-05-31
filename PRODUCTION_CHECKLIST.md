@@ -36,6 +36,16 @@
 - [ ] Session cookie is HttpOnly and secure in production
 - [ ] Rate limiting is active on `/api/` routes
 
+## Decommission Render (legacy)
+
+Production runs on **Railway** only. If Render still posts failed PR deployment checks:
+
+1. [Render Dashboard](https://dashboard.render.com/) → open the linked **AniListCal** web service
+2. **Settings** → disconnect the GitHub repo (or delete the service entirely)
+3. Optional: remove the Render GitHub App from [GitHub repo settings → Integrations](https://github.com/birdwell/AniListCal/settings/installations)
+
+`render.yaml` and deploy scripts were removed in commit `799fe79`; any remaining deploys come from the Render dashboard integration, not this repo.
+
 ## Optional follow-ups
 
 - [ ] Set up uptime monitoring on `/api/health`
