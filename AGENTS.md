@@ -11,7 +11,7 @@ yarn dev
 ```
 
 - **One command** — Express serves API + Vite on **http://localhost:5001**
-- Browser opens to `/login` automatically (disable with `OPEN_BROWSER=false` in `.env`)
+- Browser opens to `/login` once per `yarn dev` session (disable with `OPEN_BROWSER=false` in `.env`; does not apply to `yarn client`)
 - Use **Chrome/Safari/Firefox** for OAuth — Cursor’s embedded preview blocks AniList redirects
 
 `yarn client` exists for frontend-only Vite work; normal full-stack dev uses **`yarn dev`** only.

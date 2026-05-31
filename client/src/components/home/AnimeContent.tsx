@@ -1,5 +1,5 @@
 import { EntyFragmentFragment } from "@/generated/graphql";
-import { MediaStatus } from "@/lib/mediaStatus";
+import { MediaStatus } from "@/generated/graphql";
 import { AnimeSection } from "./AnimeSection";
 import { SearchBar } from "./SearchBar";
 import { ViewToggle } from "./ViewToggle";

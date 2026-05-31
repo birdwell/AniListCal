@@ -26,5 +26,11 @@ export async function registerAllRoutes(app: Express): Promise<SessionStoreSetup
   registerMiddleware(app, sessionSetup.store);
   registerConfigRoutes(app);
   registerAuthRoutes(app);
+
+  // Unmatched /api/* → JSON 404 so SPA catch-alls never see API paths.
+  app.use("/api", (_req, res) => {
+    res.status(404).json({ error: "Not found" });
+  });
+
   return sessionSetup;
 }

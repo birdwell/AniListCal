@@ -115,7 +115,7 @@ yarn dev   # nodemon → tsx server/index.ts
 2. `registerRoutes()` mounts middleware, sessions, and API routes **before** the SPA handler.
 3. In non-production mode, `setupVite()` attaches Vite in middleware mode to the same HTTP server.
 4. Requests to `/api/*` hit Express handlers; all other requests get the SPA (`client/index.html` transformed by Vite).
-5. On startup, the server optionally opens the system browser to `/login` (disable with `OPEN_BROWSER=false`).
+5. On startup, the Express dev server optionally opens the system browser to `/login` once per session (`yarn dev` only; disable with `OPEN_BROWSER=false`).
 
 OAuth redirects require a real browser (Chrome, Safari, Firefox). Embedded IDE previews block AniList redirects.
 

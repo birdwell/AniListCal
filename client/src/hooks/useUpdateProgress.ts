@@ -4,7 +4,7 @@ import { logger } from '../lib/logger';
 import { UPDATE_PROGRESS_MUTATION } from '@/queries/queries';
 import { toast } from '@/hooks/use-toast';
 import { invalidateAnimeQueries } from '@/lib/invalidateAnimeQueries';
-import { MediaListStatus } from '@/lib/mediaListStatus';
+import { MediaListStatus } from '@/generated/graphql';
 
 interface UpdateProgressVariables {
   mediaId: number;

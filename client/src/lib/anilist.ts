@@ -4,8 +4,8 @@ import {
   GetMediaQuery,
   GetUserMediaListQuery,
   MediaFragmentFragment,
+  MediaListStatus,
 } from "@/generated/graphql";
-import { MediaListStatus } from "@/lib/mediaListStatus";
 import { GET_USER_MEDIA_LIST_QUERY, GET_MEDIA_QUERY } from "@/queries/queries";
 import { queryAniList } from "./anilistProxy";
 import { logger } from "./logger";

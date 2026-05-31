@@ -41,7 +41,9 @@ export default defineConfig({
   server: {
     port: 5001,
     strictPort: true,
-    open: process.env.OPEN_BROWSER === "false" ? false : "/login",
+    // Browser open is handled by the Express dev server (`openDevBrowserOnce` in server/index.ts).
+    // OPEN_BROWSER only applies to `yarn dev`, not `yarn client`.
+    open: false,
     proxy: {
       "/api": {
         target: "http://localhost:5001",

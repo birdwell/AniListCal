@@ -5,7 +5,7 @@ import { UPDATE_STATUS_MUTATION } from '@/queries/queries';
 import { toast } from '@/hooks/use-toast';
 import { invalidateAnimeQueries } from '@/lib/invalidateAnimeQueries';
 import { queryKeys } from '@/lib/queryKeys';
-import { MediaListStatus } from '@/lib/mediaListStatus';
+import { MediaListStatus } from '@/generated/graphql';
 
 interface UpdateStatusVariables {
   mediaId: number;

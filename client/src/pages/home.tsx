@@ -4,7 +4,7 @@ import { fetchUserAnime } from "@/lib/anilist";
 import { logger } from "@/lib/logger";
 import { LoadingView, ErrorAlert, AnimeContent } from "@/components/home";
 import { commonQueryOptions } from "@/lib/query-config";
-import { MediaListStatus } from "@/lib/mediaListStatus";
+import { MediaListStatus } from "@/generated/graphql";
 import { queryKeys } from "@/lib/queryKeys";
 
 export default function Home() {

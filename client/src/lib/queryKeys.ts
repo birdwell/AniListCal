@@ -1,4 +1,4 @@
-import type { MediaListStatus } from "@/lib/mediaListStatus";
+import type { MediaListStatus } from "@/generated/graphql";
 
 export const queryKeys = {
   authUser: ["auth", "user"] as const,
