@@ -67,7 +67,7 @@ describe("anilistOAuth", () => {
     expect(fetchMock).toHaveBeenNthCalledWith(1, ANILIST_TOKEN_URL, expect.objectContaining({ method: "POST" }));
     expect(fetchMock).toHaveBeenNthCalledWith(2, ANILIST_GRAPHQL_URL, expect.objectContaining({ method: "POST" }));
     expect(storeTokenSpy).toHaveBeenCalledWith("123", "anilist_token", 3600);
-    expect(storeUserInfoSpy).toHaveBeenCalledWith("123", "TestUser", "avatar_url");
+    expect(storeUserInfoSpy).toHaveBeenCalledWith("123", "TestUser", "avatar_url", 3600);
     expect(user).toEqual({
       id: "123",
       username: "TestUser",

@@ -4,6 +4,7 @@ import { registerConfigRoutes } from "./config";
 import { registerAuthRoutes } from "./auth";
 import { createSessionStore, type SessionStoreSetup } from "../auth/session";
 import { initCacheStore } from "../cache/cacheStore";
+import { initStorage } from "../storage";
 
 declare global {
   namespace Express {
@@ -22,7 +23,9 @@ declare global {
 
 export async function registerAllRoutes(app: Express): Promise<SessionStoreSetup> {
   const sessionSetup = await createSessionStore();
-  initCacheStore(sessionSetup.redisClient as Parameters<typeof initCacheStore>[0]);
+  const redisClient = sessionSetup.redisClient as Parameters<typeof initCacheStore>[0];
+  initCacheStore(redisClient);
+  initStorage(redisClient);
   registerMiddleware(app, sessionSetup.store);
   registerConfigRoutes(app);
   registerAuthRoutes(app);

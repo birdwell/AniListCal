@@ -110,7 +110,12 @@ export async function persistAniListLogin(
     accessToken,
     typeof expiresIn === "number" ? expiresIn : undefined
   );
-  await storage.storeUserInfo(userId, viewer.name, viewer.avatar?.medium);
+  await storage.storeUserInfo(
+    userId,
+    viewer.name,
+    viewer.avatar?.medium,
+    typeof expiresIn === "number" ? expiresIn : undefined
+  );
 
   prefetchListSnapshots(userId, accessToken);
 

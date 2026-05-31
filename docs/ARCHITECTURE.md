@@ -55,7 +55,7 @@ AniListCal uses a **Backend-for-Frontend (BFF)** pattern:
 | Backend | Express 4, TypeScript |
 | Auth | Passport.js + express-session + OAuth2 |
 | Session store | Redis (production) or in-memory (local dev) |
-| Token storage | `node-persist` on disk (`.persist-storage/`) |
+| Token storage | Redis when `REDIS_URL` is set; else `node-persist` on disk (`.persist-storage/`, local dev) |
 | External API | AniList GraphQL + OAuth 2.0 |
 | Hosting | Railway (production) |
 
@@ -86,7 +86,7 @@ AniListCal/
 │   ├── index.ts               # Server entry point
 │   ├── auth/                  # Passport, sessions, OAuth, requireAuth
 │   ├── routes/                # Route registration, middleware, handlers
-│   ├── storage.ts             # node-persist token/user storage
+│   ├── storage.ts             # AniList token/user storage (Redis or node-persist)
 │   └── vite.ts                # Vite dev middleware + prod static serving
 ├── docs/
 │   ├── ARCHITECTURE.md        # This file
@@ -157,7 +157,7 @@ Full decision record: [docs/adr/001-passport-session-auth.md](./adr/001-passport
 | Concern | Approach |
 |---------|----------|
 | Browser ↔ API identity | HttpOnly cookie `sid`, `credentials: "include"` on all auth fetches |
-| AniList access tokens | Stored server-side only in `node-persist`; never sent to the browser |
+| AniList access tokens | Stored server-side in Redis (prod) or `node-persist` (local); never sent to the browser |
 | OAuth flow | Server-side redirect via Passport strategy named **`anilist`** |
 | Session persistence (prod) | Redis via `connect-redis` when `REDIS_URL` is set |
 | Session persistence (dev) | In-memory `memorystore` when `REDIS_URL` is unset |
@@ -179,7 +179,7 @@ sequenceDiagram
   Browser->>AniListCal: GET /api/auth/callback
   AniListCal->>AniList: Exchange code for access token (JSON body)
   AniListCal->>AniList: Fetch Viewer profile (GraphQL)
-  AniListCal->>AniListCal: Persist token + user in node-persist
+  AniListCal->>AniListCal: Persist token + user in Redis (or node-persist locally)
   AniListCal->>Redis: Save session (user id)
   AniListCal->>Browser: Set-Cookie sid; redirect to /
   Browser->>AniListCal: POST /api/anilist/proxy (cookie)
@@ -198,7 +198,7 @@ sequenceDiagram
 | `server/auth/sessionConfig.ts` | Cookie name, max age, secure flags |
 | `server/auth/requireAuth.ts` | Middleware: session check + load AniList token onto `req` |
 | `server/auth/clearSession.ts` | Token expiry detection and session teardown |
-| `server/storage.ts` | `node-persist` read/write for tokens and user info |
+| `server/storage.ts` | Redis or `node-persist` read/write for tokens and user info |
 
 ### Key client files
 
@@ -291,7 +291,7 @@ The server proxy (`server/routes/handlers/proxyHandler.ts`) forwards `{ query, v
 |-------|----------|----------|
 | React Query | `client/src/lib/queryClient.ts` | Default stale 5 min, gc 30 min; pages override via `commonQueryOptions` |
 | localStorage | `client/src/lib/cache-service.ts` | Anime list: 30 min TTL; details: 24 hr TTL; LRU eviction (10 list / 30 detail entries) |
-| Server | — | No GraphQL response cache; tokens cached in `node-persist` with ~1 year TTL |
+| Server | Redis (prod) / node-persist (local) | AniList tokens + user profile; encrypted at rest |
 | Session | Redis / memory | Session cookie references user id; token loaded on each authenticated request |
 
 Mutations call `clearAnimeListCache()` after success to invalidate the localStorage list cache. React Query keys are invalidated by mutation hooks where needed.
@@ -487,14 +487,14 @@ HTTP request
 
 ### Token storage
 
-`server/storage.ts` uses `node-persist` with files under `.persist-storage/`:
+`server/storage.ts` stores AniList credentials server-side, encrypted with AES-256-GCM via `SESSION_SECRET`:
 
-| Key pattern | Content |
-|-------------|---------|
-| `anilist_token_{userId}` | Access token + expiry metadata |
-| `user_info_{userId}` | Username, avatar URL |
+| Backend | When | Key pattern |
+|---------|------|-------------|
+| **Redis** | `REDIS_URL` set (production) | `anilistcal:store:token:{userId}`, `anilistcal:store:user:{userId}` |
+| **node-persist** | Local dev without Redis | `anilist_token_{userId}`, `user_info_{userId}` under `.persist-storage/` |
 
-Expired tokens are cleaned up on an hourly interval. On ephemeral containers (Railway), this directory is **lost on redeploy** unless a persistent volume is mounted. Redis sessions survive redeploys; AniList tokens may not.
+Tokens use Redis `EX` TTL (or node-persist TTL) aligned with AniList's `expires_in`. With `REDIS_URL` configured, both sessions and AniList tokens survive deploys on Railway.
 
 ### Vite integration
 
@@ -648,7 +648,7 @@ Umami script loaded in `client/index.html`. Allowed in production CSP (`connect-
 | **Stale profile page** | Dead Connect/Disconnect buttons; form calls non-existent `PATCH /api/users/:id` |
 | **Legacy query keys** | `["/api/users/current"]` references a removed REST users API; identity is OAuth-only |
 | **Duplicate QueryClientProvider** | `main.tsx` wraps `App` in a provider that duplicates the one inside `App.tsx` |
-| **Token persistence on deploy** | `.persist-storage/` is ephemeral on Railway unless a volume is mounted; users may need to re-login after redeploy even with Redis sessions |
+| **Token persistence without Redis** | Production should set `REDIS_URL` so AniList tokens survive deploys (same Redis instance as sessions). Without it, tokens fall back to ephemeral disk |
 | **Tag filter tests/polish** | Filter store and collapsible UI need tests and a styling pass |
 | **No server-side Sentry** | Client errors are tracked; server/proxy errors are log-only |
 | **Timezone display** | Airing times use local `Date`; AniList exposes user timezone but it is not surfaced in the UI |

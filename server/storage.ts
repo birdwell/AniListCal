@@ -3,6 +3,7 @@ import { AniListToken, AniListUser } from './types';
 import { decryptToken, encryptToken } from './tokenCrypto';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { logger } from './logger';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -10,19 +11,42 @@ const __dirname = path.dirname(__filename);
 const DEFAULT_ANILIST_EXPIRES_IN_SEC = 365 * 24 * 60 * 60;
 const CLEANUP_INTERVAL_MS = 60 * 60 * 1000;
 
+/** Separate from session (`anilistcal:sess:`) and API cache keys. */
+export const STORAGE_REDIS_KEY_PREFIX = 'anilistcal:store:';
+
 const Keys = {
   ANILIST_TOKEN: (userId: string) => `anilist_token_${userId}`,
   USER_INFO: (userId: string) => `user_info_${userId}`,
 };
 
+const RedisKeys = {
+  ANILIST_TOKEN: (userId: string) => `${STORAGE_REDIS_KEY_PREFIX}token:${userId}`,
+  USER_INFO: (userId: string) => `${STORAGE_REDIS_KEY_PREFIX}user:${userId}`,
+};
+
+interface RedisClientForStorage {
+  get(key: string): Promise<string | null>;
+  set(key: string, value: string, options?: { EX?: number }): Promise<unknown>;
+  del(key: string | string[]): Promise<unknown>;
+}
+
 export class PersistentStorage {
   private isInitialized = false;
+  private redisClient?: RedisClientForStorage;
+  private useRedis = false;
 
-  constructor() {
-    this.initializeStorage();
+  constructor(redisClient?: RedisClientForStorage) {
+    if (redisClient) {
+      this.redisClient = redisClient;
+      this.useRedis = true;
+      this.isInitialized = true;
+      logger.debug('[Storage] Using Redis for AniList tokens and user info.');
+    } else {
+      void this.initializeNodePersist();
+    }
   }
 
-  private async initializeStorage() {
+  private async initializeNodePersist() {
     try {
       await nodePersist.init({
         dir: path.join(__dirname, '../.persist-storage'),
@@ -30,7 +54,7 @@ export class PersistentStorage {
         logging: process.env.NODE_ENV !== 'production',
       });
       this.isInitialized = true;
-      console.log('[Storage] node-persist initialized.');
+      logger.debug('[Storage] Using node-persist for AniList tokens (local dev).');
       setInterval(() => this.cleanupExpiredTokens(), CLEANUP_INTERVAL_MS);
     } catch (error) {
       console.error('[Storage] Failed to initialize node-persist:', error);
@@ -47,62 +71,129 @@ export class PersistentStorage {
     }
   }
 
+  private resolveTokenTtlSeconds(expiresInSeconds?: number): number {
+    if (
+      typeof expiresInSeconds === 'number' &&
+      Number.isFinite(expiresInSeconds) &&
+      expiresInSeconds > 0
+    ) {
+      return Math.min(expiresInSeconds, 2 * 365 * 24 * 60 * 60);
+    }
+    return DEFAULT_ANILIST_EXPIRES_IN_SEC;
+  }
+
   async storeToken(
     userId: string,
     accessToken: string,
     expiresInSeconds?: number
   ): Promise<void> {
     await this.ensureInitialized();
-    const key = Keys.ANILIST_TOKEN(userId);
-    const sec =
-      typeof expiresInSeconds === 'number' && Number.isFinite(expiresInSeconds) && expiresInSeconds > 0
-        ? Math.min(expiresInSeconds, 2 * 365 * 24 * 60 * 60)
-        : DEFAULT_ANILIST_EXPIRES_IN_SEC;
-    const ttlMs = sec * 1000;
+    const ttlSec = this.resolveTokenTtlSeconds(expiresInSeconds);
+    const ttlMs = ttlSec * 1000;
     const tokenData: AniListToken = {
       userId,
       accessToken: encryptToken(accessToken),
-      expiresAt: Date.now() + ttlMs
+      expiresAt: Date.now() + ttlMs,
     };
-    await nodePersist.setItem(key, tokenData, { ttl: ttlMs });
+
+    if (this.useRedis && this.redisClient) {
+      await this.redisClient.set(
+        RedisKeys.ANILIST_TOKEN(userId),
+        JSON.stringify(tokenData),
+        { EX: ttlSec }
+      );
+      return;
+    }
+
+    await nodePersist.setItem(Keys.ANILIST_TOKEN(userId), tokenData, { ttl: ttlMs });
   }
 
   async getToken(userId: string): Promise<string | null> {
     await this.ensureInitialized();
-    const key = Keys.ANILIST_TOKEN(userId);
-    const tokenData: AniListToken | undefined = await nodePersist.getItem(key);
+
+    let tokenData: AniListToken | undefined;
+
+    if (this.useRedis && this.redisClient) {
+      const raw = await this.redisClient.get(RedisKeys.ANILIST_TOKEN(userId));
+      if (!raw) return null;
+      try {
+        tokenData = JSON.parse(raw) as AniListToken;
+      } catch (error) {
+        logger.warn(`[Storage] Invalid token JSON for user ${userId}, removing.`, error);
+        await this.redisClient.del(RedisKeys.ANILIST_TOKEN(userId));
+        return null;
+      }
+    } else {
+      tokenData = await nodePersist.getItem(Keys.ANILIST_TOKEN(userId));
+    }
 
     if (!tokenData || (tokenData.expiresAt && tokenData.expiresAt < Date.now())) {
-      if (tokenData) await nodePersist.removeItem(key);
+      if (tokenData) await this.revokeToken(userId);
       return null;
     }
 
     try {
       return decryptToken(tokenData.accessToken);
     } catch (error) {
-      // Token can't be decrypted (e.g. SESSION_SECRET rotated). Drop it and
-      // force re-authentication rather than returning a broken token.
       console.warn(`[Storage] Failed to decrypt token for user ${userId}, removing it.`, error);
-      await nodePersist.removeItem(key);
+      await this.revokeToken(userId);
       return null;
     }
   }
 
-  async storeUserInfo(userId: string, username: string, avatarUrl?: string): Promise<void> {
+  async storeUserInfo(
+    userId: string,
+    username: string,
+    avatarUrl?: string,
+    expiresInSeconds?: number
+  ): Promise<void> {
     await this.ensureInitialized();
-    const key = Keys.USER_INFO(userId);
     const userInfo = { username, avatarUrl };
-    await nodePersist.setItem(key, userInfo);
+
+    if (this.useRedis && this.redisClient) {
+      const ttlSec = this.resolveTokenTtlSeconds(expiresInSeconds);
+      await this.redisClient.set(
+        RedisKeys.USER_INFO(userId),
+        JSON.stringify(userInfo),
+        { EX: ttlSec }
+      );
+      return;
+    }
+
+    await nodePersist.setItem(Keys.USER_INFO(userId), userInfo);
   }
 
   async getUserInfo(userId: string): Promise<Omit<AniListUser, 'id'> | null> {
     await this.ensureInitialized();
-    const key = Keys.USER_INFO(userId);
-    return (await nodePersist.getItem(key)) || null;
+
+    if (this.useRedis && this.redisClient) {
+      const raw = await this.redisClient.get(RedisKeys.USER_INFO(userId));
+      if (!raw) return null;
+      try {
+        return JSON.parse(raw) as Omit<AniListUser, 'id'>;
+      } catch (error) {
+        logger.warn(`[Storage] Invalid user info JSON for user ${userId}, removing.`, error);
+        await this.redisClient.del(RedisKeys.USER_INFO(userId));
+        return null;
+      }
+    }
+
+    return (await nodePersist.getItem(Keys.USER_INFO(userId))) || null;
   }
 
   async revokeToken(userId: string): Promise<boolean> {
     await this.ensureInitialized();
+
+    if (this.useRedis && this.redisClient) {
+      const key = RedisKeys.ANILIST_TOKEN(userId);
+      const existing = await this.redisClient.get(key);
+      if (existing) {
+        await this.redisClient.del(key);
+        return true;
+      }
+      return false;
+    }
+
     const anilistKey = Keys.ANILIST_TOKEN(userId);
     const exists = await nodePersist.getItem(anilistKey);
     if (exists) {
@@ -113,7 +204,8 @@ export class PersistentStorage {
   }
 
   async cleanupExpiredTokens(): Promise<void> {
-    if (!this.isInitialized) return;
+    if (!this.isInitialized || this.useRedis) return;
+
     console.log('[Storage] Running explicit cleanup...');
     const now = Date.now();
 
@@ -128,4 +220,19 @@ export class PersistentStorage {
   }
 }
 
-export const storage = new PersistentStorage();
+/** Default instance (node-persist); replaced by initStorage() when Redis is available. */
+export let storage: PersistentStorage = new PersistentStorage();
+
+/**
+ * Wire AniList token storage to Redis when REDIS_URL is available (production).
+ * Falls back to node-persist on disk for local dev without Redis.
+ */
+export function initStorage(redisClient?: RedisClientForStorage): PersistentStorage {
+  storage = new PersistentStorage(redisClient);
+  if (!redisClient && process.env.NODE_ENV === 'production') {
+    console.warn(
+      '[Storage] REDIS_URL is not set — AniList tokens use ephemeral disk storage and will be lost on deploy. Set REDIS_URL to persist tokens alongside sessions.'
+    );
+  }
+  return storage;
+}
