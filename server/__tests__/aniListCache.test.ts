@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { initCacheStore } from '../cache/cacheStore';
 import {
   getCachedProxyResponse,
@@ -13,6 +13,10 @@ import {
 describe('aniListCache', () => {
   beforeEach(() => {
     initCacheStore();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it('detects GraphQL mutations', () => {
@@ -70,5 +74,23 @@ describe('aniListCache', () => {
 
     expect(await getCachedProxyResponse('3', query, {})).toBeNull();
     expect(await getCachedProxyResponse('3', listQuery, listVariables)).toBeNull();
+  });
+
+  it('still evicts cached entries when the epoch bump fails', async () => {
+    const store = initCacheStore();
+    const query = 'query { Viewer { id } }';
+    await setCachedProxyResponse('5', query, {}, { data: { Viewer: { id: 5 } } });
+
+    const originalSet = store.set.bind(store);
+    vi.spyOn(store, 'set').mockImplementation(async (key, value, ttl) => {
+      if (key.startsWith('anilistcal:epoch:')) {
+        throw new Error('epoch store unavailable');
+      }
+      return originalSet(key, value, ttl);
+    });
+
+    await invalidateUserAniListCache('5');
+
+    expect(await getCachedProxyResponse('5', query, {})).toBeNull();
   });
 });

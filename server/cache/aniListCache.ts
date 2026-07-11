@@ -108,10 +108,35 @@ export async function setCachedProxyResponse(
 
 export async function invalidateUserAniListCache(userId: string): Promise<void> {
   // Bump first so reads already in flight see the new epoch and refuse to
-  // write their pre-invalidation responses back into the cache.
-  await bumpUserCacheEpoch(userId);
+  // write their pre-invalidation responses back into the cache. A failed
+  // bump must not prevent evicting the stale entries below — the successful
+  // mutation would otherwise stay backed by stale cached lists.
+  try {
+    await bumpUserCacheEpoch(userId);
+  } catch (error) {
+    logger.warn(`[Cache] Failed to bump epoch for user ${userId}:`, error);
+  }
   const store = getCacheStore();
   await store.deleteByPrefix(`${PROXY_CACHE_PREFIX}${userId}:`);
   await store.deleteByPrefix(`${LIST_SNAPSHOT_PREFIX}${userId}:`);
   logger.debug(`[Cache] Invalidated AniList cache for user ${userId}`);
+}
+
+/**
+ * Delete the entries a single read query wrote — used when the read finished
+ * its cache write only to find its invalidation epoch had moved on.
+ */
+export async function deleteCachedProxyResponse(
+  userId: string,
+  query: string,
+  variables: unknown
+): Promise<void> {
+  const store = getCacheStore();
+  await store.delete(getProxyCacheKey(userId, query, variables));
+  if (isMediaListQuery(query)) {
+    const listKey = getListSnapshotKey(userId, variables as Record<string, unknown>);
+    if (listKey) {
+      await store.delete(listKey);
+    }
+  }
 }

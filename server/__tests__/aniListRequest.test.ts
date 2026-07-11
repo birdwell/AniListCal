@@ -135,6 +135,55 @@ describe('aniListRequest', () => {
     await stale;
   });
 
+  it('evicts its own write when invalidation completes during the write', async () => {
+    const body = { data: { Viewer: { id: 1 } } };
+    fetchSpy.mockResolvedValue(mockFetchResponse(body));
+
+    // Interleave an invalidation between the epoch check and the cache
+    // write landing: the invalidation's evictions complete first, then the
+    // read's (now stale) write lands. The post-write re-check must remove it.
+    const store = initCacheStore();
+    const originalSet = store.set.bind(store);
+    let interleaved = false;
+    vi.spyOn(store, 'set').mockImplementation(async (key, value, ttl) => {
+      if (key.startsWith('anilistcal:proxy:') && !interleaved) {
+        interleaved = true;
+        await invalidateUserAniListCache('1');
+      }
+      return originalSet(key, value, ttl);
+    });
+
+    await fetchAniListQuery('1', 'token', QUERY, {});
+
+    expect(await getCachedProxyResponse('1', QUERY, {})).toBeNull();
+  });
+
+  it('discards mid-flight responses even when the shared epoch store fails', async () => {
+    const store = initCacheStore();
+    const originalSet = store.set.bind(store);
+    vi.spyOn(store, 'set').mockImplementation(async (key, value, ttl) => {
+      if (key.startsWith('anilistcal:epoch:')) {
+        throw new Error('epoch store unavailable');
+      }
+      return originalSet(key, value, ttl);
+    });
+
+    let resolveFetch!: (value: Response) => void;
+    fetchSpy.mockReturnValue(
+      new Promise<Response>((resolve) => {
+        resolveFetch = resolve;
+      })
+    );
+
+    const pending = fetchAniListQuery('1', 'token', QUERY, {});
+    // Shared epoch write fails, but the local generation floor still bumps.
+    await invalidateUserAniListCache('1');
+    resolveFetch(mockFetchResponse({ data: { Viewer: { id: 1 } } }));
+
+    await pending;
+    expect(await getCachedProxyResponse('1', QUERY, {})).toBeNull();
+  });
+
   it('fetches fresh again after the in-flight request settles', async () => {
     fetchSpy.mockResolvedValue(
       mockFetchResponse({ errors: [{ message: 'oops' }] }, false, 500)

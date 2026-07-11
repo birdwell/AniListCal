@@ -1,6 +1,11 @@
 import { ANILIST_GRAPHQL_URL } from "../constants";
-import { getProxyCacheKey, setCachedProxyResponse } from "./aniListCache";
+import {
+  deleteCachedProxyResponse,
+  getProxyCacheKey,
+  setCachedProxyResponse,
+} from "./aniListCache";
 import { getUserCacheEpoch } from "./invalidationEpoch";
+import { logger } from "../logger";
 
 export interface AniListResponse {
   status: number;
@@ -78,13 +83,13 @@ export async function fetchAniListQuery(
       body = undefined;
     }
 
-    const cacheable =
-      apiRes.ok &&
-      body !== undefined &&
-      !hasGraphQLErrors(body) &&
-      (await getUserCacheEpoch(userId)) === epoch;
-    if (cacheable) {
-      await setCachedProxyResponse(userId, query, variables, body);
+    if (apiRes.ok && body !== undefined && !hasGraphQLErrors(body)) {
+      try {
+        await commitToCache(userId, query, variables, body, epoch);
+      } catch (error) {
+        // Cache bookkeeping must never fail the read itself.
+        logger.warn(`[Cache] Failed to store response for user ${userId}:`, error);
+      }
     }
 
     return { status: apiRes.status, ok: apiRes.ok, body };
@@ -96,4 +101,33 @@ export async function fetchAniListQuery(
 
   inFlight.set(key, { epoch, promise: request });
   return request;
+}
+
+/**
+ * Commit a response to the cache, fenced by the invalidation epoch.
+ *
+ * The epoch check and the write cannot be one atomic store operation, so the
+ * write is verified after the fact: write, re-read the epoch, and evict the
+ * just-written entries if it moved on. Every interleaving with an
+ * invalidation (epoch bump B, then evictions D) is covered — if B lands
+ * before the re-check, the re-check sees it and this read evicts its own
+ * write; if B lands after the re-check, D runs after this read's write and
+ * removes it. Either way no stale entry survives.
+ */
+async function commitToCache(
+  userId: string,
+  query: string,
+  variables: unknown,
+  body: unknown,
+  epoch: string
+): Promise<void> {
+  if ((await getUserCacheEpoch(userId)) !== epoch) {
+    return;
+  }
+
+  await setCachedProxyResponse(userId, query, variables, body);
+
+  if ((await getUserCacheEpoch(userId)) !== epoch) {
+    await deleteCachedProxyResponse(userId, query, variables);
+  }
 }
