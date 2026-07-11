@@ -1,5 +1,9 @@
 import { gql } from "graphql-request";
 
+// Shared with the server-side prefetch — the proxy cache key hashes the exact
+// query text, so both must send the identical string. See shared/queries.
+export { GET_USER_MEDIA_LIST_QUERY } from "../../../shared/queries/mediaList";
+
 const MEDIA_FRAGMENT = gql`
   fragment MediaFragment on Media {
     id
@@ -134,31 +138,6 @@ const MEDIA_FRAGMENT = gql`
       }
     }
   }
-`;
-
-const ENTY_FRAGMENT = gql`
-  fragment EntyFragment on MediaList {
-    id
-    status
-    progress
-    media {
-      ...MediaFragment
-    }
-  }
-  ${MEDIA_FRAGMENT}
-`;
-
-export const GET_USER_MEDIA_LIST_QUERY = gql`
-  query GetUserMediaList($userId: Int!, $status: [MediaListStatus]) {
-    MediaListCollection(userId: $userId, type: ANIME, status_in: $status) {
-      lists {
-        entries {
-          ...EntyFragment
-        }
-      }
-    }
-  }
-  ${ENTY_FRAGMENT}
 `;
 
 export const GET_MEDIA_QUERY = gql`
