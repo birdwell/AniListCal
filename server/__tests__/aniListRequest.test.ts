@@ -1,6 +1,9 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { initCacheStore } from '../cache/cacheStore';
-import { getCachedProxyResponse } from '../cache/aniListCache';
+import {
+  getCachedProxyResponse,
+  invalidateUserAniListCache,
+} from '../cache/aniListCache';
 import { fetchAniListQuery, hasGraphQLErrors } from '../cache/aniListRequest';
 
 const QUERY = 'query { Viewer { id } }';
@@ -90,6 +93,46 @@ describe('aniListRequest', () => {
     ]);
 
     expect(fetchSpy).toHaveBeenCalledTimes(3);
+  });
+
+  it('discards a response when the cache was invalidated mid-flight', async () => {
+    const body = { data: { MediaListCollection: { lists: [] } } };
+    let resolveFetch!: (value: Response) => void;
+    fetchSpy.mockReturnValue(
+      new Promise<Response>((resolve) => {
+        resolveFetch = resolve;
+      })
+    );
+
+    const pending = fetchAniListQuery('1', 'token', QUERY, {});
+    await invalidateUserAniListCache('1');
+    resolveFetch(mockFetchResponse(body));
+
+    // The caller still gets the response, but it must not repopulate the
+    // cache that a mutation just invalidated.
+    expect((await pending).body).toEqual(body);
+    expect(await getCachedProxyResponse('1', QUERY, {})).toBeNull();
+  });
+
+  it('does not join an in-flight request from before an invalidation', async () => {
+    let resolveFirst!: (value: Response) => void;
+    fetchSpy.mockReturnValueOnce(
+      new Promise<Response>((resolve) => {
+        resolveFirst = resolve;
+      })
+    );
+    const fresh = { data: { MediaListCollection: { lists: [{}] } } };
+    fetchSpy.mockResolvedValueOnce(mockFetchResponse(fresh));
+
+    const stale = fetchAniListQuery('1', 'token', QUERY, {});
+    await invalidateUserAniListCache('1');
+    const second = fetchAniListQuery('1', 'token', QUERY, {});
+    resolveFirst(mockFetchResponse({ data: { MediaListCollection: null } }));
+
+    expect((await second).body).toEqual(fresh);
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+    expect(await getCachedProxyResponse('1', QUERY, {})).toEqual(fresh);
+    await stale;
   });
 
   it('fetches fresh again after the in-flight request settles', async () => {

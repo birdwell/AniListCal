@@ -1,5 +1,6 @@
 import { ANILIST_GRAPHQL_URL } from "../constants";
 import { getProxyCacheKey, setCachedProxyResponse } from "./aniListCache";
+import { getUserCacheEpoch } from "./invalidationEpoch";
 
 export interface AniListResponse {
   status: number;
@@ -18,7 +19,12 @@ export function hasGraphQLErrors(body: unknown): boolean {
   );
 }
 
-const inFlight = new Map<string, Promise<AniListResponse>>();
+interface InFlightRequest {
+  epoch: number;
+  promise: Promise<AniListResponse>;
+}
+
+const inFlight = new Map<string, InFlightRequest>();
 
 /**
  * Fetch a read query from AniList on behalf of a user.
@@ -29,6 +35,12 @@ const inFlight = new Map<string, Promise<AniListResponse>>();
  * Successful, error-free responses are written to the proxy cache so the next
  * request is served without hitting AniList at all.
  *
+ * Each request captures the user's cache invalidation epoch when it starts.
+ * If a mutation invalidates the user's cache while the read is in flight, the
+ * epoch moves on and the read's pre-mutation response is discarded instead of
+ * being written back into the freshly invalidated cache; later callers start
+ * a fresh fetch rather than joining the stale one.
+ *
  * Read queries only — mutations must never be coalesced or cached.
  */
 export function fetchAniListQuery(
@@ -38,9 +50,11 @@ export function fetchAniListQuery(
   variables: unknown
 ): Promise<AniListResponse> {
   const key = getProxyCacheKey(userId, query, variables);
+  const epoch = getUserCacheEpoch(userId);
+
   const existing = inFlight.get(key);
-  if (existing) {
-    return existing;
+  if (existing && existing.epoch === epoch) {
+    return existing.promise;
   }
 
   const request = (async (): Promise<AniListResponse> => {
@@ -61,15 +75,22 @@ export function fetchAniListQuery(
       body = undefined;
     }
 
-    if (apiRes.ok && body !== undefined && !hasGraphQLErrors(body)) {
+    const cacheable =
+      apiRes.ok &&
+      body !== undefined &&
+      !hasGraphQLErrors(body) &&
+      getUserCacheEpoch(userId) === epoch;
+    if (cacheable) {
       await setCachedProxyResponse(userId, query, variables, body);
     }
 
     return { status: apiRes.status, ok: apiRes.ok, body };
   })().finally(() => {
-    inFlight.delete(key);
+    if (inFlight.get(key)?.promise === request) {
+      inFlight.delete(key);
+    }
   });
 
-  inFlight.set(key, request);
+  inFlight.set(key, { epoch, promise: request });
   return request;
 }
