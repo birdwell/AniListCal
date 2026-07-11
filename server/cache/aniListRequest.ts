@@ -20,7 +20,7 @@ export function hasGraphQLErrors(body: unknown): boolean {
 }
 
 interface InFlightRequest {
-  epoch: number;
+  epoch: string;
   promise: Promise<AniListResponse>;
 }
 
@@ -35,23 +35,26 @@ const inFlight = new Map<string, InFlightRequest>();
  * Successful, error-free responses are written to the proxy cache so the next
  * request is served without hitting AniList at all.
  *
- * Each request captures the user's cache invalidation epoch when it starts.
- * If a mutation invalidates the user's cache while the read is in flight, the
- * epoch moves on and the read's pre-mutation response is discarded instead of
- * being written back into the freshly invalidated cache; later callers start
- * a fresh fetch rather than joining the stale one.
+ * Each request captures the user's cache invalidation epoch (shared across
+ * server replicas via the cache store) when it starts. If a mutation
+ * invalidates the user's cache while the read is in flight — on any instance
+ * — the epoch moves on and the read's pre-mutation response is discarded
+ * instead of being written back into the freshly invalidated cache; later
+ * callers start a fresh fetch rather than joining the stale one.
  *
  * Read queries only — mutations must never be coalesced or cached.
  */
-export function fetchAniListQuery(
+export async function fetchAniListQuery(
   userId: string,
   accessToken: string,
   query: string,
   variables: unknown
 ): Promise<AniListResponse> {
   const key = getProxyCacheKey(userId, query, variables);
-  const epoch = getUserCacheEpoch(userId);
+  const epoch = await getUserCacheEpoch(userId);
 
+  // No awaits between here and inFlight.set below — the check-then-set is
+  // atomic within this microtask, so concurrent callers coalesce reliably.
   const existing = inFlight.get(key);
   if (existing && existing.epoch === epoch) {
     return existing.promise;
@@ -79,7 +82,7 @@ export function fetchAniListQuery(
       apiRes.ok &&
       body !== undefined &&
       !hasGraphQLErrors(body) &&
-      getUserCacheEpoch(userId) === epoch;
+      (await getUserCacheEpoch(userId)) === epoch;
     if (cacheable) {
       await setCachedProxyResponse(userId, query, variables, body);
     }

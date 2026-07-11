@@ -109,7 +109,7 @@ export async function setCachedProxyResponse(
 export async function invalidateUserAniListCache(userId: string): Promise<void> {
   // Bump first so reads already in flight see the new epoch and refuse to
   // write their pre-invalidation responses back into the cache.
-  bumpUserCacheEpoch(userId);
+  await bumpUserCacheEpoch(userId);
   const store = getCacheStore();
   await store.deleteByPrefix(`${PROXY_CACHE_PREFIX}${userId}:`);
   await store.deleteByPrefix(`${LIST_SNAPSHOT_PREFIX}${userId}:`);
