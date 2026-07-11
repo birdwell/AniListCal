@@ -100,7 +100,7 @@
     "@testing-library/react": "^16.3.2",
     "@types/express": "^5.0.6",
     "@types/express-session": "^1.19.0",
-    "@types/node": "^25.9.1",
+    "@types/node": "^25.9.2",
     "@types/node-persist": "^3.1.8",
     "@types/passport": "^1.0.17",
     "@types/passport-oauth2": "^1.8.0",
