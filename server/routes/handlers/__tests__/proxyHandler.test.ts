@@ -12,8 +12,13 @@ import {
 vi.mock('../../../cache/aniListCache', () => ({
   getCachedProxyResponse: vi.fn().mockResolvedValue(null),
   setCachedProxyResponse: vi.fn().mockResolvedValue(undefined),
+  deleteCachedProxyResponse: vi.fn().mockResolvedValue(undefined),
   invalidateUserAniListCache: vi.fn().mockResolvedValue(undefined),
   isGraphQLMutation: vi.fn((query: string) => /^\s*mutation\b/i.test(query)),
+  getProxyCacheKey: vi.fn(
+    (userId: string, query: string, variables: unknown) =>
+      `${userId}:${query}:${JSON.stringify(variables)}`
+  ),
 }));
 
 import {

@@ -17,10 +17,8 @@ const API_ENDPOINTS = {
   AUTH_LOGIN: "/api/auth/login",
   AUTH_LOGOUT: "/api/auth/logout",
   AUTH_SESSION: "/api/auth/session",
-  ANILIST_PROXY: "/api/anilist/proxy",
+  AUTH_USER: "/api/auth/user",
 };
-
-const MOCK_USER = { id: 123, name: "TestUser", avatar: { medium: "avatar.jpg" } };
 
 describe("auth (session cookies)", () => {
   beforeEach(() => {
@@ -67,15 +65,24 @@ describe("auth (session cookies)", () => {
     expect(window.location.href).toBe("/login");
   });
 
-  it("getUser returns viewer data from proxy", async () => {
+  it("getUser returns session user from the server without an AniList call", async () => {
     (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ data: { Viewer: MOCK_USER } }),
+      status: 200,
+      json: async () => ({
+        id: "123",
+        username: "TestUser",
+        avatarUrl: "avatar.jpg",
+      }),
     });
     const auth = await import("../../auth");
-    await expect(auth.getUser()).resolves.toEqual(MOCK_USER);
+    await expect(auth.getUser()).resolves.toEqual({
+      id: 123,
+      name: "TestUser",
+      avatar: { medium: "avatar.jpg" },
+    });
     expect(fetch).toHaveBeenCalledWith(
-      API_ENDPOINTS.ANILIST_PROXY,
+      API_ENDPOINTS.AUTH_USER,
       expect.objectContaining({ credentials: "include" })
     );
   });
@@ -96,7 +103,7 @@ describe("auth (session cookies)", () => {
     expect(mockSetQueryData).toHaveBeenCalledWith(["auth", "user"], null);
   });
 
-  it("getUser returns null on generic 401", async () => {
+  it("getUser throws AuthError without code on generic 401", async () => {
     (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: false,
       status: 401,

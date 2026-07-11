@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { initCacheStore } from '../cache/cacheStore';
 import {
   getCachedProxyResponse,
@@ -13,6 +13,10 @@ import {
 describe('aniListCache', () => {
   beforeEach(() => {
     initCacheStore();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it('detects GraphQL mutations', () => {
@@ -70,5 +74,65 @@ describe('aniListCache', () => {
 
     expect(await getCachedProxyResponse('3', query, {})).toBeNull();
     expect(await getCachedProxyResponse('3', listQuery, listVariables)).toBeNull();
+  });
+
+  it('still evicts cached entries when the epoch bump fails', async () => {
+    vi.useFakeTimers();
+    try {
+      const store = initCacheStore();
+      const query = 'query { Viewer { id } }';
+      await setCachedProxyResponse('5', query, {}, { data: { Viewer: { id: 5 } } });
+
+      const originalSet = store.set.bind(store);
+      vi.spyOn(store, 'set').mockImplementation(async (key, value, ttl) => {
+        if (key.startsWith('anilistcal:epoch:')) {
+          throw new Error('epoch store unavailable');
+        }
+        return originalSet(key, value, ttl);
+      });
+
+      await invalidateUserAniListCache('5');
+
+      expect(await getCachedProxyResponse('5', query, {})).toBeNull();
+
+      // Drain the background bump retries so no timers outlive the test.
+      await vi.advanceTimersByTimeAsync(30_000);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('re-evicts entries committed while the shared epoch write was failing', async () => {
+    vi.useFakeTimers();
+    try {
+      const store = initCacheStore();
+      const query = 'query { Viewer { id } }';
+      const staleBody = { data: { Viewer: { id: 6, progress: 1 } } };
+
+      let failEpochWrites = true;
+      const originalSet = store.set.bind(store);
+      vi.spyOn(store, 'set').mockImplementation(async (key, value, ttl) => {
+        if (key.startsWith('anilistcal:epoch:') && failEpochWrites) {
+          throw new Error('epoch store unavailable');
+        }
+        return originalSet(key, value, ttl);
+      });
+
+      // Mutation invalidates, but the shared epoch bump fails.
+      await invalidateUserAniListCache('6');
+
+      // Another replica's pre-mutation read commits after the eviction — it
+      // saw the old epoch, so it writes straight through.
+      await setCachedProxyResponse('6', query, {}, staleBody);
+      expect(await getCachedProxyResponse('6', query, {})).toEqual(staleBody);
+
+      // The store recovers; the background retry bumps and re-evicts.
+      failEpochWrites = false;
+      await vi.advanceTimersByTimeAsync(30_000);
+
+      expect(await getCachedProxyResponse('6', query, {})).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

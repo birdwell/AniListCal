@@ -1,14 +1,18 @@
-import { ANILIST_GRAPHQL_URL } from "../constants";
 import { logger } from "../logger";
 import {
   GET_USER_MEDIA_LIST_QUERY,
   PREFETCH_LIST_STATUS_SETS,
 } from "../queries/mediaListQuery";
-import { setCachedProxyResponse } from "./aniListCache";
+import { getCachedProxyResponse } from "./aniListCache";
+import { fetchAniListQuery, hasGraphQLErrors } from "./aniListRequest";
 
 /**
- * Warm list snapshots after login so the first home/calendar load is fast.
- * Runs in the background; failures are logged only.
+ * Warm list snapshots after login and on session restore so the first
+ * home/calendar load is served from cache (or joins the in-flight fetch)
+ * instead of waiting a full AniList round trip.
+ *
+ * Runs in the background; already-warm status sets are skipped and failures
+ * are logged only.
  */
 export function prefetchListSnapshots(
   userId: string,
@@ -22,41 +26,30 @@ export function prefetchListSnapshots(
       const variables = { userId: numericUserId, status };
 
       try {
-        const apiRes = await fetch(ANILIST_GRAPHQL_URL, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-            Authorization: `Bearer ${accessToken}`,
-          },
-          body: JSON.stringify({
-            query: GET_USER_MEDIA_LIST_QUERY,
-            variables,
-          }),
-        });
+        const cached = await getCachedProxyResponse(
+          userId,
+          GET_USER_MEDIA_LIST_QUERY,
+          variables
+        );
+        if (cached) continue;
+
+        const apiRes = await fetchAniListQuery(
+          userId,
+          accessToken,
+          GET_USER_MEDIA_LIST_QUERY,
+          variables
+        );
 
         if (!apiRes.ok) {
           logger.warn(
             `[Cache] Prefetch failed for user ${userId} (${status.join(",")}): HTTP ${apiRes.status}`
           );
-          continue;
-        }
-
-        const responseBody = await apiRes.json();
-        if (responseBody.errors?.length) {
+        } else if (hasGraphQLErrors(apiRes.body)) {
           logger.warn(
             `[Cache] Prefetch GraphQL errors for user ${userId}:`,
-            responseBody.errors
+            (apiRes.body as { errors: unknown[] }).errors
           );
-          continue;
         }
-
-        await setCachedProxyResponse(
-          userId,
-          GET_USER_MEDIA_LIST_QUERY,
-          variables,
-          responseBody
-        );
       } catch (error) {
         logger.warn(`[Cache] Prefetch error for user ${userId}:`, error);
       }

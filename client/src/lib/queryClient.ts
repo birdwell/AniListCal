@@ -81,7 +81,7 @@ export const queryClient = new QueryClient({
 /** localStorage key for the persisted React Query cache. */
 export const PERSIST_QUERY_KEY = "anilistcal-query-cache";
 
-/** Matches server list snapshot TTL — persisted client cache max age. */
+/** Persisted client cache max age — stale entries refetch in the background. */
 export const PERSIST_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
 // Bumped to v3 to discard any persisted `null` auth user written by the old

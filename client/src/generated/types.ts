@@ -7,7 +7,9 @@ export type Scalars = {
   Boolean: { input: boolean; output: boolean; }
   Int: { input: number; output: number; }
   Float: { input: number; output: number; }
+  /** ISO 3166-1 alpha-2 country code */
   CountryCode: { input: string; output: string; }
+  /** 8 digit long date integer (YYYYMMDD). Unknown dates represented by 0. E.g. 2016: 20160000, May 1976: 19760500 */
   FuzzyDateInt: { input: unknown; output: unknown; }
   Json: { input: unknown; output: unknown; }
 };

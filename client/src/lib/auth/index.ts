@@ -2,7 +2,7 @@
 
 import { queryClient, PERSIST_QUERY_KEY } from "../queryClient";
 import { logger } from "../logger";
-import { queryAniList, resetRateLimitCircuit } from "../anilistProxy";
+import { resetRateLimitCircuit } from "../anilistProxy";
 import {
   ANILIST_TOKEN_EXPIRED_CODE,
   AuthError,
@@ -15,6 +15,7 @@ const API_ENDPOINTS = {
   AUTH_LOGIN: "/api/auth/login",
   AUTH_LOGOUT: "/api/auth/logout",
   AUTH_SESSION: "/api/auth/session",
+  AUTH_USER: "/api/auth/user",
 };
 
 const AUTH_FETCH_INIT: RequestInit = {
@@ -79,26 +80,47 @@ export async function checkSession(): Promise<boolean> {
   }
 }
 
+interface AuthUserResponse {
+  id: string;
+  username: string;
+  avatarUrl?: string;
+}
+
+/**
+ * Loads the authenticated user from the server session — no AniList round
+ * trip, so the auth gate resolves fast and the list query can start sooner.
+ * An expired AniList token is only detected once a proxied query runs; that
+ * path clears auth state and redirects to login, same as before.
+ */
 export async function getUser(): Promise<User | null | undefined> {
-  try {
-    const response = await queryAniList<{ Viewer: User }>(`
-      query {
-        Viewer {
-          id
-          name
-          avatar {
-            medium
-          }
-        }
-      }
-    `);
-    return response?.data?.Viewer;
-  } catch (error) {
-    if (error instanceof AuthError) {
-      throw error;
+  const response = await fetch(API_ENDPOINTS.AUTH_USER, AUTH_FETCH_INIT);
+
+  if (response.status === 401) {
+    let body: { error?: string; code?: string } | undefined;
+    try {
+      body = await response.json();
+    } catch {
+      body = undefined;
     }
-    throw error;
+    clearAuthData();
+    throw new AuthError(body?.error || "Authentication required", body?.code);
   }
+
+  if (!response.ok) {
+    throw new Error(`Failed to load user: ${response.status}`);
+  }
+
+  const data: AuthUserResponse = await response.json();
+  const id = Number(data.id);
+  if (!Number.isFinite(id)) {
+    throw new Error("Received an invalid user id from the server");
+  }
+
+  return {
+    id,
+    name: data.username,
+    avatar: { medium: data.avatarUrl ?? "" },
+  };
 }
 
 export { type User };
