@@ -86,7 +86,7 @@
     "tailwindcss-animate": "^1.0.7",
     "typescript": "^6.0.3",
     "vaul": "^1.1.2",
-    "vite": "^8.0.14",
+    "vite": "^8.0.16",
     "wouter": "^3.10.0",
     "zustand": "^5.0.14"
   },
@@ -120,6 +120,6 @@
     "documents": "**/*.{graphql,js,ts,jsx,tsx}"
   },
   "resolutions": {
-    "vite": "^8.0.14"
+    "vite": "^8.0.16"
   }
 }
