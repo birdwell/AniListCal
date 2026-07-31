@@ -3,6 +3,7 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EntyFragmentFragment } from "@/generated/graphql";
 import { AnimeCard } from "@/components/anime-card";
+import { compareEntriesByWatchProgress } from "@/lib/anime-utils";
 import {
   Collapsible,
   CollapsibleContent,
@@ -24,6 +25,8 @@ export function AnimeSection({
   onToggle,
   isCompact,
 }: AnimeSectionProps) {
+  const sortedEntries = [...entries].sort(compareEntriesByWatchProgress);
+
   return (
     <section className="bg-background rounded-lg border shadow-sm overflow-hidden">
       <Collapsible open={isOpen} onOpenChange={onToggle} className="w-full">
@@ -34,9 +37,9 @@ export function AnimeSection({
           >
             <h2 className="text-lg font-semibold">
               {title}
-              {entries.length > 0 && (
+              {sortedEntries.length > 0 && (
                 <span className="ml-2 text-sm font-normal text-muted-foreground">
-                  ({entries.length})
+                  ({sortedEntries.length})
                 </span>
               )}
             </h2>
@@ -54,7 +57,7 @@ export function AnimeSection({
           </div>
         </CollapsibleTrigger>
         <CollapsibleContent className="p-4 pt-0">
-          {entries && entries.length > 0 ? (
+          {sortedEntries.length > 0 ? (
             <div
               className={cn(
                 isCompact
@@ -62,7 +65,7 @@ export function AnimeSection({
                   : "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 md:gap-6"
               )}
             >
-              {entries.map((entry) => (
+              {sortedEntries.map((entry) => (
                 <AnimeCard
                   key={entry.media?.id}
                   entry={entry}

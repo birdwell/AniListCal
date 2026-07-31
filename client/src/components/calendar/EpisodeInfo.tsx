@@ -28,7 +28,7 @@ export function EpisodeInfo({
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-muted-foreground">Episode {episode} (next)</span>
+          <span className="text-muted-foreground">Episode {episode}</span>
           <span className={cn("font-medium", getAiringStatusColor(airingAt))}>
             • {formatTimeUntil(airingAt)}
           </span>

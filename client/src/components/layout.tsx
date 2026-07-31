@@ -18,19 +18,28 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <div className="mx-auto flex h-full w-full items-center justify-between px-4 sm:px-6 lg:px-10 xl:px-12 2xl:px-16">
           <div className="flex items-center gap-6">
             <Link href="/">
-              <Button variant="link" className={location === "/" ? "text-primary" : ""}>
+              <Button
+                variant="ghost"
+                className={location === "/" ? "bg-accent text-primary" : ""}
+              >
                 <Home className="mr-2 h-4 w-4" />
                 Home
               </Button>
             </Link>
             <Link href="/calendar">
-              <Button variant="link" className={location === "/calendar" ? "text-primary" : ""}>
+              <Button
+                variant="ghost"
+                className={location === "/calendar" ? "bg-accent text-primary" : ""}
+              >
                 <Calendar className="mr-2 h-4 w-4" />
                 Calendar
               </Button>
             </Link>
             <Link href="/profile">
-              <Button variant="link" className={location === "/profile" ? "text-primary" : ""}>
+              <Button
+                variant="ghost"
+                className={location === "/profile" ? "bg-accent text-primary" : ""}
+              >
                 <User className="mr-2 h-4 w-4" />
                 Profile
               </Button>

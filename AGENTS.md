@@ -16,6 +16,10 @@ yarn dev
 
 `yarn client` exists for frontend-only Vite work; normal full-stack dev uses **`yarn dev`** only.
 
+## UI copy
+
+Do **not** add obvious helper text, subtitles, or captions that restate what the section title or content already makes clear (e.g. explaining a sort order under “Watch next”). Prefer a clear label and let the UI speak for itself.
+
 ## Environment variables
 
 **File:** `.env` in the project root (gitignored). Template: `.env.example`.

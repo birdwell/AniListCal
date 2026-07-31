@@ -53,7 +53,7 @@ export function AnimeCard({ entry, isCompact = false }: AnimeCardProps) {
   if (isCompact) {
     return (
       <Card
-        className="overflow-hidden hover:bg-accent/50 transition-colors cursor-pointer border-l-4 border-l-primary/70"
+        className="overflow-hidden hover:bg-accent/50 transition-colors cursor-pointer"
         onClick={handleClick}
       >
         <div className="flex gap-3 sm:gap-4 p-3 sm:p-4 w-full">

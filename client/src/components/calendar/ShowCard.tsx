@@ -33,9 +33,6 @@ export function ShowCard({ entry }: ShowCardProps) {
   const { shouldShowPreviousEpisode, displayEpisode, previousEpisodeAiringAt } =
     useEpisodeDisplay(airingAt, episode);
 
-  // Determine target episode for progress comparison
-  const targetEpisode = shouldShowPreviousEpisode ? episode - 1 : episode;
-
   const handleClick = () => {
     if (entry.media?.id) {
       navigate(`/show/${entry.media.id}`);
@@ -69,7 +66,7 @@ export function ShowCard({ entry }: ShowCardProps) {
               mediaId={entry.media.id}
               currentEpisode={currentEpisode}
               totalEpisodes={totalEpisodes ?? 0}
-              targetEpisode={targetEpisode}
+              targetEpisode={episode}
               compact
               variant="pill"
               className="flex-shrink-0"

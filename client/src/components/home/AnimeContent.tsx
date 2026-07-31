@@ -16,6 +16,8 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { findWatchNextEntry } from "@/lib/anime-utils";
+import { AnimeCard } from "@/components/anime-card";
 
 type SectionKey = "airing" | "watching" | "onHold" | "planned";
 
@@ -122,7 +124,9 @@ export function AnimeContent({ animeEntries }: AnimeContentProps) {
   const currentlyAiring = useMemo(() => {
     return (
       filteredAndTaggedEntries?.filter(
-        (entry) => entry.media?.status === MediaStatus.Releasing
+        (entry) =>
+          entry.media?.status === MediaStatus.Releasing &&
+          entry.status !== "PAUSED"
       ) || []
     );
   }, [filteredAndTaggedEntries]);
@@ -153,6 +157,12 @@ export function AnimeContent({ animeEntries }: AnimeContentProps) {
   const hasSearchResults =
     debouncedSearchQuery.trim() !== "" || selectedTags.length > 0;
 
+  // Stable suggestion from the full list (ignores search/tags).
+  const watchNext = useMemo(
+    () => findWatchNextEntry(animeEntries),
+    [animeEntries]
+  );
+
   // While filtering, auto-open sections that have matches; otherwise use manual state.
   const isSectionOpen = (section: SectionKey, entryCount: number) => {
     if (hasSearchResults && totalResults > 0 && entryCount > 0) {
@@ -163,48 +173,56 @@ export function AnimeContent({ animeEntries }: AnimeContentProps) {
 
   return (
     <>
-      <div className="sticky top-0 z-10 pt-2 pb-1 bg-background/80 backdrop-blur-sm">
-        <ViewToggle
-          isCompact={isCompact}
-          onToggle={() => setIsCompact(!isCompact)}
-        />
+      <div className="sticky top-0 z-10 pt-2 pb-3 bg-background/80 backdrop-blur-sm">
+        <Collapsible open={isTagFilterOpen} onOpenChange={setIsTagFilterOpen}>
+          <div className="flex items-center gap-2">
+            <div className="relative min-w-0 flex-1">
+              <SearchBar
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+                totalResults={hasSearchResults ? totalResults : null}
+                isLoading={isSearching}
+              />
+            </div>
+            <ViewToggle
+              isCompact={isCompact}
+              onToggle={() => setIsCompact(!isCompact)}
+            />
+            <CollapsibleTrigger asChild>
+              <Button
+                variant="outline"
+                size="icon"
+                className="relative shrink-0 data-[state=open]:bg-accent"
+              >
+                <SlidersHorizontal className="h-4 w-4" />
+                {selectedTags.length > 0 && (
+                  <Badge
+                    variant="secondary"
+                    className="absolute -top-1.5 -right-1.5 h-3.5 w-3.5 p-0 flex items-center justify-center text-[10px] rounded-full"
+                  >
+                    {selectedTags.length}
+                  </Badge>
+                )}
+              </Button>
+            </CollapsibleTrigger>
+          </div>
+
+          <CollapsibleContent>
+            <TagFilter categorizedTags={categorizedTags} />
+          </CollapsibleContent>
+        </Collapsible>
       </div>
 
-      <div className="mb-4">
-        <SearchBar
-          searchQuery={searchQuery}
-          setSearchQuery={setSearchQuery}
-          totalResults={hasSearchResults ? totalResults : null}
-          isLoading={isSearching}
-        />
-      </div>
-
-      <Collapsible open={isTagFilterOpen} onOpenChange={setIsTagFilterOpen} className="mb-4">
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="text-lg font-semibold">Filters</h3>
-          <CollapsibleTrigger asChild>
-            <Button
-              variant="outline"
-              size="icon"
-              className="relative data-[state=open]:bg-accent"
-            >
-              <SlidersHorizontal className="h-4 w-4" />
-              {selectedTags.length > 0 && (
-                <Badge
-                  variant="secondary"
-                  className="absolute -top-1.5 -right-1.5 h-3.5 w-3.5 p-0 flex items-center justify-center text-[10px] rounded-full"
-                >
-                  {selectedTags.length}
-                </Badge>
-              )}
-            </Button>
-          </CollapsibleTrigger>
-        </div>
-
-        <CollapsibleContent>
-          <TagFilter categorizedTags={categorizedTags} />
-        </CollapsibleContent>
-      </Collapsible>
+      {watchNext && (
+        <section className="bg-background rounded-lg border shadow-sm overflow-hidden">
+          <div className="p-4 pb-2">
+            <h2 className="text-lg font-semibold">Watch next</h2>
+          </div>
+          <div className="p-4 pt-2">
+            <AnimeCard entry={watchNext} isCompact />
+          </div>
+        </section>
+      )}
 
       <AnimeSection
         title="Currently Airing"
