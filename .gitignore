@@ -20,3 +20,5 @@ SECURITY_CHECKLIST.md
 # Temporary files
 /tmp/
 *.png
+!generated-icon.png
+!client/public/*.png

@@ -7,11 +7,15 @@ import react from "@vitejs/plugin-react";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
 import graphql from "@rollup/plugin-graphql";
+import { VitePWA } from "vite-plugin-pwa";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const projectRoot = __dirname;
 const isVitest = process.env.VITEST === "true" || process.env.VITEST === "1";
+
+/** Matches `--primary` in client/src/index.css (hsl 225 55% 40%). */
+const PWA_THEME_COLOR = "#2E4A9E";
 
 export default defineConfig({
   envDir: projectRoot,
@@ -24,6 +28,54 @@ export default defineConfig({
           sentryVitePlugin({
             org: "birdwell-labs",
             project: "anilistcal",
+          }),
+          VitePWA({
+            registerType: "autoUpdate",
+            includeAssets: [
+              "favicon-32x32.png",
+              "apple-touch-icon.png",
+              "robots.txt",
+            ],
+            manifest: {
+              name: "AniListCal",
+              short_name: "AniListCal",
+              description:
+                "Track your anime watching schedule with your AniList list.",
+              theme_color: PWA_THEME_COLOR,
+              background_color: "#ffffff",
+              display: "standalone",
+              start_url: "/",
+              scope: "/",
+              icons: [
+                {
+                  src: "pwa-192x192.png",
+                  sizes: "192x192",
+                  type: "image/png",
+                },
+                {
+                  src: "pwa-512x512.png",
+                  sizes: "512x512",
+                  type: "image/png",
+                },
+                {
+                  src: "pwa-512x512-maskable.png",
+                  sizes: "512x512",
+                  type: "image/png",
+                  purpose: "maskable",
+                },
+              ],
+            },
+            workbox: {
+              globPatterns: [
+                "**/*.{js,css,html,ico,png,svg,webmanifest,woff2}",
+              ],
+              navigateFallback: "/index.html",
+              // Keep API and auth flows on the network; never serve SPA HTML for them.
+              navigateFallbackDenylist: [/^\/api\//],
+            },
+            devOptions: {
+              enabled: false,
+            },
           }),
         ]),
   ],
