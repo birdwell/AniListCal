@@ -82,7 +82,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         </div>
       </nav>
 
-      <main className="w-full pb-[calc(5.5rem+env(safe-area-inset-bottom))] pt-4 md:pb-8 md:pt-20">
+      <main className="w-full pb-[calc(5.5rem_+_env(safe-area-inset-bottom))] pt-[calc(1rem_+_env(safe-area-inset-top))] md:pb-8 md:pt-20">
         {children}
       </main>
     </div>
