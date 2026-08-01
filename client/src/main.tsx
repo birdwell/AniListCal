@@ -1,5 +1,6 @@
 // Import our app components
 import { createRoot } from "react-dom/client";
+import { registerSW } from "virtual:pwa-register";
 import App from "./App";
 import "./index.css";
 import * as Sentry from "@sentry/react";
@@ -10,5 +11,7 @@ Sentry.init({
   // For example, automatic IP address collection on events
   sendDefaultPii: true
 });
+
+registerSW({ immediate: true });
 
 createRoot(document.getElementById("root")!).render(<App />);
