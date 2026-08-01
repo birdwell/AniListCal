@@ -1,6 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-import { getUser } from "@/lib/auth";
+import { getUser, logout } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { LogOut } from "lucide-react";
 import { queryKeys } from "@/lib/queryKeys";
 
 export default function Profile() {
@@ -14,7 +17,7 @@ export default function Profile() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto space-y-8">
+    <div className="mx-auto max-w-2xl space-y-8 px-4 sm:px-6">
       <Card>
         <CardHeader>
           <CardTitle>Profile</CardTitle>
@@ -32,6 +35,21 @@ export default function Profile() {
               </p>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      <Card className="md:hidden">
+        <CardContent className="flex items-center justify-between gap-4 pt-6">
+          <ThemeToggle />
+          <Button
+            variant="ghost"
+            onClick={() => {
+              void logout();
+            }}
+          >
+            <LogOut className="mr-2 h-4 w-4" />
+            Logout
+          </Button>
         </CardContent>
       </Card>
     </div>
