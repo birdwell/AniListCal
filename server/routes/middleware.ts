@@ -30,6 +30,9 @@ function buildContentSecurityPolicy(): string {
     "img-src 'self' https://s4.anilist.co https://img.anili.st data:",
     "font-src 'self'",
     `connect-src ${connectSrc.join(" ")}`,
+    // Service worker + web app manifest for installable PWA.
+    "worker-src 'self'",
+    "manifest-src 'self'",
     "frame-src 'none'",
     "object-src 'none'",
     "base-uri 'self'",
