@@ -44,9 +44,13 @@ export function EpisodeControls({
     }
   };
 
+  // AniList often returns null episodes for ongoing seasons; callers coerce that
+  // to 0. Only apply an upper bound when a real season total is known.
+  const hasKnownTotal = totalEpisodes > 0;
+  const canIncrement = !hasKnownTotal || localProgress < totalEpisodes;
+
   const handleIncrement = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const canIncrement = localProgress < totalEpisodes;
 
     if (canIncrement && !isUpdating) {
       const newProgress = localProgress + 1;
@@ -62,11 +66,11 @@ export function EpisodeControls({
       "inline-flex items-center flex-shrink-0 gap-1 bg-background/80 backdrop-blur-sm p-1 rounded-lg border border-border/50",
   }[variant];
 
-  const incrementDisabled = isUpdating || localProgress >= totalEpisodes;
+  const incrementDisabled = isUpdating || !canIncrement;
   const decrementDisabled = isUpdating || localProgress === 0;
   const progressColorClass = getProgressColor(
     currentEpisode,
-    targetEpisode ?? totalEpisodes
+    targetEpisode || (hasKnownTotal ? totalEpisodes : null)
   );
 
   return (
