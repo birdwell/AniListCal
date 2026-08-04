@@ -5,10 +5,29 @@ import {
   GetUserMediaListQuery,
   MediaFragmentFragment,
   MediaListStatus,
+  SearchMediaQuery,
 } from "@/generated/graphql";
-import { GET_USER_MEDIA_LIST_QUERY, GET_MEDIA_QUERY } from "@/queries/queries";
+import {
+  GET_USER_MEDIA_LIST_QUERY,
+  GET_MEDIA_QUERY,
+  SEARCH_MEDIA_QUERY,
+} from "@/queries/queries";
 import { queryAniList } from "./anilistProxy";
 import { logger } from "./logger";
+
+export type SearchMediaResult = NonNullable<
+  NonNullable<SearchMediaQuery["Page"]>["media"]
+>[number];
+
+export interface SearchMediaPage {
+  media: SearchMediaResult[];
+  pageInfo: {
+    currentPage: number | null;
+    hasNextPage: boolean | null;
+    perPage: number | null;
+    total: number | null;
+  } | null;
+}
 
 const ANILIST_GRAPHQL_URL = "https://graphql.anilist.co";
 
@@ -98,6 +117,45 @@ export async function fetchAuthenticatedAnimeDetails(
     return media;
   } catch (error) {
     logger.error("Error fetching authenticated anime details:", error);
+    throw error;
+  }
+}
+
+const DEFAULT_SEARCH_PER_PAGE = 20;
+
+/**
+ * Searches AniList anime via the authenticated proxy so results include
+ * the current user's mediaListEntry for status changes.
+ */
+export async function searchAnime(
+  search: string,
+  page = 1,
+  perPage = DEFAULT_SEARCH_PER_PAGE
+): Promise<SearchMediaPage> {
+  const trimmed = search.trim();
+  if (!trimmed) {
+    return { media: [], pageInfo: null };
+  }
+
+  try {
+    const response = await queryAniList<SearchMediaQuery>(SEARCH_MEDIA_QUERY, {
+      search: trimmed,
+      page,
+      perPage,
+    });
+
+    const pageData = response.data?.Page;
+    const media =
+      pageData?.media?.filter(
+        (item): item is SearchMediaResult => item !== null
+      ) ?? [];
+
+    return {
+      media,
+      pageInfo: pageData?.pageInfo ?? null,
+    };
+  } catch (error) {
+    logger.error("Error searching anime:", error);
     throw error;
   }
 }

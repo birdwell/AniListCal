@@ -1,12 +1,13 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Home, Calendar, User, LogOut } from "lucide-react";
+import { Home, Calendar, Search, User, LogOut } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { logout } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { href: "/", label: "Home", icon: Home },
+  { href: "/search", label: "Search", icon: Search },
   { href: "/calendar", label: "Calendar", icon: Calendar },
   { href: "/profile", label: "Profile", icon: User },
 ] as const;
@@ -59,7 +60,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur supports-[backdrop-filter]:bg-background/60 md:hidden"
         aria-label="Primary"
       >
-        <div className="grid h-16 grid-cols-3">
+        <div className="grid h-16 grid-cols-4">
           {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
             const active = isNavActive(location, href);
             return (

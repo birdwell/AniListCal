@@ -188,3 +188,37 @@ export const UPDATE_STATUS_MUTATION = gql`
     }
   }
 `;
+
+export const SEARCH_MEDIA_QUERY = gql`
+  query SearchMedia($search: String!, $page: Int!, $perPage: Int!) {
+    Page(page: $page, perPage: $perPage) {
+      pageInfo {
+        currentPage
+        hasNextPage
+        perPage
+        total
+      }
+      media(search: $search, type: ANIME, sort: SEARCH_MATCH) {
+        id
+        title {
+          romaji
+          english
+          native
+        }
+        coverImage {
+          large
+          extraLarge
+        }
+        status
+        format
+        episodes
+        seasonYear
+        mediaListEntry {
+          id
+          status
+          progress
+        }
+      }
+    }
+  }
+`;
