@@ -6,4 +6,6 @@ export const queryKeys = {
     ["/anilist/anime", "list", userId, [...status].sort().join(",")] as const,
   animeDetail: (mediaId: number) =>
     ["/anilist/anime", "detail", mediaId] as const,
+  animeSearch: (search: string) =>
+    ["/anilist/anime", "search", search] as const,
 };

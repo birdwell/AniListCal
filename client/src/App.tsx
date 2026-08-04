@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { ThemeProvider } from "@/components/theme-provider";
 import CalendarPage from "./pages/calendar";
+import SearchPage from "./pages/search";
 import { QueryProvider } from "@/components/query-provider";
 import { queryKeys } from "@/lib/queryKeys";
 
@@ -79,6 +80,7 @@ function Router() {
         </div>
       )} />
       <Route path="/" component={() => <ProtectedRoute component={Home} />} />
+      <Route path="/search" component={() => <ProtectedRoute component={SearchPage} />} />
       <Route path="/calendar" component={() => <ProtectedRoute component={CalendarPage} />} />
       <Route path="/profile" component={() => <ProtectedRoute component={Profile} />} />
       <Route path="/show/:id" component={() => <ProtectedRoute component={Show} />} />

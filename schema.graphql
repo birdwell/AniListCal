@@ -1968,7 +1968,7 @@ type MediaEdge {
 
   """The type of relation to the parent model"""
   relationType(
-    """Provide 2 to use new version 2 of relation enum"""
+    """Provide 3 to use new version 3 of relation enum"""
     version: Int
   ): MediaRelation
 
@@ -2370,6 +2370,9 @@ enum MediaRelation {
 
   """Released before the relation"""
   PREQUEL
+
+  """Version 3 only. The media is set in the same universe as another media"""
+  SAME_UNIVERSE
 
   """Released after the relation"""
   SEQUEL

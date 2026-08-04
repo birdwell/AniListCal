@@ -23,6 +23,15 @@ export type GetUserMediaListQueryVariables = Exact<{
 
 export type GetUserMediaListQuery = { MediaListCollection: { lists: Array<{ entries: Array<{ id: number, status: Types.MediaListStatus | null, progress: number | null, media: { id: number, status: Types.MediaStatus | null, episodes: number | null, genres: Array<string | null> | null, title: { romaji: string | null, english: string | null, native: string | null } | null, coverImage: { large: string | null, extraLarge: string | null } | null, nextAiringEpisode: { airingAt: number, episode: number } | null, tags: Array<{ name: string, category: string | null } | null> | null, studios: { nodes: Array<{ id: number, name: string } | null> | null } | null } | null } | null> | null } | null> | null } | null };
 
+export type SearchMediaQueryVariables = Exact<{
+  search: string;
+  page: number;
+  perPage: number;
+}>;
+
+
+export type SearchMediaQuery = { Page: { pageInfo: { currentPage: number | null, hasNextPage: boolean | null, perPage: number | null, total: number | null } | null, media: Array<{ id: number, status: Types.MediaStatus | null, format: Types.MediaFormat | null, episodes: number | null, seasonYear: number | null, title: { romaji: string | null, english: string | null, native: string | null } | null, coverImage: { large: string | null, extraLarge: string | null } | null, mediaListEntry: { id: number, status: Types.MediaListStatus | null, progress: number | null } | null } | null> | null } | null };
+
 export type UpdateMediaListProgressMutationVariables = Exact<{
   mediaId: number;
   progress: number | null | undefined;
