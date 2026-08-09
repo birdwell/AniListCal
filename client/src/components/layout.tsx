@@ -28,7 +28,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="flex h-dvh flex-col overflow-hidden bg-background md:h-auto md:min-h-screen md:overflow-visible">
       <nav className="fixed top-0 left-0 right-0 z-50 hidden h-16 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:block">
         <div className="mx-auto flex h-full w-full items-center justify-between px-4 sm:px-6 lg:px-10 xl:px-12 2xl:px-16">
           <div className="flex items-center gap-6">
@@ -56,8 +56,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
         </div>
       </nav>
 
+      <main className="min-h-0 w-full flex-1 overflow-y-auto overscroll-y-contain pt-[calc(1rem_+_env(safe-area-inset-top))] md:overflow-visible md:overscroll-auto md:pb-8 md:pt-20">
+        {children}
+      </main>
+
       <nav
-        className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur supports-[backdrop-filter]:bg-background/60 md:hidden"
+        className="shrink-0 border-t bg-background pb-[env(safe-area-inset-bottom)] md:hidden"
         aria-label="Primary"
       >
         <div className="grid h-16 grid-cols-4">
@@ -82,10 +86,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
           })}
         </div>
       </nav>
-
-      <main className="w-full pb-[calc(5.5rem_+_env(safe-area-inset-bottom))] pt-[calc(1rem_+_env(safe-area-inset-top))] md:pb-8 md:pt-20">
-        {children}
-      </main>
     </div>
   );
 }
