@@ -14,8 +14,9 @@ const __dirname = dirname(__filename);
 const projectRoot = __dirname;
 const isVitest = process.env.VITEST === "true" || process.env.VITEST === "1";
 
-/** Matches `--primary` in client/src/index.css (hsl 225 55% 40%). */
-const PWA_THEME_COLOR = "#2E4A9E";
+/** PWA chrome / splash colors aligned with the Fuji calendar app icon. */
+const PWA_THEME_COLOR = "#4A1D6E";
+const PWA_BACKGROUND_COLOR = "#23044F";
 
 export default defineConfig({
   envDir: projectRoot,
@@ -42,7 +43,7 @@ export default defineConfig({
               description:
                 "Track your anime watching schedule with your AniList list.",
               theme_color: PWA_THEME_COLOR,
-              background_color: "#ffffff",
+              background_color: PWA_BACKGROUND_COLOR,
               display: "standalone",
               start_url: "/",
               scope: "/",
