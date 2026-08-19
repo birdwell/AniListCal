@@ -7,6 +7,10 @@ import {
 import { storage } from "../storage";
 import { ANILIST_TOKEN_URL, ANILIST_GRAPHQL_URL } from "../constants";
 
+vi.mock("../cache/prefetchListSnapshots", () => ({
+  prefetchListSnapshots: vi.fn(),
+}));
+
 process.env.ANILIST_CLIENT_ID = "mockClientId";
 process.env.ANILIST_CLIENT_SECRET = "mockClientSecret";
 
