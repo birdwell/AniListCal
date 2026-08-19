@@ -30,16 +30,15 @@ describe("Layout", () => {
     expect(shell.className).toContain("flex-col");
     expect(shell.className).toContain("overflow-hidden");
 
-    const main = container.querySelector("main");
-    expect(main).not.toBeNull();
-    expect(main?.className).toContain("overflow-y-auto");
-    expect(main?.className).toContain("flex-1");
+    const main = screen.getByRole("main");
+    expect(main.className).toContain("overflow-y-auto");
+    expect(main.className).toContain("flex-1");
     expect(main).toHaveTextContent("Page content");
 
     const tabBar = screen.getByRole("navigation", { name: "Primary" });
     expect(tabBar.className).not.toContain("fixed");
     expect(tabBar.className).toContain("shrink-0");
-    expect(main?.compareDocumentPosition(tabBar) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(main.compareDocumentPosition(tabBar) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 
     expect(
       tabBar.querySelectorAll("a").length,
