@@ -1,4 +1,5 @@
 import express, { type Request, Response, NextFunction } from "express";
+import compression from "compression";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import * as dotenv from "dotenv";
@@ -17,6 +18,7 @@ logger.debug(`[Server Startup] Loaded BACKEND_CALLBACK_URL: ${process.env.BACKEN
 const app = express();
 // Railway and other reverse proxies sit in front of Express; needed for secure cookies.
 app.set("trust proxy", 1);
+app.use(compression());
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
