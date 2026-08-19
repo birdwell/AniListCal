@@ -4,8 +4,8 @@ A web application that integrates with AniList to create calendar events for you
 
 ## Prerequisites
 
-- Node.js 18+
-- Yarn (recommended) or npm
+- Node.js `^20.19.0` or `>=22.12.0`
+- Corepack (selects the Yarn 4 version pinned by the project)
 
 ## Getting started
 
@@ -19,8 +19,11 @@ cd AniListCal
 2. Install dependencies:
 
 ```bash
+corepack enable # once per Node.js installation
 yarn install
 ```
+
+If `corepack` is unavailable, install it first with `npm install -g corepack`.
 
 3. Configure environment variables:
 

@@ -2,12 +2,15 @@
   "name": "anilistcal",
   "version": "1.0.0",
   "type": "module",
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
   "license": "MIT",
   "scripts": {
     "dev": "nodemon",
     "client": "vite",
     "server:once": "tsx server/index.ts",
-    "build": "cross-env NODE_ENV=production npx vite build && cross-env NODE_ENV=production npx esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
+    "build": "cross-env NODE_ENV=production vite build && cross-env NODE_ENV=production esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
     "build:dev": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist --sourcemap",
     "start": "cross-env NODE_ENV=production node dist/index.js",
     "check": "tsc",
@@ -126,5 +129,6 @@
   },
   "resolutions": {
     "vite": "^8.2.1"
-  }
+  },
+  "packageManager": "yarn@4.18.0+sha512.fcb8716fe7cd0eece141ffc18b92193a9df9204c1ba83189c288835223fc0bbe64af473bab0d5e9927a7daeb5caf2bb07eb2787cc9338ca040ea125f2a1f2f7e"
 }

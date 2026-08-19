@@ -5,10 +5,13 @@ Guidance for AI agents and developers working on AniListCal.
 ## Local development
 
 ```bash
+corepack enable              # once per Node.js installation
 yarn install
 cp .env.example .env   # first time only; fill in AniList credentials
 yarn dev
 ```
+
+The repository pins Yarn 4 through the `packageManager` field. If `corepack` is unavailable, install it with `npm install -g corepack` first.
 
 - **One command** — Express serves API + Vite on **http://localhost:5001**
 - Browser opens to `/login` once per `yarn dev` session (disable with `OPEN_BROWSER=false` in `.env`; does not apply to `yarn client`)
