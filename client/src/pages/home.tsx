@@ -7,18 +7,18 @@ import { commonQueryOptions } from "@/lib/query-config";
 import { MediaListStatus } from "@/generated/graphql";
 import { queryKeys } from "@/lib/queryKeys";
 
+const listStatuses = [
+  MediaListStatus.Current,
+  MediaListStatus.Paused,
+  MediaListStatus.Planning,
+];
+
 export default function Home() {
   const { data: user, isLoading: isLoadingUser } = useQuery({
     queryKey: queryKeys.authUser,
     queryFn: getUser,
     ...commonQueryOptions,
   });
-
-  const listStatuses = [
-    MediaListStatus.Current,
-    MediaListStatus.Paused,
-    MediaListStatus.Planning,
-  ];
 
   const {
     data: animeEntries,
