@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { ThemeProvider } from "@/components/theme-provider";
 import { QueryProvider } from "@/components/query-provider";
+import { RouteErrorBoundary } from "@/components/route-error-boundary";
 import { queryKeys } from "@/lib/queryKeys";
 
 const Home = lazy(() => import("@/pages/home"));
@@ -67,32 +68,34 @@ function Router() {
   const showLayout = !["/login", "/auth-error"].includes(location);
 
   const content = (
-    <Suspense fallback={<PageLoader />}>
-      <Switch>
-        <Route path="/login" component={Login} />
-        <Route path="/auth-error" component={() => (
-          <div className="min-h-screen w-full flex items-center justify-center bg-background">
-            <Card className="w-full max-w-md mx-4">
-              <CardHeader>
-                <CardTitle className="text-destructive">Authentication Error</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="mb-4">Something went wrong during authentication. Please try logging in again.</p>
-                <Button onClick={() => window.location.href = '/login'}>
-                  Go to Login
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-        )} />
-        <Route path="/" component={() => <ProtectedRoute component={Home} />} />
-        <Route path="/search" component={() => <ProtectedRoute component={SearchPage} />} />
-        <Route path="/calendar" component={() => <ProtectedRoute component={CalendarPage} />} />
-        <Route path="/profile" component={() => <ProtectedRoute component={Profile} />} />
-        <Route path="/show/:id" component={() => <ProtectedRoute component={Show} />} />
-        <Route component={NotFound} />
-      </Switch>
-    </Suspense>
+    <RouteErrorBoundary>
+      <Suspense fallback={<PageLoader />}>
+        <Switch>
+          <Route path="/login" component={Login} />
+          <Route path="/auth-error" component={() => (
+            <div className="min-h-screen w-full flex items-center justify-center bg-background">
+              <Card className="w-full max-w-md mx-4">
+                <CardHeader>
+                  <CardTitle className="text-destructive">Authentication Error</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="mb-4">Something went wrong during authentication. Please try logging in again.</p>
+                  <Button onClick={() => window.location.href = '/login'}>
+                    Go to Login
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          )} />
+          <Route path="/" component={() => <ProtectedRoute component={Home} />} />
+          <Route path="/search" component={() => <ProtectedRoute component={SearchPage} />} />
+          <Route path="/calendar" component={() => <ProtectedRoute component={CalendarPage} />} />
+          <Route path="/profile" component={() => <ProtectedRoute component={Profile} />} />
+          <Route path="/show/:id" component={() => <ProtectedRoute component={Show} />} />
+          <Route component={NotFound} />
+        </Switch>
+      </Suspense>
+    </RouteErrorBoundary>
   );
 
   return showLayout ? <Layout>{content}</Layout> : content;
