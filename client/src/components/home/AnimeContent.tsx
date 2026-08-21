@@ -120,22 +120,32 @@ export function AnimeContent({ animeEntries }: AnimeContentProps) {
     return results;
   }, [filteredEntries, selectedTags]);
 
+  // Stable suggestion from the full list (ignores search/tags).
+  const watchNext = useMemo(
+    () => findWatchNextEntry(animeEntries),
+    [animeEntries]
+  );
+
   // Apply status filters *after* search and tag filters
   const currentlyAiring = useMemo(() => {
     return (
       filteredAndTaggedEntries?.filter(
         (entry) =>
           entry.media?.status === MediaStatus.Releasing &&
-          entry.status !== "PAUSED"
+          entry.status !== "PAUSED" &&
+          entry.media?.id !== watchNext?.media?.id
       ) || []
     );
-  }, [filteredAndTaggedEntries]);
+  }, [filteredAndTaggedEntries, watchNext?.media?.id]);
 
   const watching = useMemo(
     () =>
-      filteredAndTaggedEntries?.filter((entry) => entry.status === "CURRENT") ||
+      filteredAndTaggedEntries?.filter(
+        (entry) =>
+          entry.status === "CURRENT" && entry.media?.id !== watchNext?.media?.id
+      ) ||
       [],
-    [filteredAndTaggedEntries]
+    [filteredAndTaggedEntries, watchNext?.media?.id]
   );
 
   const onHold = useMemo(
@@ -157,12 +167,6 @@ export function AnimeContent({ animeEntries }: AnimeContentProps) {
   const hasSearchResults =
     debouncedSearchQuery.trim() !== "" || selectedTags.length > 0;
 
-  // Stable suggestion from the full list (ignores search/tags).
-  const watchNext = useMemo(
-    () => findWatchNextEntry(animeEntries),
-    [animeEntries]
-  );
-
   // While filtering, auto-open sections that have matches; otherwise use manual state.
   const isSectionOpen = (section: SectionKey, entryCount: number) => {
     if (hasSearchResults && totalResults > 0 && entryCount > 0) {
@@ -172,8 +176,8 @@ export function AnimeContent({ animeEntries }: AnimeContentProps) {
   };
 
   return (
-    <>
-      <div className="sticky top-0 z-10 pt-2 pb-3 bg-background/80 backdrop-blur-sm">
+    <div className="space-y-5 sm:space-y-6">
+      <div className="sticky top-[calc(-1rem-env(safe-area-inset-top))] z-30 -mx-4 bg-background px-4 pb-3 pt-[calc(1rem+env(safe-area-inset-top))] sm:-mx-6 sm:px-6 md:top-16 md:pt-3 lg:-mx-10 lg:px-10">
         <Collapsible open={isTagFilterOpen} onOpenChange={setIsTagFilterOpen}>
           <div className="flex items-center gap-2">
             <div className="relative min-w-0 flex-1">
@@ -193,6 +197,7 @@ export function AnimeContent({ animeEntries }: AnimeContentProps) {
                 variant="outline"
                 size="icon"
                 className="relative shrink-0 data-[state=open]:bg-accent"
+                aria-label={isTagFilterOpen ? "Close filters" : "Open filters"}
               >
                 <SlidersHorizontal className="h-4 w-4" />
                 {selectedTags.length > 0 && (
@@ -214,12 +219,13 @@ export function AnimeContent({ animeEntries }: AnimeContentProps) {
       </div>
 
       {watchNext && (
-        <section className="bg-background rounded-lg border shadow-sm overflow-hidden">
-          <div className="p-4 pb-2">
-            <h2 className="text-lg font-semibold">Watch next</h2>
+        <section className="overflow-hidden rounded-2xl bg-card shadow-sm ring-1 ring-border/55">
+          <div className="flex items-center gap-3 px-4 pb-2 pt-4 sm:px-5 sm:pt-5">
+            <span className="h-2.5 w-2.5 rounded-full bg-live" aria-hidden />
+            <h2 className="font-display text-xl font-semibold">Watch next</h2>
           </div>
-          <div className="p-4 pt-2">
-            <AnimeCard entry={watchNext} isCompact />
+          <div className="px-4 pb-4 sm:px-5 sm:pb-5">
+            <AnimeCard entry={watchNext} isCompact priority />
           </div>
         </section>
       )}
@@ -255,7 +261,6 @@ export function AnimeContent({ animeEntries }: AnimeContentProps) {
         onToggle={() => toggleSection("planned")}
         isCompact={isCompact}
       />
-    </>
+    </div>
   );
 }
-

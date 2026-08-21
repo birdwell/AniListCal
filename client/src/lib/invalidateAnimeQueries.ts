@@ -1,7 +1,7 @@
 import type { QueryClient } from "@tanstack/react-query";
-import { queryKeys } from "./queryKeys";
+import { revalidateActiveAnimeLists } from "./animeCache";
 
-/** Invalidate all persisted anime list and detail queries after a mutation. */
+/** @deprecated Prefer the cache helpers in animeCache for mutation updates. */
 export function invalidateAnimeQueries(queryClient: QueryClient): void {
-  queryClient.invalidateQueries({ queryKey: ["/anilist/anime"] });
+  revalidateActiveAnimeLists(queryClient);
 }

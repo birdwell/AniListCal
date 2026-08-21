@@ -1,7 +1,7 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Link2, AlertCircle } from "lucide-react";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { RelationsSectionData } from "./types";
+import { MediaLink } from "@/components/media-link";
 
 const formatRelationType = (relationType: string): string => {
   return relationType
@@ -41,10 +41,7 @@ export function RelationsSection({ relations }: RelationsSectionData) {
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="text-lg flex items-center gap-2">
-          <Link2 className="h-5 w-5 text-primary" />
-          Related Media
-        </CardTitle>
+        <h2 className="font-display text-xl font-semibold">Related media</h2>
       </CardHeader>
       <CardContent className="pt-0">
         <div className="space-y-4">
@@ -54,40 +51,54 @@ export function RelationsSection({ relations }: RelationsSectionData) {
                 {formatRelationType(relationType)}
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                {items.map((relation) => (
-                  <a
-                    key={relation?.id ?? `${relationType}-${relation?.node?.id}`}
-                    href={`/show/${relation?.node?.id}`}
-                    className="flex items-center gap-3 p-2 rounded-md hover:bg-muted transition-colors group"
-                  >
-                    <div className="w-12 h-16 rounded overflow-hidden flex-shrink-0">
-                      <img
-                        src={relation?.node?.coverImage?.large || ""}
-                        alt={relation?.node?.title?.romaji || ""}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="text-sm font-medium truncate group-hover:text-primary transition-colors">
-                        {relation?.node?.title?.english ||
-                          relation?.node?.title?.romaji ||
-                          "Unknown Title"}
-                      </h4>
-                      <div className="flex items-center gap-2 mt-1">
-                        {relation?.node?.format && (
-                          <Badge variant="outline" className="text-xs py-0 h-5">
-                            {relation.node.format}
-                          </Badge>
-                        )}
-                        {relation?.node?.status && (
-                          <span className="text-xs text-muted-foreground">
-                            {relation.node.status}
-                          </span>
-                        )}
+                {items.map((relation) => {
+                  const node = relation?.node;
+                  if (!node) return null;
+
+                  const title =
+                    node.title?.english ||
+                    node.title?.romaji ||
+                    "Unknown title";
+
+                  return (
+                    <MediaLink
+                      key={relation?.id ?? `${relationType}-${node.id}`}
+                      mediaId={node.id}
+                      mediaType={node.type}
+                      label={`Open ${title}`}
+                      className="group flex items-center gap-3 rounded-md p-2 transition-colors hover:bg-muted motion-reduce:transition-none"
+                    >
+                      <div className="h-16 w-12 flex-shrink-0 overflow-hidden rounded">
+                        <img
+                          src={node.coverImage?.large || ""}
+                          alt=""
+                          width={48}
+                          height={64}
+                          loading="lazy"
+                          decoding="async"
+                          className="h-full w-full object-cover"
+                        />
                       </div>
-                    </div>
-                  </a>
-                ))}
+                      <div className="min-w-0 flex-1">
+                        <h4 className="truncate text-sm font-medium transition-colors group-hover:text-primary motion-reduce:transition-none">
+                          {title}
+                        </h4>
+                        <div className="mt-1 flex items-center gap-2">
+                          {node.format && (
+                            <Badge variant="outline" className="h-5 py-0 text-xs">
+                              {node.format}
+                            </Badge>
+                          )}
+                          {node.status && (
+                            <span className="text-xs text-muted-foreground">
+                              {node.status}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </MediaLink>
+                  );
+                })}
               </div>
             </div>
           ))}

@@ -1,5 +1,5 @@
 import { EntyFragmentFragment } from "@/generated/graphql";
-import { useLocation } from "wouter";
+import { Link } from "wouter";
 
 // Import the extracted components
 import { CoverImage } from "./CoverImage";
@@ -14,8 +14,6 @@ interface ShowCardProps {
 }
 
 export function ShowCard({ entry }: ShowCardProps) {
-  const [, navigate] = useLocation();
-
   // Early return if no next airing episode
   if (!entry.media?.nextAiringEpisode) return null;
 
@@ -33,24 +31,20 @@ export function ShowCard({ entry }: ShowCardProps) {
   const { shouldShowPreviousEpisode, displayEpisode, previousEpisodeAiringAt } =
     useEpisodeDisplay(airingAt, episode);
 
-  const handleClick = () => {
-    if (entry.media?.id) {
-      navigate(`/show/${entry.media.id}`);
-    }
-  };
-
   return (
-    <div
-      className="p-4 rounded-lg bg-accent/50 hover:bg-accent transition-colors cursor-pointer"
-      onClick={handleClick}
-    >
+    <article className="relative rounded-xl border-l-2 border-l-live bg-muted/65 p-4 transition-colors hover:bg-muted">
+      <Link
+        href={`/show/${entry.media.id}`}
+        aria-label={`View ${title}`}
+        className="absolute inset-0 z-10 rounded-xl focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring"
+      />
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
         <div className="flex gap-3 items-center">
           {coverImage && <CoverImage src={coverImage} alt={title} />}
           <div className="space-y-1">
-            <span className="font-medium line-clamp-2 sm:line-clamp-1">
+            <h3 className="font-medium line-clamp-2 sm:line-clamp-1">
               {title}
-            </span>
+            </h3>
             <EpisodeInfo
               shouldShowPreviousEpisode={shouldShowPreviousEpisode}
               displayEpisode={displayEpisode}
@@ -60,7 +54,7 @@ export function ShowCard({ entry }: ShowCardProps) {
             />
           </div>
         </div>
-        <div className="flex items-center gap-4 text-sm">
+        <div className="relative z-20 flex items-center gap-4 text-sm">
           <div className="flex-shrink-0">
             <EpisodeControls
               mediaId={entry.media.id}
@@ -74,6 +68,6 @@ export function ShowCard({ entry }: ShowCardProps) {
           </div>
         </div>
       </div>
-    </div>
+    </article>
   );
 }

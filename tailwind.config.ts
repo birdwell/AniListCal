@@ -7,10 +7,38 @@ export default {
   content: ["./client/index.html", "./client/src/**/*.{js,jsx,ts,tsx}"],
   theme: {
     extend: {
+      fontFamily: {
+        display: [
+          "ui-rounded",
+          "SF Pro Rounded",
+          "Arial Rounded MT Bold",
+          "Trebuchet MS",
+          "sans-serif",
+        ],
+        sans: [
+          "ui-sans-serif",
+          "system-ui",
+          "-apple-system",
+          "BlinkMacSystemFont",
+          "Segoe UI",
+          "sans-serif",
+        ],
+        data: [
+          "SFMono-Regular",
+          "Cascadia Mono",
+          "Roboto Mono",
+          "ui-monospace",
+          "monospace",
+        ],
+      },
       borderRadius: {
+        xl: "var(--radius-feature)",
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+      },
+      boxShadow: {
+        raised: "var(--shadow-raised)",
       },
       colors: {
         background: "hsl(var(--background))",
@@ -42,6 +70,18 @@ export default {
         destructive: {
           DEFAULT: "hsl(var(--destructive))",
           foreground: "hsl(var(--destructive-foreground))",
+        },
+        live: {
+          DEFAULT: "hsl(var(--live))",
+          foreground: "hsl(var(--live-foreground))",
+        },
+        success: {
+          DEFAULT: "hsl(var(--success))",
+          foreground: "hsl(var(--success-foreground))",
+        },
+        warning: {
+          DEFAULT: "hsl(var(--warning))",
+          foreground: "hsl(var(--warning-foreground))",
         },
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",

@@ -1,9 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, PlayCircle } from "lucide-react";
+import { Calendar, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useLocation } from "wouter";
-import { getProgressColor } from "@/lib/anime-utils";
+import { Link } from "wouter";
 import { format } from "date-fns";
 import { EpisodeControls } from "@/components/episode-controls";
 import { EntyFragmentFragment, MediaStatus } from "@/generated/graphql";
@@ -11,9 +10,14 @@ import { EntyFragmentFragment, MediaStatus } from "@/generated/graphql";
 interface AnimeCardProps {
   entry: EntyFragmentFragment;
   isCompact?: boolean;
+  priority?: boolean;
 }
 
-export function AnimeCard({ entry, isCompact = false }: AnimeCardProps) {
+export function AnimeCard({
+  entry,
+  isCompact = false,
+  priority = false,
+}: AnimeCardProps) {
   // Extract data from entry
   const id = entry.media?.id || 0;
   const title =
@@ -25,7 +29,6 @@ export function AnimeCard({ entry, isCompact = false }: AnimeCardProps) {
   const currentEpisode = entry.progress || 0;
   const totalEpisodes = entry.media?.episodes || 0;
   const nextEpisode = entry.media?.nextAiringEpisode;
-  const [, setLocation] = useLocation();
 
   const formatDate = (timestamp: number) => {
     const date = new Date(timestamp * 1000);
@@ -46,65 +49,80 @@ export function AnimeCard({ entry, isCompact = false }: AnimeCardProps) {
     return `${shortWeekday}, ${dayOfMonth}${suffix}`;
   };
 
-  const handleClick = () => {
-    setLocation(`/show/${id}`);
-  };
-
   if (isCompact) {
     return (
-      <Card
-        className="overflow-hidden hover:bg-accent/50 transition-colors cursor-pointer"
-        onClick={handleClick}
-      >
-        <div className="flex gap-3 sm:gap-4 p-3 sm:p-4 w-full">
-          <div className="h-20 w-14 sm:h-24 sm:w-16 flex-shrink-0 overflow-hidden rounded-md shadow-sm">
-            <img
-              src={imageUrl}
-              alt={title}
-              className="object-cover w-full h-full"
-            />
-          </div>
-          <div className="flex flex-1 flex-col justify-center min-w-0">
-            <h3 className="font-medium text-sm sm:text-base line-clamp-2 mb-1 sm:mb-2">
-              {title}
-            </h3>
-            <div className="flex items-start">
-              <EpisodeControls
-                mediaId={id}
-                currentEpisode={currentEpisode}
-                totalEpisodes={totalEpisodes}
-                compact={true}
-                variant="pill"
-                targetEpisode={nextEpisode?.episode}
-                className="flex-shrink-0"
+      <article>
+        <Card className="overflow-hidden bg-muted/45 ring-0 transition-colors hover:bg-muted/70">
+          <div className="flex w-full gap-3 p-3 sm:gap-4 sm:p-4">
+            <div className="h-20 w-14 flex-shrink-0 overflow-hidden rounded-lg bg-muted sm:h-24 sm:w-16">
+              <img
+                src={imageUrl}
+                alt={title}
+                width="128"
+                height="192"
+                loading={priority ? "eager" : "lazy"}
+                decoding="async"
+                fetchPriority={priority ? "high" : "auto"}
+                className="h-full w-full object-cover"
               />
             </div>
-            {nextEpisode && (
-              <div className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground mt-1 sm:mt-2">
-                <Calendar className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
-                <span className="line-clamp-1">
-                  Ep {nextEpisode.episode} on {formatDate(nextEpisode.airingAt)}
-                </span>
+            <div className="flex min-w-0 flex-1 flex-col justify-center">
+              <Link
+                href={`/show/${id}`}
+                className="group/link -mx-1 flex h-8 items-center justify-between gap-2 rounded-md px-1 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring"
+              >
+                <h3 className="truncate text-sm font-semibold leading-5 group-hover/link:text-primary sm:text-base">
+                  {title}
+                </h3>
+                <ChevronRight
+                  className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground group-hover/link:text-primary"
+                  aria-hidden
+                />
+              </Link>
+              <div className="mt-1 flex min-w-0 items-center justify-between gap-2">
+                {nextEpisode && (
+                  <div className="flex min-w-0 items-center gap-1.5 font-data text-xs text-muted-foreground sm:text-sm">
+                    <Calendar className="h-3.5 w-3.5 flex-shrink-0" aria-hidden />
+                    <span className="truncate">
+                      Ep {nextEpisode.episode} · {formatDate(nextEpisode.airingAt)}
+                    </span>
+                  </div>
+                )}
+                <EpisodeControls
+                  mediaId={id}
+                  currentEpisode={currentEpisode}
+                  totalEpisodes={totalEpisodes}
+                  compact
+                  variant="pill"
+                  targetEpisode={nextEpisode?.episode}
+                  className="ml-auto flex-shrink-0"
+                />
               </div>
-            )}
+            </div>
           </div>
-        </div>
-      </Card>
+        </Card>
+      </article>
     );
   }
 
   return (
-    <Card
-      className="group overflow-hidden hover:shadow-lg transition-all duration-300 h-full cursor-pointer border-0"
-      onClick={handleClick}
-    >
+    <article className="h-full">
+    <Card className="group relative h-full overflow-hidden transition-colors hover:bg-accent/35">
+      <Link
+        href={`/show/${id}`}
+        aria-label={`View ${title}`}
+        className="absolute inset-0 z-10 rounded-xl focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring"
+      />
       <div className="aspect-[2/3] relative overflow-hidden">
         <img
           src={imageUrl}
           alt={title}
-          className="object-cover w-full h-full transform group-hover:scale-105 transition-transform duration-300"
+          width="300"
+          height="450"
+          loading="lazy"
+          decoding="async"
+          className="h-full w-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
         <Badge className="absolute top-1 sm:top-2 right-1 sm:right-2 text-xs sm:text-sm bg-primary/90 backdrop-blur-sm shadow-md">
           {status}
         </Badge>
@@ -115,7 +133,7 @@ export function AnimeCard({ entry, isCompact = false }: AnimeCardProps) {
         </CardTitle>
       </CardHeader>
       <CardContent className="p-2 sm:p-4 pt-0">
-        <div className="flex flex-col gap-1 sm:gap-2 text-xs sm:text-sm">
+          <div className="relative z-20 flex flex-col gap-1 sm:gap-2 text-xs sm:text-sm">
           {/* Episode Progress */}
           <div className="flex items-start">
             <EpisodeControls
@@ -140,5 +158,6 @@ export function AnimeCard({ entry, isCompact = false }: AnimeCardProps) {
         </div>
       </CardContent>
     </Card>
+    </article>
   );
 }

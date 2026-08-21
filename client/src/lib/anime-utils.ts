@@ -103,11 +103,11 @@ export function getProgressColor(currentEp: number, nextEpisode: number | null |
   
   // If the user is more than 1 episode behind, show yellow (needs attention)
   if (currentEp < nextEpisode - 1) {
-    return "text-yellow-500 dark:text-yellow-400";
+    return "text-warning";
   }
   
   // If the user is caught up or only 1 episode behind, show green
-  return "text-green-500 dark:text-green-400";
+  return "text-success";
 }
 
 /**
@@ -119,12 +119,12 @@ export function getAiringStatusColor(timestamp: number) {
 
   if (timeUntil < 0) {
     const timeSince = Math.abs(timeUntil);
-    if (timeSince < 3600) return "text-green-500 dark:text-green-400"; // Aired less than 1 hour ago
-    if (timeSince < 86400) return "text-green-600 dark:text-green-500"; // Aired less than 24 hours ago
-    return "text-gray-500 dark:text-gray-400"; // Aired more than 24 hours ago
+    if (timeSince < 3600) return "text-success"; // Aired less than 1 hour ago
+    if (timeSince < 86400) return "text-success"; // Aired less than 24 hours ago
+    return "text-muted-foreground"; // Aired more than 24 hours ago
   }
   
-  if (timeUntil < 3600) return "text-red-500 dark:text-red-400"; // Less than 1 hour
-  if (timeUntil < 86400) return "text-yellow-500 dark:text-yellow-400"; // Less than 24 hours
-  return "text-blue-500 dark:text-blue-400"; // More than 24 hours
+  if (timeUntil < 3600) return "text-live"; // Less than 1 hour
+  if (timeUntil < 86400) return "text-warning"; // Less than 24 hours
+  return "text-primary"; // More than 24 hours
 }

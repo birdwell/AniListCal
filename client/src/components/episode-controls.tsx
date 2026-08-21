@@ -40,7 +40,10 @@ export function EpisodeControls({
     if (localProgress > 0 && !isUpdating) {
       const newProgress = localProgress - 1;
       setLocalProgress(newProgress);
-      updateProgress({ mediaId, progress: newProgress });
+      updateProgress(
+        { mediaId, progress: newProgress },
+        { onError: () => setLocalProgress(currentEpisode) },
+      );
     }
   };
 
@@ -55,27 +58,36 @@ export function EpisodeControls({
     if (canIncrement && !isUpdating) {
       const newProgress = localProgress + 1;
       setLocalProgress(newProgress);
-      updateProgress({ mediaId, progress: newProgress });
+      updateProgress(
+        { mediaId, progress: newProgress },
+        { onError: () => setLocalProgress(currentEpisode) },
+      );
     }
   };
 
   const containerStyles = {
-    minimal: "inline-flex items-center flex-shrink-0 gap-1",
-    pill: "inline-flex items-center flex-shrink-0 gap-1 bg-muted/80 backdrop-blur-sm p-1 rounded-full",
+    minimal:
+      "inline-grid h-11 flex-shrink-0 grid-cols-[2.75rem_minmax(2.75rem,auto)_2.75rem] items-center",
+    pill:
+      "inline-grid h-11 flex-shrink-0 grid-cols-[2.75rem_minmax(2.75rem,auto)_2.75rem] items-center overflow-hidden rounded-xl bg-secondary",
     default:
-      "inline-flex items-center flex-shrink-0 gap-1 bg-background/80 backdrop-blur-sm p-1 rounded-lg border border-border/50",
+      "inline-grid h-11 flex-shrink-0 grid-cols-[2.75rem_minmax(2.75rem,auto)_2.75rem] items-center overflow-hidden rounded-xl bg-background ring-1 ring-border/70",
   }[variant];
 
   const incrementDisabled = isUpdating || !canIncrement;
   const decrementDisabled = isUpdating || localProgress === 0;
   const progressColorClass = getProgressColor(
-    currentEpisode,
+    localProgress,
     targetEpisode || (hasKnownTotal ? totalEpisodes : null)
   );
 
   return (
     <TooltipProvider>
-      <div className={cn(containerStyles, className)}>
+      <div
+        className={cn(containerStyles, className)}
+        role="group"
+        aria-label="Episode progress controls"
+      >
         {/* Decrement button */}
         <ControlButton
           icon={Minus}
@@ -90,10 +102,11 @@ export function EpisodeControls({
         {/* Progress display */}
         <span
           className={cn(
-            "font-medium w-auto text-center px-1 whitespace-nowrap",
-            compact ? "text-xs" : "text-sm",
+            "min-w-11 whitespace-nowrap px-1 text-center font-data text-base font-semibold tabular-nums",
+            !compact && "text-lg",
             progressColorClass
           )}
+          aria-live="polite"
         >
           {localProgress}
           {totalEpisodes > 0 && (

@@ -3,9 +3,14 @@ import { queryAniList } from '../lib/anilistProxy';
 import { logger } from '../lib/logger';
 import { UPDATE_STATUS_MUTATION } from '@/queries/queries';
 import { toast } from '@/hooks/use-toast';
-import { invalidateAnimeQueries } from '@/lib/invalidateAnimeQueries';
-import { queryKeys } from '@/lib/queryKeys';
 import { MediaListStatus } from '@/generated/graphql';
+import {
+  cancelAnimeEntryQueries,
+  patchAnimeEntryCaches,
+  revalidateActiveAnimeLists,
+  restoreAnimeEntryCaches,
+  snapshotAnimeEntryCaches,
+} from '@/lib/animeCache';
 
 interface UpdateStatusVariables {
   mediaId: number;
@@ -14,6 +19,7 @@ interface UpdateStatusVariables {
 
 interface SaveMediaListEntryResult {
   SaveMediaListEntry?: {
+    id?: number | null;
     media?: {
       title: { romaji?: string | null; english?: string | null };
     };
@@ -37,65 +43,45 @@ export function useUpdateStatus() {
       });
     },
     onMutate: async ({ mediaId, status }) => {
-      const detailKey = queryKeys.animeDetail(mediaId);
-      await queryClient.cancelQueries({ queryKey: detailKey });
-      
-      const previousData = queryClient.getQueryData(detailKey);
-      
-      queryClient.setQueryData(detailKey, (old: any) => {
-        if (!old) return old;
-        
-        return {
-          ...old,
-          mediaListEntry: {
-            ...old.mediaListEntry,
-            status,
-          }
-        };
-      });
-      
-      return { previousData, mediaId };
+      await cancelAnimeEntryQueries(queryClient, mediaId);
+      const snapshot = snapshotAnimeEntryCaches(queryClient, mediaId);
+
+      patchAnimeEntryCaches(queryClient, mediaId, { status });
+      return { snapshot };
     },
     onSuccess: (data, variables) => {
+      const updatedEntry = data?.data?.SaveMediaListEntry;
       const updatedMedia = data?.data?.SaveMediaListEntry?.media;
       const updatedStatus = data?.data?.SaveMediaListEntry?.status;
+
+      patchAnimeEntryCaches(queryClient, variables.mediaId, {
+        entryId: updatedEntry?.id ?? undefined,
+        progress: updatedEntry?.progress ?? undefined,
+        status: updatedStatus,
+      });
       
       if (updatedMedia) {
         const formattedStatus = formatStatus(updatedStatus ?? null);
         
         toast({
-          title: "Status Updated",
+          title: "Status updated",
           description: `${updatedMedia.title.romaji || updatedMedia.title.english}: ${formattedStatus}`,
           variant: "default",
         });
-
-        queryClient.setQueryData(queryKeys.animeDetail(variables.mediaId), (old: any) => {
-          if (!old) return old;
-          
-          return {
-            ...old,
-            mediaListEntry: {
-              ...old.mediaListEntry,
-              status: updatedStatus,
-            }
-          };
-        });
-        
-        invalidateAnimeQueries(queryClient);
       }
     },
-    onError: (error: any, variables, context) => {
+    onError: (error: any, _variables, context) => {
       logger.error('Error updating status:', error);
+      restoreAnimeEntryCaches(queryClient, context?.snapshot ?? []);
       
       toast({
-        title: "Update Failed",
+        title: "Update failed",
         description: error?.message || "Failed to update watch status",
         variant: "destructive",
       });
-      
-      if (context?.previousData) {
-        queryClient.setQueryData(queryKeys.animeDetail(variables.mediaId), context.previousData);
-      }
+    },
+    onSettled: () => {
+      revalidateActiveAnimeLists(queryClient);
     },
   });
 

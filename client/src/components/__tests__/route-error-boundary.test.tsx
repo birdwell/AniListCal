@@ -22,7 +22,12 @@ describe("RouteErrorBoundary", () => {
       </RouteErrorBoundary>,
     );
 
-    expect(screen.getByRole("alert")).toHaveTextContent("Update required");
+    expect(
+      screen.getByRole("heading", { level: 1, name: "Update required" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "This page could not be loaded",
+    );
     screen.getByRole("button", { name: "Reload app" }).click();
     expect(reload).toHaveBeenCalledOnce();
   });

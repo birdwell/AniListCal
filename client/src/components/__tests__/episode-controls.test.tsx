@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { EpisodeControls } from "../episode-controls";
 import "@testing-library/jest-dom";
 
@@ -27,8 +27,44 @@ describe("EpisodeControls", () => {
 
     fireEvent.click(increase);
 
-    expect(updateProgress).toHaveBeenCalledWith({ mediaId: 1, progress: 4 });
+    expect(updateProgress).toHaveBeenCalledWith(
+      { mediaId: 1, progress: 4 },
+      expect.objectContaining({ onError: expect.any(Function) }),
+    );
     expect(screen.getByText("4")).toBeInTheDocument();
+  });
+
+  it("exposes a named group and 44px touch targets", () => {
+    render(
+      <EpisodeControls mediaId={1} currentEpisode={3} totalEpisodes={12} compact />
+    );
+
+    expect(
+      screen.getByRole("group", { name: "Episode progress controls" }),
+    ).toBeInTheDocument();
+
+    expect(screen.getByRole("button", { name: "Decrease episode" })).toHaveClass(
+      "h-11",
+      "w-11",
+    );
+    expect(screen.getByRole("button", { name: "Increase episode" })).toHaveClass(
+      "h-11",
+      "w-11",
+    );
+  });
+
+  it("restores the displayed value when an update fails", () => {
+    render(
+      <EpisodeControls mediaId={1} currentEpisode={3} totalEpisodes={12} />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Increase episode" }));
+    expect(screen.getByText("4")).toBeInTheDocument();
+
+    const mutationOptions = updateProgress.mock.calls[0][1];
+    act(() => mutationOptions.onError());
+
+    expect(screen.getByText("3")).toBeInTheDocument();
   });
 
   it("blocks incrementing once known total is reached", () => {

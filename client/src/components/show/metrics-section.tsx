@@ -1,5 +1,5 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart3, Award, TrendingUp, AlertCircle } from "lucide-react";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Award, TrendingUp, AlertCircle } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import type { MetricsSectionData } from "./types";
 
@@ -37,10 +37,7 @@ export function MetricsSection({
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="text-lg flex items-center gap-2">
-          <BarChart3 className="h-5 w-5 text-primary" />
-          Metrics
-        </CardTitle>
+        <h2 className="font-display text-xl font-semibold">Ratings and rank</h2>
       </CardHeader>
       <CardContent className="pt-0">
         {hasMetrics ? (

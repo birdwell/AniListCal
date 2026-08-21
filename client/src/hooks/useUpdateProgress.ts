@@ -3,8 +3,14 @@ import { queryAniList } from '../lib/anilistProxy';
 import { logger } from '../lib/logger';
 import { UPDATE_PROGRESS_MUTATION } from '@/queries/queries';
 import { toast } from '@/hooks/use-toast';
-import { invalidateAnimeQueries } from '@/lib/invalidateAnimeQueries';
 import { MediaListStatus } from '@/generated/graphql';
+import {
+  cancelAnimeEntryQueries,
+  patchAnimeEntryCaches,
+  revalidateActiveAnimeLists,
+  restoreAnimeEntryCaches,
+  snapshotAnimeEntryCaches,
+} from '@/lib/animeCache';
 
 interface UpdateProgressVariables {
   mediaId: number;
@@ -13,6 +19,7 @@ interface UpdateProgressVariables {
 
 interface SaveMediaListEntryResult {
   SaveMediaListEntry?: {
+    id?: number | null;
     media?: {
       title: { romaji?: string | null; english?: string | null };
     };
@@ -35,28 +42,44 @@ export function useUpdateProgress() {
         progress,
       });
     },
-    onSuccess: (data) => {
+    onMutate: async ({ mediaId, progress }) => {
+      await cancelAnimeEntryQueries(queryClient, mediaId);
+      const snapshot = snapshotAnimeEntryCaches(queryClient, mediaId);
+
+      patchAnimeEntryCaches(queryClient, mediaId, { progress });
+      return { snapshot };
+    },
+    onSuccess: (data, { mediaId }) => {
+      const updatedEntry = data?.data?.SaveMediaListEntry;
       const updatedMedia = data?.data?.SaveMediaListEntry?.media;
       const updatedProgress = data?.data?.SaveMediaListEntry?.progress;
+
+      patchAnimeEntryCaches(queryClient, mediaId, {
+        entryId: updatedEntry?.id ?? undefined,
+        progress: updatedProgress ?? undefined,
+        status: updatedEntry?.status,
+      });
       
       if (updatedMedia) {
         toast({
-          title: "Progress Updated",
+          title: "Progress updated",
           description: `${updatedMedia.title.romaji || updatedMedia.title.english}: Episode ${updatedProgress}`,
           variant: "default",
         });
-
-        invalidateAnimeQueries(queryClient);
       }
     },
-    onError: (error: any) => {
+    onError: (error: any, _variables, context) => {
       logger.error('Error updating progress:', error);
+      restoreAnimeEntryCaches(queryClient, context?.snapshot ?? []);
       
       toast({
-        title: "Update Failed",
+        title: "Update failed",
         description: error?.message || "Failed to update episode progress",
         variant: "destructive",
       });
+    },
+    onSettled: () => {
+      revalidateActiveAnimeLists(queryClient);
     },
   });
 

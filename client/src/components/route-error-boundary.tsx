@@ -1,6 +1,7 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AppState } from "@/components/app-state";
+import { PageHeader, PageShell } from "@/components/ui/page-shell";
 
 interface RouteErrorBoundaryProps {
   children: ReactNode;
@@ -37,17 +38,14 @@ export class RouteErrorBoundary extends Component<
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen w-full flex items-center justify-center bg-background">
-          <Card className="w-full max-w-md mx-4" role="alert">
-            <CardHeader>
-              <CardTitle>Update required</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="mb-4">This page could not be loaded. Reload to use the latest version.</p>
-              <Button onClick={this.reload}>Reload app</Button>
-            </CardContent>
-          </Card>
-        </div>
+        <PageShell size="narrow" className="space-y-6 py-10 sm:py-16">
+          <PageHeader title="Update required" />
+          <AppState
+            kind="error"
+            description="This page could not be loaded. Reload to use the latest version."
+            action={<Button onClick={this.reload}>Reload app</Button>}
+          />
+        </PageShell>
       );
     }
 

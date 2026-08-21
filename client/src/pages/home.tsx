@@ -2,13 +2,15 @@ import { useQuery } from "@tanstack/react-query";
 import { getUser } from "@/lib/auth";
 import { fetchUserAnime } from "@/lib/anilist";
 import { logger } from "@/lib/logger";
-import { LoadingView, ErrorAlert, AnimeContent } from "@/components/home";
+import { AnimeContent } from "@/components/home";
 import { commonQueryOptions } from "@/lib/query-config";
 import { MediaListStatus } from "@/generated/graphql";
 import { queryKeys } from "@/lib/queryKeys";
+import { AppState } from "@/components/app-state";
+import { PageHeader, PageShell } from "@/components/ui/page-shell";
 
-const listStatuses = [
-  MediaListStatus.Current,
+const currentStatuses = [MediaListStatus.Current];
+const libraryStatuses = [
   MediaListStatus.Paused,
   MediaListStatus.Planning,
 ];
@@ -20,43 +22,89 @@ export default function Home() {
     ...commonQueryOptions,
   });
 
-  const {
-    data: animeEntries,
-    isLoading: isAnimeLoading,
-    error: animeError,
-  } = useQuery({
-    queryKey: user?.id ? queryKeys.animeList(user.id, listStatuses) : ["disabled"],
+  const currentAnime = useQuery({
+    queryKey: user?.id ? queryKeys.animeList(user.id, currentStatuses) : ["disabled"],
     queryFn: () => {
       if (!user?.id) {
         throw new Error("Please set your Anilist ID in your profile");
       }
-      return fetchUserAnime(user.id, listStatuses);
+      return fetchUserAnime(user.id, currentStatuses);
     },
     enabled: !!user?.id,
     ...commonQueryOptions,
   });
 
+  const libraryAnime = useQuery({
+    queryKey: user?.id ? queryKeys.animeList(user.id, libraryStatuses) : ["disabled"],
+    queryFn: () => {
+      if (!user?.id) {
+        throw new Error("Please set your Anilist ID in your profile");
+      }
+      return fetchUserAnime(user.id, libraryStatuses);
+    },
+    enabled: !!user?.id && currentAnime.isSuccess,
+    ...commonQueryOptions,
+  });
+
+  const animeEntries = [
+    ...(currentAnime.data ?? []),
+    ...(libraryAnime.data ?? []),
+  ];
+
   logger.debug(animeEntries);
 
-  if (isLoadingUser || isAnimeLoading) {
-    return <LoadingView />;
+  if (isLoadingUser || currentAnime.isLoading) {
+    return (
+      <PageShell size="wide" className="space-y-6">
+        <PageHeader title="Today" />
+        <AppState kind="loading" title="Loading your anime" />
+      </PageShell>
+    );
   }
 
   if (!user?.id) {
     return (
-      <ErrorAlert message="Please set your Anilist ID in your profile to view your anime list." />
+      <PageShell size="wide" className="space-y-6">
+        <PageHeader title="Today" />
+        <AppState
+          kind="error"
+          title="AniList account unavailable"
+          description="Reconnect your AniList account to load your anime list."
+        />
+      </PageShell>
     );
   }
 
-  if (animeError) {
+  if (currentAnime.error) {
     return (
-      <ErrorAlert message="Failed to fetch your anime list. Please try again later." />
+      <PageShell size="wide" className="space-y-6">
+        <PageHeader title="Today" />
+        <AppState
+          kind="error"
+          title="Your anime list could not be loaded"
+          description="Try again in a moment."
+        />
+      </PageShell>
+    );
+  }
+
+  if (!animeEntries.length && !libraryAnime.isLoading) {
+    return (
+      <PageShell size="wide" className="space-y-6">
+        <PageHeader title="Today" />
+        <AppState
+          kind="empty"
+          title="Your anime list is empty"
+          description="Add a show on AniList, then return here to track it."
+        />
+      </PageShell>
     );
   }
 
   return (
-    <div className="w-full mx-auto px-4 sm:px-6 lg:px-10 xl:px-12 2xl:px-16 space-y-4 sm:space-y-6">
-      <AnimeContent animeEntries={animeEntries || []} />
-    </div>
+    <PageShell size="wide" className="space-y-6">
+      <PageHeader title="Today" />
+      <AnimeContent animeEntries={animeEntries} />
+    </PageShell>
   );
 }

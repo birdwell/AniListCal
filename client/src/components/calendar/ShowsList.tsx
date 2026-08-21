@@ -1,5 +1,4 @@
 import { Calendar as CalendarIcon } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
 import { EntyFragmentFragment } from "@/generated/graphql";
 import { ShowCard } from "./ShowCard";
 import { formatDate, getDayName } from "@/lib/calendar-utils";
@@ -14,13 +13,14 @@ export function ShowsList({ showsForSelectedDate, selectedDay, selectedDate }: S
   return (
     <div className="space-y-6">
       {showsForSelectedDate.length > 0 ? (
-        <Card className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-3 mb-6">
-              <CalendarIcon className="h-5 w-5 text-primary" />
-              <h3 className="font-semibold text-lg">
+        <section className="rounded-xl bg-card p-4 sm:p-6" aria-live="polite">
+            <div className="mb-5 flex items-center gap-3">
+              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <CalendarIcon className="h-4 w-4" aria-hidden />
+              </span>
+              <h2 className="font-display text-xl font-semibold">
                 {formatDate(selectedDate)}
-              </h3>
+              </h2>
             </div>
             <div className="space-y-3">
               {showsForSelectedDate.flatMap(([_, entries]) => 
@@ -29,14 +29,11 @@ export function ShowsList({ showsForSelectedDate, selectedDay, selectedDate }: S
                 ))
               )}
             </div>
-          </CardContent>
-        </Card>
+        </section>
       ) : (
-        <Card className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <CardContent className="p-6 text-center text-muted-foreground">
+        <div className="rounded-xl bg-card p-8 text-center text-muted-foreground" role="status">
             No shows airing on {getDayName(selectedDate)}
-          </CardContent>
-        </Card>
+        </div>
       )}
     </div>
   );

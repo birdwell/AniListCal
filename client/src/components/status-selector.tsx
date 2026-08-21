@@ -96,9 +96,9 @@ export function StatusSelector({
       disabled={isUpdating}
     >
       <SelectTrigger 
-        className={`${className} ${variant === "compact" ? "h-8 text-xs" : ""}`}
+        className={`${className} ${variant === "compact" ? "h-11 text-xs" : ""}`}
       >
-        <SelectValue placeholder="Set Status">
+        <SelectValue placeholder="Set status">
           <div className="flex items-center gap-2">
             {status && getStatusIcon(status)}
             <span>{formatStatus(status)}</span>
@@ -106,37 +106,37 @@ export function StatusSelector({
         </SelectValue>
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value={MediaListStatus.Current}>
+        <SelectItem value={MediaListStatus.Current} hideIndicator>
           <div className="flex items-center gap-2">
             <Play className="h-4 w-4" />
             <span>Watching</span>
           </div>
         </SelectItem>
-        <SelectItem value={MediaListStatus.Completed}>
+        <SelectItem value={MediaListStatus.Completed} hideIndicator>
           <div className="flex items-center gap-2">
             <CheckCircle className="h-4 w-4" />
             <span>Completed</span>
           </div>
         </SelectItem>
-        <SelectItem value={MediaListStatus.Planning}>
+        <SelectItem value={MediaListStatus.Planning} hideIndicator>
           <div className="flex items-center gap-2">
             <ListPlus className="h-4 w-4" />
             <span>Plan to Watch</span>
           </div>
         </SelectItem>
-        <SelectItem value={MediaListStatus.Paused}>
+        <SelectItem value={MediaListStatus.Paused} hideIndicator>
           <div className="flex items-center gap-2">
             <Pause className="h-4 w-4" />
             <span>Paused</span>
           </div>
         </SelectItem>
-        <SelectItem value={MediaListStatus.Dropped}>
+        <SelectItem value={MediaListStatus.Dropped} hideIndicator>
           <div className="flex items-center gap-2">
             <X className="h-4 w-4" />
             <span>Dropped</span>
           </div>
         </SelectItem>
-        <SelectItem value={MediaListStatus.Repeating}>
+        <SelectItem value={MediaListStatus.Repeating} hideIndicator>
           <div className="flex items-center gap-2">
             <RefreshCw className="h-4 w-4" />
             <span>Rewatching</span>

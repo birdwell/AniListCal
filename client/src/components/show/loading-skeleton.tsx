@@ -3,9 +3,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export function LoadingSkeleton() {
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
+    <div className="space-y-8" role="status" aria-label="Loading show details">
+      <span className="sr-only">Loading show details</span>
       {/* Hero Section Skeleton */}
-      <div className="relative h-[300px] md:h-[400px] -mx-4 sm:mx-0 sm:rounded-lg overflow-hidden">
+      <div className="relative -mx-4 h-[250px] overflow-hidden sm:mx-0 sm:rounded-2xl md:h-[350px]">
         <Skeleton className="absolute inset-0" />
         <div className="absolute inset-0 bg-gradient-to-t from-background to-transparent" />
         <div className="absolute bottom-0 left-0 right-0 p-6 space-y-2">

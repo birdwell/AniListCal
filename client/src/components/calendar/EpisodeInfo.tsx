@@ -23,13 +23,13 @@ export function EpisodeInfo({
       <div className="space-y-1 text-sm">
         <div className="flex items-center gap-2">
           <span className="text-muted-foreground">Episode {displayEpisode}</span>
-          <span className="font-medium text-green-500 dark:text-green-400">
+          <span className="font-data font-medium text-success">
             • Aired {formatTimeSince(previousEpisodeAiringAt)}
           </span>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-muted-foreground">Episode {episode}</span>
-          <span className={cn("font-medium", getAiringStatusColor(airingAt))}>
+          <span className={cn("font-data font-medium", getAiringStatusColor(airingAt))}>
             • {formatTimeUntil(airingAt)}
           </span>
         </div>
@@ -40,7 +40,7 @@ export function EpisodeInfo({
   return (
     <div className="flex items-center gap-2 text-sm">
       <span className="text-muted-foreground">Episode {episode}</span>
-      <span className={cn("font-medium", getAiringStatusColor(airingAt))}>
+      <span className={cn("font-data font-medium", getAiringStatusColor(airingAt))}>
         • {formatTimeUntil(airingAt)}
       </span>
     </div>

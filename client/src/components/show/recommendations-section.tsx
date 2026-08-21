@@ -1,7 +1,8 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ThumbsUp, AlertCircle } from "lucide-react";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { ThumbsUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import type { RecommendationsSectionData } from "./types";
+import { MediaLink } from "@/components/media-link";
 
 export function RecommendationsSection({
   recommendations,
@@ -18,65 +19,70 @@ export function RecommendationsSection({
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="text-lg flex items-center gap-2">
-          <ThumbsUp className="h-5 w-5 text-primary" />
-          Recommendations
-        </CardTitle>
+        <h2 className="font-display text-xl font-semibold">Recommendations</h2>
       </CardHeader>
       <CardContent className="pt-0">
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-          {recommendationNodes.map((recommendation) => (
-            <a
-              key={recommendation?.id}
-              href={`/show/${recommendation?.mediaRecommendation?.id}`}
-              className="group"
-            >
-              <div className="flex sm:flex-col h-full rounded-md overflow-hidden border bg-card transition-colors hover:bg-accent/30">
-                <div className="relative w-20 h-28 sm:w-full sm:aspect-[3/4] overflow-hidden flex-shrink-0">
-                  <img
-                    src={
-                      recommendation?.mediaRecommendation?.coverImage?.large ||
-                      ""
-                    }
-                    alt={
-                      recommendation?.mediaRecommendation?.title?.romaji || ""
-                    }
-                    className="object-cover w-full h-full transition-transform group-hover:scale-105"
-                  />
-                  {recommendation?.rating && (
-                    <div className="absolute top-1 right-1 sm:top-2 sm:right-2 bg-background/80 rounded-full px-1.5 py-0.5 sm:px-2 sm:py-1 text-xs font-medium flex items-center gap-1">
-                      <ThumbsUp className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-primary" />
-                      <span>{recommendation.rating}</span>
-                    </div>
-                  )}
-                </div>
-                <div className="p-2 sm:p-3 flex-1 flex flex-col min-w-0">
-                  <h4 className="text-sm font-medium line-clamp-2 group-hover:text-primary transition-colors">
-                    {recommendation?.mediaRecommendation?.title?.english ||
-                      recommendation?.mediaRecommendation?.title?.romaji}
-                  </h4>
-                  <div className="mt-1 sm:mt-2 flex flex-wrap gap-1">
-                    {recommendation?.mediaRecommendation?.format && (
-                      <Badge
-                        variant="outline"
-                        className="text-xs py-0 h-4 sm:h-5"
-                      >
-                        {recommendation.mediaRecommendation.format}
-                      </Badge>
-                    )}
-                    {recommendation?.mediaRecommendation?.status && (
-                      <Badge
-                        variant="secondary"
-                        className="text-xs py-0 h-4 sm:h-5"
-                      >
-                        {recommendation.mediaRecommendation.status}
-                      </Badge>
+          {recommendationNodes.map((recommendation) => {
+            const media = recommendation?.mediaRecommendation;
+            if (!media) return null;
+
+            const title =
+              media.title?.english || media.title?.romaji || "Unknown title";
+
+            return (
+              <MediaLink
+                key={recommendation?.id}
+                mediaId={media.id}
+                mediaType={media.type}
+                label={`Open ${title}`}
+                className="group"
+              >
+                <div className="flex h-full overflow-hidden rounded-lg bg-muted/60 transition-colors hover:bg-muted motion-reduce:transition-none sm:flex-col">
+                  <div className="relative h-28 w-20 flex-shrink-0 overflow-hidden sm:aspect-[3/4] sm:h-auto sm:w-full">
+                    <img
+                      src={media.coverImage?.large || ""}
+                      alt=""
+                      width={230}
+                      height={345}
+                      loading="lazy"
+                      decoding="async"
+                      className="h-full w-full object-cover"
+                    />
+                    {recommendation?.rating && (
+                      <div className="absolute right-1 top-1 flex items-center gap-1 rounded-full bg-background/80 px-1.5 py-0.5 text-xs font-medium sm:right-2 sm:top-2 sm:px-2 sm:py-1">
+                        <ThumbsUp className="h-2.5 w-2.5 text-primary sm:h-3 sm:w-3" />
+                        <span>Score {recommendation.rating}</span>
+                      </div>
                     )}
                   </div>
+                  <div className="flex min-w-0 flex-1 flex-col p-2 sm:p-3">
+                    <h4 className="line-clamp-2 text-sm font-medium transition-colors group-hover:text-primary motion-reduce:transition-none">
+                      {title}
+                    </h4>
+                    <div className="mt-1 flex flex-wrap gap-1 sm:mt-2">
+                      {media.format && (
+                        <Badge
+                          variant="outline"
+                          className="h-4 py-0 text-xs sm:h-5"
+                        >
+                          {media.format}
+                        </Badge>
+                      )}
+                      {media.status && (
+                        <Badge
+                          variant="secondary"
+                          className="h-4 py-0 text-xs sm:h-5"
+                        >
+                          {media.status}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </a>
-          ))}
+              </MediaLink>
+            );
+          })}
         </div>
       </CardContent>
     </Card>

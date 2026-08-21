@@ -1,5 +1,5 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ExternalLink, Globe, AlertCircle } from "lucide-react";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { ExternalLink } from "lucide-react";
 import type { ExternalLinksSectionData } from "./types";
 import type { MediaFragmentFragment } from "@/generated/graphql";
 
@@ -51,10 +51,7 @@ export function ExternalLinksSection({
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="text-lg flex items-center gap-2">
-          <Globe className="h-5 w-5 text-primary" />
-          External Links
-        </CardTitle>
+        <h2 className="font-display text-xl font-semibold">External links</h2>
       </CardHeader>
       <CardContent className="pt-0">
         <div className="space-y-4">
@@ -76,7 +73,11 @@ export function ExternalLinksSection({
                     {link.icon ? (
                       <img
                         src={link.icon}
-                        alt={link.site}
+                        alt=""
+                        width="20"
+                        height="20"
+                        loading="lazy"
+                        decoding="async"
                         className="w-5 h-5 object-contain"
                       />
                     ) : (

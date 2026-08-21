@@ -1,4 +1,3 @@
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
@@ -8,6 +7,10 @@ import { useState, useMemo } from "react";
 
 interface TagFilterProps {
     categorizedTags: Record<string, string[]>;
+}
+
+function formatCategory(category: string): string {
+    return category.replace(/-/g, " / ");
 }
 
 export function TagFilter({ categorizedTags }: TagFilterProps) {
@@ -49,11 +52,12 @@ export function TagFilter({ categorizedTags }: TagFilterProps) {
     const hasFilteredResults = Object.keys(filteredCategorizedTags).length > 0;
 
     return (
-        <div className="mt-3 p-4 pt-5 bg-background rounded-md border w-full">
+        <div className="mt-3 w-full rounded-xl bg-card p-4 shadow-sm ring-1 ring-border/55">
+            <h2 className="sr-only">Filter by tags</h2>
             {selectedTags.length > 0 && (
                 <div className="mb-4">
                     <div className="flex justify-between items-center mb-2">
-                        <h4 className="text-sm font-medium leading-none">Selected Tags</h4>
+                        <h3 className="text-sm font-medium leading-none">Selected tags</h3>
                         <Button
                             variant="ghost"
                             size="sm"
@@ -61,22 +65,24 @@ export function TagFilter({ categorizedTags }: TagFilterProps) {
                             className="text-xs h-auto p-1"
                             aria-label="Clear selected tags"
                         >
-                            Clear All <X className="ml-1 h-3 w-3" />
+                            Clear all <X className="ml-1 h-3 w-3" />
                         </Button>
                     </div>
                     <div className="flex flex-wrap gap-1">
                         {selectedTags.map((tag) => (
-                            <Badge
+                            <Button
                                 key={`selected-${tag}`}
-                                variant="default"
+                                variant="secondary"
+                                size="sm"
                                 onClick={() => removeTag(tag)}
-                                className="cursor-pointer"
+                                className="min-h-11 rounded-md px-3 font-data text-xs sm:min-h-9"
+                                aria-label={`Remove ${tag} filter`}
                             >
                                 {tag} <X className="ml-1 h-3 w-3" />
-                            </Badge>
+                            </Button>
                         ))}
                     </div>
-                    <hr className="my-3" />
+                    <div className="my-3 h-px bg-border" aria-hidden />
                 </div>
             )}
 
@@ -85,6 +91,7 @@ export function TagFilter({ categorizedTags }: TagFilterProps) {
                 <Input
                     type="text"
                     placeholder="Filter tags..."
+                    aria-label="Filter available tags"
                     value={internalFilterQuery}
                     onChange={(e) => setInternalFilterQuery(e.target.value)}
                     className="pl-8"
@@ -93,7 +100,7 @@ export function TagFilter({ categorizedTags }: TagFilterProps) {
                     <Button
                         variant="ghost"
                         size="icon"
-                        className="absolute right-1 top-1/2 h-6 w-6 -translate-y-1/2 p-0"
+                        className="absolute right-0 top-1/2 -translate-y-1/2"
                         onClick={() => setInternalFilterQuery("")}
                         aria-label="Clear tag filter"
                     >
@@ -109,27 +116,39 @@ export function TagFilter({ categorizedTags }: TagFilterProps) {
                 {!hasFilteredResults && hasCategorizedTags && (
                     <p className="text-sm text-muted-foreground text-center py-4">No tags match your filter.</p>
                 )}
-                {Object.entries(filteredCategorizedTags).map(([category, tags]) => (
-                    <div key={category} className="mb-4">
-                        <h5 className="text-sm font-semibold mb-2 sticky top-0 bg-background py-1">{category}</h5>
+                {Object.entries(filteredCategorizedTags).map(([category, tags]) => {
+                    const headingId = `tag-category-${category.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}`;
+
+                    return (
+                    <div key={category} className="mb-5" role="group" aria-labelledby={headingId}>
+                        <h3
+                            id={headingId}
+                            className="mb-3 flex w-full items-center gap-3 text-sm font-semibold"
+                        >
+                            <span className="shrink-0">{formatCategory(category)}</span>
+                            <span className="h-px flex-1 bg-border/70" aria-hidden />
+                        </h3>
                         <div className="flex flex-wrap gap-1">
                             {tags.map((tag) => {
                                 const isSelected = selectedTags.includes(tag);
                                 return (
-                                    <Badge
+                                    <Button
                                         key={tag}
                                         variant={isSelected ? "default" : "outline"}
+                                        size="sm"
                                         onClick={() => handleTagClick(tag)}
-                                        className="cursor-pointer transition-colors hover:bg-accent"
+                                        aria-pressed={isSelected}
+                                        className="min-h-11 rounded-md px-3 font-data text-xs sm:min-h-9"
                                     >
                                         {tag}
-                                    </Badge>
+                                    </Button>
                                 );
                             })}
                         </div>
                     </div>
-                ))}
+                    );
+                })}
             </ScrollArea>
         </div>
     );
-} 
+}

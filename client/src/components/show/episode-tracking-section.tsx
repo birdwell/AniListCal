@@ -1,9 +1,7 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { EpisodeControls } from "@/components/episode-controls";
 import { StatusSelector } from "@/components/status-selector";
-import { Calendar, PlayCircle, Clock, ListChecks } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { getProgressColor } from "@/lib/anime-utils";
+import { Calendar, Clock, ListChecks } from "lucide-react";
 import type { EpisodeTrackingSectionData } from "./types";
 
 function formatTimeUntilAiring(timeUntilAiring: number) {
@@ -35,19 +33,16 @@ export function EpisodeTrackingSection({
   const nextEpisodeNumber = nextAiringEpisode?.episode;
 
   return (
-    <Card className="overflow-hidden border-t-4 border-t-primary">
-      <CardHeader className="bg-muted/50 pb-2">
-        <CardTitle className="text-lg flex items-center gap-2">
-          <PlayCircle className="h-5 w-5 text-primary" />
-          Episode Tracking
-        </CardTitle>
+    <Card className="overflow-hidden">
+      <CardHeader className="pb-2">
+        <h2 className="font-display text-xl font-semibold">Your progress</h2>
       </CardHeader>
       <CardContent className="p-6">
         <div className="mb-4 pb-4 border-b border-border">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div className="flex items-center gap-2">
               <ListChecks className="h-5 w-5 text-primary" />
-              <h3 className="text-sm font-medium">Watch Status</h3>
+              <h3 className="text-sm font-medium">Watch status</h3>
             </div>
             <StatusSelector
               mediaId={mediaId}
@@ -57,29 +52,12 @@ export function EpisodeTrackingSection({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-4 min-w-0">
-            <h3 className="text-sm font-medium text-muted-foreground">
-              Your Progress
-            </h3>
-
-            <div className="flex items-center gap-2 min-w-0">
-              <div className="text-2xl font-bold flex-shrink-0">
-                <span
-                  className={cn(
-                    getProgressColor(
-                      currentEpisode,
-                      nextEpisodeNumber || totalEpisodes
-                    )
-                  )}
-                >
-                  {currentEpisode}
-                </span>
-                <span className="text-muted-foreground">
-                  /{totalEpisodes || "?"}
-                </span>
-              </div>
-
+        <div className="space-y-5">
+          <div className="min-w-0 space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <span className="font-data text-xs uppercase tracking-[0.14em] text-muted-foreground">
+                Episodes
+              </span>
               <EpisodeControls
                 mediaId={mediaId}
                 currentEpisode={currentEpisode}
@@ -91,15 +69,16 @@ export function EpisodeTrackingSection({
             </div>
 
             {currentEpisode > 0 && totalEpisodes > 0 && (
-              <div className="w-full bg-muted rounded-full h-2 mt-2">
+              <div
+                className="h-2 w-full overflow-hidden rounded-full bg-muted"
+                role="progressbar"
+                aria-label="Episodes watched"
+                aria-valuemin={0}
+                aria-valuemax={totalEpisodes}
+                aria-valuenow={currentEpisode}
+              >
                 <div
-                  className={cn(
-                    "h-full rounded-full",
-                    getProgressColor(
-                      currentEpisode,
-                      nextEpisodeNumber || totalEpisodes
-                    )
-                  )}
+                  className="h-full rounded-full bg-success transition-[width] duration-150"
                   style={{
                     width: `${Math.min(
                       100,
@@ -112,37 +91,36 @@ export function EpisodeTrackingSection({
           </div>
 
           {nextAiringEpisode && (
-            <div className="space-y-4">
-              <h3 className="text-sm font-medium text-muted-foreground">
-                Next Episode
+            <div className="border-l-2 border-l-live pl-4">
+              <h3 className="font-data text-xs uppercase tracking-[0.14em] text-muted-foreground">
+                Next episode
               </h3>
 
-              <div className="space-y-2">
+              <div className="mt-3 space-y-2">
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-primary" />
-                  <span className="font-medium">
+                  <span className="font-data font-medium">
                     Episode {nextAiringEpisode.episode}
                   </span>
                 </div>
 
                 <div className="flex items-center gap-2">
                   <Clock className="h-4 w-4 text-primary" />
-                  <span>
+                  <span className="font-data text-sm">
                     {formatTimeUntilAiring(nextAiringEpisode.timeUntilAiring)}
                   </span>
                 </div>
 
                 {currentEpisode < nextAiringEpisode.episode - 1 && (
-                  <div className="mt-3 text-sm text-muted-foreground">
-                    <span className="font-medium text-warning">
+                  <p className="mt-3 text-sm text-muted-foreground">
+                    <span className="font-data font-medium text-warning">
                       {nextAiringEpisode.episode - 1 - currentEpisode} episode
                       {nextAiringEpisode.episode - 1 - currentEpisode > 1
                         ? "s"
                         : ""}{" "}
                       behind
                     </span>
-                    <span> - catch up before the next episode airs!</span>
-                  </div>
+                  </p>
                 )}
               </div>
             </div>

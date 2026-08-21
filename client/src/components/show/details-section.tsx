@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Calendar, Info, PlayCircle, AlignLeft, ImageOff } from "lucide-react";
 import { TagsSection } from "./tags-section";
 import { MetricsSection } from "./metrics-section";
@@ -21,6 +21,7 @@ interface DetailsSectionProps {
   metrics: MetricsSectionData;
   tags: TagsSectionData["tags"];
   relations: RelationsSectionData["relations"];
+  showStatus?: boolean;
 }
 
 function formatTimeUntilAiring(timeUntilAiring: number) {
@@ -52,6 +53,7 @@ export function DetailsSection({
   metrics,
   tags,
   relations,
+  showStatus = true,
 }: DetailsSectionProps) {
   const coverImageSrc =
     overview.coverImage?.extraLarge || overview.coverImage?.large;
@@ -60,10 +62,10 @@ export function DetailsSection({
     <div className="space-y-6">
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <AlignLeft className="h-5 w-5 text-primary" />
+          <h2 className="flex items-center gap-2 font-display text-xl font-semibold">
+            <AlignLeft className="h-5 w-5 text-primary" aria-hidden />
             Overview
-          </CardTitle>
+          </h2>
         </CardHeader>
         <CardContent className="pt-0">
           <div className="flex flex-col md:flex-row gap-4 md:gap-6">
@@ -72,6 +74,10 @@ export function DetailsSection({
                 <img
                   src={coverImageSrc}
                   alt={`${overview.title?.english || overview.title?.romaji || "Anime"} Cover`}
+                  width="300"
+                  height="450"
+                  loading="lazy"
+                  decoding="async"
                   className="rounded-md object-cover w-full h-auto aspect-[2/3] bg-muted"
                 />
               </div>
@@ -112,12 +118,12 @@ export function DetailsSection({
 
       {tags && <TagsSection tags={tags} />}
 
-      <Card>
+      {showStatus && <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Info className="h-5 w-5 text-primary" />
+          <h2 className="flex items-center gap-2 font-display text-xl font-semibold">
+            <Info className="h-5 w-5 text-primary" aria-hidden />
             Status
-          </CardTitle>
+          </h2>
         </CardHeader>
         <CardContent className="pt-0 space-y-4">
           <div className="flex items-center gap-3">
@@ -140,7 +146,7 @@ export function DetailsSection({
             </span>
           </div>
         </CardContent>
-      </Card>
+      </Card>}
 
       {relations && <RelationsSection relations={relations} />}
     </div>

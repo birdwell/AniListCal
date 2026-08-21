@@ -73,7 +73,7 @@ describe("SearchResultRow", () => {
       />
     );
 
-    expect(screen.getByRole("combobox")).toHaveTextContent("Set Status");
+    expect(screen.getByRole("combobox")).toHaveTextContent("Set status");
 
     fireEvent.click(screen.getByRole("combobox"));
     fireEvent.click(screen.getByRole("option", { name: "Plan to Watch" }));

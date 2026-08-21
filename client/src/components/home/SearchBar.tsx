@@ -18,18 +18,6 @@ export function SearchBar({
 }: SearchBarProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Focus input on mount
-  useEffect(() => {
-    // Add a small delay to ensure the component is fully mounted
-    const timer = setTimeout(() => {
-      if (document.activeElement?.tagName !== "INPUT") {
-        inputRef.current?.focus();
-      }
-    }, 100);
-
-    return () => clearTimeout(timer);
-  }, []);
-
   // Handle keyboard shortcut (Ctrl+K or Cmd+K)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -53,7 +41,7 @@ export function SearchBar({
       <div className="relative">
         <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
           {isLoading ? (
-            <Loader2 className="h-4 w-4 text-muted-foreground animate-spin" />
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground motion-reduce:animate-none" />
           ) : (
             <Search className="h-4 w-4 text-muted-foreground" />
           )}
@@ -63,7 +51,8 @@ export function SearchBar({
           ref={inputRef}
           type="text"
           placeholder="Search anime..."
-          className="pl-10 pr-10 py-2"
+          aria-label="Search anime"
+          className="h-11 py-2 pl-10 pr-12"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
@@ -73,7 +62,7 @@ export function SearchBar({
             <Button
               variant="ghost"
               size="sm"
-              className="h-6 w-6 p-0"
+              className="h-11 w-11 p-0"
               onClick={() => setSearchQuery("")}
               aria-label="Clear search"
             >
@@ -84,7 +73,10 @@ export function SearchBar({
       </div>
 
       {totalResults !== null && (
-        <div className="absolute right-0 -bottom-6 text-xs text-muted-foreground animate-in fade-in slide-in-from-top-1 duration-300">
+        <div
+          className="absolute -bottom-6 right-0 animate-in fade-in slide-in-from-top-1 text-xs text-muted-foreground duration-300 motion-reduce:animate-none"
+          aria-live="polite"
+        >
           {totalResults} result{totalResults !== 1 ? "s" : ""}
         </div>
       )}

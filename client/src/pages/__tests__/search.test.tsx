@@ -168,7 +168,7 @@ describe("SearchPage", () => {
     await waitFor(
       () => {
         expect(
-          screen.getByText("Failed to search anime. Please try again.")
+          screen.getByText("Search could not be completed")
         ).toBeInTheDocument();
       },
       { timeout: 5000 }

@@ -57,10 +57,11 @@ export const GET_USER_MEDIA_LIST_QUERY = `
 `;
 
 /**
- * Status sets the client requests on load — home sends the first, calendar
- * the second. Order and casing must match the client's variables exactly.
+ * Status sets the client requests on load. CURRENT is the first-view snapshot
+ * shared by Home and Calendar; paused/planning fill in after Home is usable.
+ * Order and casing must match the client's variables exactly.
  */
 export const PREFETCH_LIST_STATUS_SETS: string[][] = [
-  ["CURRENT", "PAUSED", "PLANNING"],
   ["CURRENT"],
+  ["PAUSED", "PLANNING"],
 ];

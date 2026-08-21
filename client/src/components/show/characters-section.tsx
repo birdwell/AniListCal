@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import type { CharactersSectionData } from "./types";
 
 export function CharactersSection({ characters }: CharactersSectionData) {
@@ -9,7 +9,7 @@ export function CharactersSection({ characters }: CharactersSectionData) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Characters</CardTitle>
+        <h2 className="font-display text-xl font-semibold">Characters</h2>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
@@ -22,10 +22,13 @@ export function CharactersSection({ characters }: CharactersSectionData) {
                   <img
                     src={character.image?.large || ""}
                     alt={character.name?.full || "Character"}
+                    width="225"
+                    height="300"
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-full object-cover"
                     onError={(e) => {
-                      e.currentTarget.src =
-                        "https://via.placeholder.com/225x318?text=No+Image";
+                      e.currentTarget.style.display = "none";
                     }}
                   />
                 </div>

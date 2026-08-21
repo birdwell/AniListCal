@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tag, AlertTriangle, AlertCircle } from "lucide-react";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { AlertTriangle, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -33,10 +33,9 @@ export function TagsSection({ tags }: TagsSectionData) {
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="text-lg flex items-center gap-2">
-          <Tag className="h-5 w-5 text-primary" />
+        <h2 className="font-display text-xl font-semibold">
           Tags
-        </CardTitle>
+        </h2>
       </CardHeader>
       <CardContent className="pt-0">
         {nonSpoilerTags.length > 0 ? (

@@ -16,6 +16,8 @@ import { ListPlus } from "lucide-react";
 import { RecommendationsSection } from "@/components/show/recommendations-section";
 import { ExternalLinksSection } from "@/components/show/external-links-section";
 import { queryKeys } from "@/lib/queryKeys";
+import { DEFAULT_STALE_TIME } from "@/lib/query-config";
+import { PageShell } from "@/components/ui/page-shell";
 import {
   selectDetailsOverviewData,
   selectDetailsStatusData,
@@ -42,58 +44,54 @@ export default function ShowPage() {
       return fetchAuthenticatedAnimeDetails(animeId);
     },
     enabled: !!animeId && !isNaN(animeId),
-    refetchOnWindowFocus: true,
-    staleTime: 0,
+    refetchOnWindowFocus: false,
+    staleTime: DEFAULT_STALE_TIME,
   });
 
   if (isLoading) {
     return (
-      <div className="container mx-auto px-4 sm:px-6 py-6 max-w-7xl">
+      <PageShell>
         <LoadingSkeleton />
-      </div>
+      </PageShell>
     );
   }
 
   if (error || !show) {
     return (
-      <div className="container mx-auto px-4 sm:px-6 py-6 max-w-7xl">
+      <PageShell>
         <ErrorDisplay message={error?.message} />
-      </div>
+      </PageShell>
     );
   }
 
   const isInUserList = !!show.mediaListEntry;
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 py-6 max-w-7xl animate-in fade-in duration-500">
+    <PageShell className="space-y-8">
       <HeroSection {...selectHeroData(show)} />
 
-      <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-8">
-        <div className="md:col-span-1 space-y-6">
+      <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-[minmax(17rem,22rem)_minmax(0,1fr)]">
+        <aside className="space-y-6 lg:sticky lg:top-24">
           {isInUserList ? (
             <EpisodeTrackingSection {...selectEpisodeTrackingData(show)} />
           ) : (
-            <Card className="overflow-hidden border-t-4 border-t-primary">
-              <CardHeader className="bg-muted/50 pb-2">
+            <Card className="overflow-hidden">
+              <CardHeader className="pb-2">
                 <CardTitle className="text-lg flex items-center gap-2">
                   <ListPlus className="h-5 w-5 text-primary" />
-                  Add to Your List
+                  Add to your list
                 </CardTitle>
               </CardHeader>
-              <CardContent className="p-6">
-                <div className="flex flex-col items-center justify-center py-4 text-center space-y-4">
-                  <p className="text-muted-foreground mb-2">
-                    This anime is not in your list yet. Add it to track your
-                    progress!
-                  </p>
+              <CardContent>
+                <div className="flex flex-col items-start gap-4 py-2">
                   <AddToListButton mediaId={show.id} />
                 </div>
               </CardContent>
             </Card>
           )}
-        </div>
+        </aside>
 
-        <div className="md:col-span-2 space-y-8">
+        <div className="min-w-0 space-y-8">
           <DetailsSection
             overview={selectDetailsOverviewData(show)}
             status={selectDetailsStatusData(show)}
@@ -101,6 +99,7 @@ export default function ShowPage() {
             metrics={selectMetricsData(show)}
             tags={show.tags}
             relations={show.relations}
+            showStatus={!isInUserList}
           />
           {show.characters && <CharactersSection characters={show.characters} />}
           {show.externalLinks && (
@@ -111,6 +110,6 @@ export default function ShowPage() {
           )}
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 }

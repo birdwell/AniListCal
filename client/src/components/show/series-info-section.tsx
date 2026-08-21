@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
   Info,
   Clock,
@@ -117,10 +117,7 @@ export function SeriesInfoSection({
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="text-lg flex items-center gap-2">
-          <Info className="h-5 w-5 text-primary" />
-          Series Information
-        </CardTitle>
+        <h2 className="font-display text-xl font-semibold">Series information</h2>
       </CardHeader>
       <CardContent className="pt-0">
         {hasInfo ? (
@@ -216,9 +213,6 @@ export function SeriesInfoSection({
 
             {studios?.nodes && studios.nodes.length > 0 && (
               <div className="flex items-center gap-3 md:col-span-2">
-                <div className="h-4 w-4 flex items-center justify-center text-primary">
-                  🏢
-                </div>
                 <div>
                   <div className="text-sm font-medium">Studios</div>
                   <div className="text-sm text-muted-foreground">

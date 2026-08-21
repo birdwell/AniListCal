@@ -5,13 +5,13 @@ import { getUser, clearAuthData, AuthError, ANILIST_TOKEN_EXPIRED_CODE } from ".
 import Login from "@/pages/login";
 import { Layout } from "@/components/layout";
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
 import { ThemeProvider } from "@/components/theme-provider";
 import { QueryProvider } from "@/components/query-provider";
 import { RouteErrorBoundary } from "@/components/route-error-boundary";
 import { queryKeys } from "@/lib/queryKeys";
+import { AppState } from "@/components/app-state";
+import { PageHeader, PageShell } from "@/components/ui/page-shell";
 
 const Home = lazy(() => import("@/pages/home"));
 const Profile = lazy(() => import("@/pages/profile"));
@@ -22,9 +22,9 @@ const NotFound = lazy(() => import("@/pages/not-found"));
 
 function PageLoader() {
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-background">
-      <Loader2 className="h-8 w-8 animate-spin text-primary" />
-    </div>
+    <PageShell size="narrow" className="space-y-6 py-10 sm:py-16">
+      <AppState kind="loading" title="Loading AniListCal" />
+    </PageShell>
   );
 }
 
@@ -73,19 +73,18 @@ function Router() {
         <Switch>
           <Route path="/login" component={Login} />
           <Route path="/auth-error" component={() => (
-            <div className="min-h-screen w-full flex items-center justify-center bg-background">
-              <Card className="w-full max-w-md mx-4">
-                <CardHeader>
-                  <CardTitle className="text-destructive">Authentication Error</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="mb-4">Something went wrong during authentication. Please try logging in again.</p>
-                  <Button onClick={() => window.location.href = '/login'}>
-                    Go to Login
+            <PageShell size="narrow" className="space-y-6 py-10 sm:py-16">
+              <PageHeader title="Sign-in failed" />
+              <AppState
+                kind="error"
+                description="AniList could not complete the sign-in. Start again to reconnect your account."
+                action={
+                  <Button onClick={() => window.location.href = "/login"}>
+                    Return to sign in
                   </Button>
-                </CardContent>
-              </Card>
-            </div>
+                }
+              />
+            </PageShell>
           )} />
           <Route path="/" component={() => <ProtectedRoute component={Home} />} />
           <Route path="/search" component={() => <ProtectedRoute component={SearchPage} />} />

@@ -8,6 +8,8 @@ import { searchAnime } from "@/lib/anilist";
 import { commonQueryOptions } from "@/lib/query-config";
 import { queryKeys } from "@/lib/queryKeys";
 import { Loader2 } from "lucide-react";
+import { AppState } from "@/components/app-state";
+import { PageHeader, PageShell } from "@/components/ui/page-shell";
 
 export default function SearchPage() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -51,8 +53,8 @@ export default function SearchPage() {
     (trimmedQuery.length > 0 && isFetching && !isFetchingNextPage);
 
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-6 px-4 sm:px-6 lg:px-10">
-      <h1 className="text-2xl font-semibold tracking-tight">Search</h1>
+    <PageShell size="narrow" className="space-y-6">
+      <PageHeader title="Search" />
 
       <SearchBar
         searchQuery={searchQuery}
@@ -62,16 +64,26 @@ export default function SearchPage() {
       />
 
       <div className="pt-2">
-        {liveQuery.length === 0 ? null : error ? (
-          <p className="text-sm text-destructive">
-            Failed to search anime. Please try again.
-          </p>
+        {liveQuery.length === 0 ? (
+          <AppState
+            kind="empty"
+            title="Find a show"
+            description="Search by English, romaji, or native title."
+          />
+        ) : error ? (
+          <AppState
+            kind="error"
+            title="Search could not be completed"
+            description="Try again in a moment."
+          />
         ) : isLoading || isDebouncing ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-          </div>
+          <AppState kind="loading" title="Searching AniList" />
         ) : results.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No results found.</p>
+          <AppState
+            kind="empty"
+            title="No matches"
+            description="Try another title or spelling."
+          />
         ) : (
           <div>
             {results.map((media) =>
@@ -100,6 +112,6 @@ export default function SearchPage() {
           </div>
         )}
       </div>
-    </div>
+    </PageShell>
   );
 }

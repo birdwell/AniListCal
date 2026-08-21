@@ -1,5 +1,4 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 
 interface DaySelectorProps {
   orderedDays: string[];
@@ -13,9 +12,11 @@ export function DaySelector({
   setSelectedDay 
 }: DaySelectorProps) {
   return (
-    <Card className="overflow-x-auto -mx-4 sm:mx-0 rounded-none sm:rounded-lg">
-      <CardContent className="p-4 sm:p-6 space-y-4">
-        <div className="flex gap-2 sm:gap-3 min-w-max">
+    <div
+      className="-mx-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0"
+      aria-label="Choose airing day"
+    >
+        <div className="flex min-w-max snap-x gap-2" role="tablist">
           {orderedDays.slice(0, 7).map((day, index) => {
             // index is already the day relative to today (0=today, 1=tomorrow, etc.)
             return (
@@ -23,14 +24,16 @@ export function DaySelector({
                 key={day}
                 variant={selectedDay === index ? "default" : "outline"}
                 onClick={() => setSelectedDay(index)}
-                className="px-3 sm:px-5 py-2 text-sm sm:text-base"
+                className="snap-start px-4 font-data text-sm"
+                role="tab"
+                aria-selected={selectedDay === index}
               >
-                {window.innerWidth < 640 ? day.slice(0, 3) : day}
+                <span className="sm:hidden">{day.slice(0, 3)}</span>
+                <span className="hidden sm:inline">{day}</span>
               </Button>
             );
           })}
         </div>
-      </CardContent>
-    </Card>
+    </div>
   );
 }

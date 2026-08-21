@@ -1,6 +1,5 @@
 import { Button } from "@/components/ui/button";
 import { LayoutGrid, LayoutList } from "lucide-react";
-import { useEffect } from "react";
 
 interface ViewToggleProps {
   isCompact: boolean;
@@ -8,26 +7,16 @@ interface ViewToggleProps {
 }
 
 export function ViewToggle({ isCompact, onToggle }: ViewToggleProps) {
-  // Add keyboard shortcut for toggling view (Ctrl+G)
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === "g") {
-        e.preventDefault();
-        onToggle();
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onToggle]);
+  const label = isCompact ? "Show grid view" : "Show list view";
 
   return (
     <Button
       variant="outline"
       size="icon"
       onClick={onToggle}
-      title={isCompact ? "Grid View" : "List View"}
-      className="shadow-sm hover:shadow transition-all"
+      title={label}
+      aria-label={label}
+      className="min-h-11 min-w-11 shadow-sm transition-shadow hover:shadow motion-reduce:transition-none"
     >
       {isCompact ? (
         <LayoutGrid className="h-4 w-4" />

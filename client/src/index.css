@@ -3,71 +3,134 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* AniListCal anchors: Fuji at night, snow, broadcast violet, sunrise red. */
+    --brand-midnight: 257 38% 11%;
+    --brand-snow: 264 38% 97%;
+    --brand-violet: 266 51% 43%;
+    --brand-signal: 350 68% 53%;
+    --brand-sakura: 337 74% 80%;
+    --brand-airing: 173 57% 31%;
+
+    --background: 264 38% 97%;
+    --foreground: 257 38% 11%;
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 257 38% 11%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 225 55% 40%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 225 55% 40%;
-    --radius: 0.5rem;
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 225 55% 40%;
-    --sidebar-primary-foreground: 210 40% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 225 55% 40%;
+    --popover-foreground: 257 38% 11%;
+    --primary: 266 51% 43%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 267 27% 94%;
+    --secondary-foreground: 257 38% 11%;
+    --muted: 267 27% 94%;
+    --muted-foreground: 267 8% 42%;
+    --accent: 267 27% 94%;
+    --accent-foreground: 266 51% 35%;
+    --destructive: 350 68% 45%;
+    --destructive-foreground: 0 0% 100%;
+    --live: 350 68% 53%;
+    --live-foreground: 0 0% 100%;
+    --success: 173 57% 31%;
+    --success-foreground: 0 0% 100%;
+    --warning: 36 100% 30%;
+    --warning-foreground: 0 0% 100%;
+    --border: 266 22% 87%;
+    --input: 266 22% 82%;
+    --ring: 266 51% 43%;
+    --radius: 0.75rem;
+    --radius-feature: 1rem;
+
+    --space-1: 0.25rem;
+    --space-2: 0.5rem;
+    --space-3: 0.75rem;
+    --space-4: 1rem;
+    --space-6: 1.5rem;
+    --space-8: 2rem;
+    --space-12: 3rem;
+    --space-16: 4rem;
+
+    --shadow-raised: 0 12px 32px -20px hsl(257 38% 11% / 0.34);
+
+    --sidebar-background: 264 38% 97%;
+    --sidebar-foreground: 257 38% 11%;
+    --sidebar-primary: 266 51% 43%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 267 27% 94%;
+    --sidebar-accent-foreground: 266 51% 35%;
+    --sidebar-border: 266 22% 87%;
+    --sidebar-ring: 266 51% 43%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 225 55% 55%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 225 55% 55%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 225 55% 55%;
-    --sidebar-primary-foreground: 210 40% 98%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 225 55% 55%;
+    --background: 257 35% 8%;
+    --foreground: 264 38% 97%;
+    --card: 263 29% 12%;
+    --card-foreground: 264 38% 97%;
+    --popover: 263 29% 12%;
+    --popover-foreground: 264 38% 97%;
+    --primary: 275 80% 71%;
+    --primary-foreground: 257 38% 11%;
+    --secondary: 264 23% 17%;
+    --secondary-foreground: 264 38% 97%;
+    --muted: 264 23% 17%;
+    --muted-foreground: 266 13% 69%;
+    --accent: 264 23% 17%;
+    --accent-foreground: 275 80% 79%;
+    --destructive: 351 80% 63%;
+    --destructive-foreground: 257 38% 11%;
+    --live: 351 100% 71%;
+    --live-foreground: 257 38% 11%;
+    --success: 173 42% 53%;
+    --success-foreground: 257 38% 11%;
+    --warning: 41 84% 69%;
+    --warning-foreground: 257 38% 11%;
+    --border: 265 18% 24%;
+    --input: 265 18% 31%;
+    --ring: 275 80% 71%;
+
+    --shadow-raised: 0 16px 40px -22px hsl(0 0% 0% / 0.72);
+
+    --sidebar-background: 257 35% 8%;
+    --sidebar-foreground: 264 38% 97%;
+    --sidebar-primary: 275 80% 71%;
+    --sidebar-primary-foreground: 257 38% 11%;
+    --sidebar-accent: 264 23% 17%;
+    --sidebar-accent-foreground: 275 80% 79%;
+    --sidebar-border: 265 18% 24%;
+    --sidebar-ring: 275 80% 71%;
   }
 
   * {
     @apply border-border;
   }
 
+  html {
+    color-scheme: light;
+  }
+
+  html.dark {
+    color-scheme: dark;
+  }
+
   body {
     @apply font-sans antialiased bg-background text-foreground;
+    min-width: 20rem;
+    font-feature-settings: "kern" 1, "liga" 1;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background: hsl(var(--brand-sakura) / 0.65);
+    color: hsl(var(--brand-midnight));
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      scroll-behavior: auto !important;
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 }

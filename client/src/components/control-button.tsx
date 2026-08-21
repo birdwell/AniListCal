@@ -26,10 +26,11 @@ export default function ControlButton({
   variant: VariantType;
 }) {
   const buttonStyles = cn(
-    compact ? "h-6 w-6" : "h-8 w-8",
-    "flex items-center justify-center rounded-full transition-all",
+    "flex h-11 w-11 shrink-0 items-center justify-center transition-colors motion-reduce:transition-none",
     isUpdating && "opacity-50 cursor-not-allowed",
-    variant === "pill" ? "hover:bg-background/80" : "hover:bg-accent",
+    variant === "pill"
+      ? "rounded-none hover:bg-background/55"
+      : "rounded-lg hover:bg-accent",
     disabled ? "text-muted-foreground opacity-50" : "text-primary"
   );
 
@@ -43,7 +44,7 @@ export default function ControlButton({
           onClick={onClick}
           aria-label={tooltip}
         >
-          <Icon className={cn("h-4 w-4", compact && "h-3 w-3")} />
+          <Icon className={cn("h-4 w-4", compact && "h-3.5 w-3.5")} />
         </button>
       </TooltipTrigger>
       <TooltipContent side="bottom">

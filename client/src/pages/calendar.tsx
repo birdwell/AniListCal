@@ -1,8 +1,9 @@
 import React from "react";
 import { useCalendar } from "../hooks/useCalendar";
-import { LoadingView } from "../components/calendar/LoadingView";
 import { DaySelector } from "../components/calendar/DaySelector";
 import { ShowsList } from "../components/calendar/ShowsList";
+import { AppState } from "@/components/app-state";
+import { PageHeader, PageShell } from "@/components/ui/page-shell";
 
 function CalendarPage() {
   // Use our custom hook that combines all calendar functionality
@@ -16,23 +17,36 @@ function CalendarPage() {
   } = useCalendar();
 
   if (isLoading) {
-    return <LoadingView />;
+    return (
+      <PageShell size="wide" className="space-y-6">
+        <PageHeader title="Calendar" />
+        <AppState kind="loading" title="Loading your schedule" />
+      </PageShell>
+    );
   }
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto px-4 sm:px-6 animate-in fade-in duration-500">
+    <PageShell size="wide" className="space-y-6">
+      <PageHeader title="Calendar" />
       <DaySelector
         orderedDays={orderedDays}
         selectedDay={selectedDay}
         setSelectedDay={setSelectedDay}
       />
 
-      <ShowsList
-        showsForSelectedDate={showsForSelectedDate}
-        selectedDay={selectedDay}
-        selectedDate={selectedDate}
-      />
-    </div>
+      {showsForSelectedDate.length > 0 ? (
+        <ShowsList
+          showsForSelectedDate={showsForSelectedDate}
+          selectedDay={selectedDay}
+          selectedDate={selectedDate}
+        />
+      ) : (
+        <AppState
+          kind="empty"
+          title="Nothing airs this day"
+        />
+      )}
+    </PageShell>
   );
 }
 

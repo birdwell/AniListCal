@@ -1,4 +1,3 @@
-import { Button } from "@/components/ui/button";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EntyFragmentFragment } from "@/generated/graphql";
@@ -28,14 +27,14 @@ export function AnimeSection({
   const sortedEntries = [...entries].sort(compareEntriesByWatchProgress);
 
   return (
-    <section className="bg-background rounded-lg border shadow-sm overflow-hidden">
+    <section className="overflow-hidden rounded-xl bg-card">
       <Collapsible open={isOpen} onOpenChange={onToggle} className="w-full">
         <CollapsibleTrigger asChild>
-          <div
-            className="flex items-center justify-between p-4 cursor-pointer hover:bg-accent/50 transition-colors"
-            role="button"
+          <button
+            type="button"
+            className="flex min-h-14 w-full items-center justify-between gap-4 rounded-xl px-4 py-3 text-left transition-colors hover:bg-accent/45 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-inset focus-visible:ring-ring"
           >
-            <h2 className="text-lg font-semibold">
+            <h2 className="font-display text-lg font-semibold">
               {title}
               {sortedEntries.length > 0 && (
                 <span className="ml-2 text-sm font-normal text-muted-foreground">
@@ -43,25 +42,21 @@ export function AnimeSection({
                 </span>
               )}
             </h2>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 p-0 pointer-events-none"
-            >
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center text-muted-foreground">
               {isOpen ? (
                 <ChevronUp className="h-4 w-4" />
               ) : (
                 <ChevronDown className="h-4 w-4" />
               )}
-            </Button>
-          </div>
+            </span>
+          </button>
         </CollapsibleTrigger>
-        <CollapsibleContent className="p-4 pt-0">
+        <CollapsibleContent className="px-4 pb-4">
           {sortedEntries.length > 0 ? (
             <div
               className={cn(
                 isCompact
-                  ? "grid grid-cols-1 lg:grid-cols-2 gap-3"
+                  ? "grid grid-cols-1 gap-3 lg:grid-cols-2"
                   : "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 md:gap-6"
               )}
             >
@@ -74,7 +69,7 @@ export function AnimeSection({
               ))}
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground py-4">
+            <p className="py-4 text-sm text-muted-foreground">
               No shows in {title.toLowerCase()}.
             </p>
           )}

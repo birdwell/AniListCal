@@ -4,6 +4,7 @@ import { Home, Calendar, Search, User, LogOut } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { logout } from "@/lib/auth";
 import { cn } from "@/lib/utils";
+import { BrandMark } from "@/components/brand-mark";
 
 const NAV_ITEMS = [
   { href: "/", label: "Home", icon: Home },
@@ -29,22 +30,43 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-background md:h-auto md:min-h-screen md:overflow-visible">
-      <nav className="fixed top-0 left-0 right-0 z-50 hidden h-16 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:block">
+      <nav
+        className="fixed inset-x-0 top-0 z-50 hidden h-16 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/85 md:block"
+        aria-label="Desktop navigation"
+      >
         <div className="mx-auto flex h-full w-full items-center justify-between px-4 sm:px-6 lg:px-10 xl:px-12 2xl:px-16">
-          <div className="flex items-center gap-6">
-            {NAV_ITEMS.map(({ href, label, icon: Icon }) => (
-              <Link key={href} href={href}>
+          <div className="flex items-center gap-8">
+            <Link
+              href="/"
+              className="rounded-md focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2"
+              aria-label="AniListCal home"
+            >
+              <BrandMark />
+            </Link>
+            <div className="flex items-center gap-1">
+              {NAV_ITEMS.map(({ href, label, icon: Icon }) => (
                 <Button
+                  key={href}
                   variant="ghost"
-                  className={
-                    isNavActive(location, href) ? "bg-accent text-primary" : ""
-                  }
+                  asChild
+                  className={cn(
+                    "relative rounded-none px-3 after:absolute after:inset-x-3 after:-bottom-[11px] after:h-0.5 after:origin-center after:scale-x-0 after:bg-primary after:transition-transform after:duration-150",
+                    isNavActive(location, href) &&
+                      "text-primary after:scale-x-100",
+                  )}
                 >
-                  <Icon className="mr-2 h-4 w-4" />
-                  {label}
+                  <Link
+                    href={href}
+                    aria-current={
+                      isNavActive(location, href) ? "page" : undefined
+                    }
+                  >
+                    <Icon className="h-4 w-4" aria-hidden />
+                    {label}
+                  </Link>
                 </Button>
-              </Link>
-            ))}
+              ))}
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <ThemeToggle />
@@ -56,12 +78,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
         </div>
       </nav>
 
-      <main className="min-h-0 w-full flex-1 overflow-y-auto overscroll-y-contain pt-[calc(1rem_+_env(safe-area-inset-top))] md:overflow-visible md:overscroll-auto md:pb-8 md:pt-20">
+      <main className="min-h-0 w-full flex-1 overflow-y-auto overscroll-y-contain pb-8 pt-[calc(1rem_+_env(safe-area-inset-top))] md:overflow-visible md:overscroll-auto md:pb-12 md:pt-24">
         {children}
       </main>
 
       <nav
-        className="shrink-0 border-t bg-background pb-[env(safe-area-inset-bottom)] md:hidden"
+        className="shrink-0 border-t bg-card pb-[env(safe-area-inset-bottom)] md:hidden"
         aria-label="Primary"
       >
         <div className="grid h-16 grid-cols-4">
@@ -74,8 +96,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 className={cn(
                   "flex flex-col items-center justify-center gap-1 text-xs",
                   active
-                    ? "text-primary"
-                    : "text-muted-foreground hover:text-foreground",
+                    ? "bg-accent/70 text-primary"
+                    : "text-muted-foreground hover:bg-accent/40 hover:text-foreground",
                 )}
                 aria-current={active ? "page" : undefined}
               >
