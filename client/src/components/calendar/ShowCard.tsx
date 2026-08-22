@@ -32,7 +32,7 @@ export function ShowCard({ entry }: ShowCardProps) {
     useEpisodeDisplay(airingAt, episode);
 
   return (
-    <article className="relative rounded-xl border-l-2 border-l-live bg-muted/65 p-4 transition-colors hover:bg-muted">
+    <article className="relative rounded-xl bg-muted/65 p-4 transition-colors hover:bg-muted hover:shadow-md">
       <Link
         href={`/show/${entry.media.id}`}
         aria-label={`View ${title}`}

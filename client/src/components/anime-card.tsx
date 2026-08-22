@@ -1,11 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, ChevronRight } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { Link } from "wouter";
 import { format } from "date-fns";
 import { EpisodeControls } from "@/components/episode-controls";
-import { EntyFragmentFragment, MediaStatus } from "@/generated/graphql";
+import { EntyFragmentFragment } from "@/generated/graphql";
 
 interface AnimeCardProps {
   entry: EntyFragmentFragment;
@@ -52,7 +51,12 @@ export function AnimeCard({
   if (isCompact) {
     return (
       <article>
-        <Card className="overflow-hidden bg-muted/45 ring-0 transition-colors hover:bg-muted/70">
+        <Card className="group relative overflow-hidden bg-muted/45 ring-0 transition-colors hover:bg-muted/70 hover:shadow-md">
+          <Link
+            href={`/show/${id}`}
+            aria-label={`View ${title}`}
+            className="absolute inset-0 z-10 rounded-lg focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring"
+          />
           <div className="flex w-full gap-3 p-3 sm:gap-4 sm:p-4">
             <div className="h-20 w-14 flex-shrink-0 overflow-hidden rounded-lg bg-muted sm:h-24 sm:w-16">
               <img
@@ -67,18 +71,15 @@ export function AnimeCard({
               />
             </div>
             <div className="flex min-w-0 flex-1 flex-col justify-center">
-              <Link
-                href={`/show/${id}`}
-                className="group/link -mx-1 flex h-8 items-center justify-between gap-2 rounded-md px-1 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring"
-              >
-                <h3 className="truncate text-sm font-semibold leading-5 group-hover/link:text-primary sm:text-base">
+              <div className="flex h-8 items-center justify-between gap-2">
+                <h3 className="truncate text-sm font-semibold leading-5 group-hover:text-primary sm:text-base">
                   {title}
                 </h3>
                 <ChevronRight
-                  className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground group-hover/link:text-primary"
+                  className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground group-hover:text-primary"
                   aria-hidden
                 />
-              </Link>
+              </div>
               <div className="mt-1 flex min-w-0 items-center justify-between gap-2">
                 {nextEpisode && (
                   <div className="flex min-w-0 items-center gap-1.5 font-data text-xs text-muted-foreground sm:text-sm">
@@ -88,15 +89,17 @@ export function AnimeCard({
                     </span>
                   </div>
                 )}
-                <EpisodeControls
-                  mediaId={id}
-                  currentEpisode={currentEpisode}
-                  totalEpisodes={totalEpisodes}
-                  compact
-                  variant="pill"
-                  targetEpisode={nextEpisode?.episode}
-                  className="ml-auto flex-shrink-0"
-                />
+                <div className="relative z-20 ml-auto flex-shrink-0">
+                  <EpisodeControls
+                    mediaId={id}
+                    currentEpisode={currentEpisode}
+                    totalEpisodes={totalEpisodes}
+                    compact
+                    variant="pill"
+                    targetEpisode={nextEpisode?.episode}
+                    className="flex-shrink-0"
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -107,7 +110,7 @@ export function AnimeCard({
 
   return (
     <article className="h-full">
-    <Card className="group relative h-full overflow-hidden transition-colors hover:bg-accent/35">
+    <Card className="group relative h-full overflow-hidden transition-colors hover:bg-accent/35 hover:shadow-md">
       <Link
         href={`/show/${id}`}
         aria-label={`View ${title}`}

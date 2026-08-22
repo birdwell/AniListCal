@@ -31,11 +31,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-background md:h-auto md:min-h-screen md:overflow-visible">
       <nav
-        className="fixed inset-x-0 top-0 z-50 hidden h-16 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/85 md:block"
+        className="fixed inset-x-0 top-0 z-50 hidden h-16 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/85 md:block"
         aria-label="Desktop navigation"
       >
         <div className="mx-auto flex h-full w-full items-center justify-between px-4 sm:px-6 lg:px-10 xl:px-12 2xl:px-16">
-          <div className="flex items-center gap-8">
+          <div className="flex h-full items-center gap-8">
             <Link
               href="/"
               className="rounded-md focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2"
@@ -43,29 +43,32 @@ export function Layout({ children }: { children: React.ReactNode }) {
             >
               <BrandMark />
             </Link>
-            <div className="flex items-center gap-1">
-              {NAV_ITEMS.map(({ href, label, icon: Icon }) => (
-                <Button
-                  key={href}
-                  variant="ghost"
-                  asChild
-                  className={cn(
-                    "relative rounded-none px-3 after:absolute after:inset-x-3 after:-bottom-[11px] after:h-0.5 after:origin-center after:scale-x-0 after:bg-primary after:transition-transform after:duration-150",
-                    isNavActive(location, href) &&
-                      "text-primary after:scale-x-100",
-                  )}
-                >
+            <div className="flex h-full items-center">
+              {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+                const active = isNavActive(location, href);
+                return (
                   <Link
+                    key={href}
                     href={href}
-                    aria-current={
-                      isNavActive(location, href) ? "page" : undefined
-                    }
+                    aria-current={active ? "page" : undefined}
+                    className={cn(
+                      "relative inline-flex h-full items-center gap-2 px-3 text-sm font-medium transition-colors",
+                      active
+                        ? "text-primary"
+                        : "text-muted-foreground hover:text-foreground",
+                    )}
                   >
                     <Icon className="h-4 w-4" aria-hidden />
                     {label}
+                    {active && (
+                      <span
+                        aria-hidden
+                        className="absolute inset-x-3 bottom-0 h-0.5 rounded-full bg-primary"
+                      />
+                    )}
                   </Link>
-                </Button>
-              ))}
+                );
+              })}
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -94,10 +97,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 key={href}
                 href={href}
                 className={cn(
-                  "flex flex-col items-center justify-center gap-1 text-xs",
+                  "flex flex-col items-center justify-center gap-1 text-xs transition-colors",
                   active
-                    ? "bg-accent/70 text-primary"
-                    : "text-muted-foreground hover:bg-accent/40 hover:text-foreground",
+                    ? "text-primary"
+                    : "text-muted-foreground hover:text-foreground",
                 )}
                 aria-current={active ? "page" : undefined}
               >
