@@ -27,21 +27,27 @@ export default function Login() {
 
   if (isCheckingAuth) {
     return (
-      <PageShell size="narrow" className="space-y-6 py-10 sm:py-16">
+      <PageShell
+        size="narrow"
+        className="flex min-h-svh flex-col justify-center gap-6 px-6 py-8 sm:px-8 sm:py-12 lg:px-12"
+      >
         <AppState kind="loading" title="Checking your AniList connection" />
       </PageShell>
     );
   }
 
   return (
-    <PageShell size="narrow" className="space-y-6 py-10 sm:py-16">
+    <PageShell
+      size="narrow"
+      className="flex min-h-svh flex-col justify-center gap-6 px-6 py-8 sm:px-8 sm:py-12 lg:px-12"
+    >
       <BrandMark />
       <PageHeader
         title="Know what airs next"
         description="Connect AniList to see your watchlist and airing schedule in one place."
       />
       <Card>
-        <CardContent className="space-y-5 p-6">
+        <CardContent className="space-y-5 px-10 pb-6 pt-6 sm:px-14 sm:pt-6 lg:px-16">
           {errorParam && (
             <p
               className="rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive"

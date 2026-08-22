@@ -13,7 +13,7 @@ type ProgressSortable = {
 };
 
 /** Episodes released so far: prefer next-airing signal, else known total. */
-function availableEpisodeCount(entry: ProgressSortable): number {
+export function availableEpisodeCount(entry: ProgressSortable): number {
   const next = entry.media?.nextAiringEpisode;
   if (next?.episode != null) {
     const airingAt = next.airingAt;
@@ -28,6 +28,16 @@ function availableEpisodeCount(entry: ProgressSortable): number {
 /** How many released episodes the user has not watched yet. */
 export function episodesBehind(entry: ProgressSortable): number {
   return availableEpisodeCount(entry) - (entry.progress ?? 0);
+}
+
+/** Increment cap: what's out if airing, else season total, else unbounded. */
+export function progressCeiling(entry: ProgressSortable): number | null {
+  if (entry.media?.nextAiringEpisode?.episode != null) {
+    return availableEpisodeCount(entry);
+  }
+  const episodes = entry.media?.episodes ?? 0;
+  if (episodes > 0) return episodes;
+  return null;
 }
 
 function completionRatio(entry: ProgressSortable): number {
@@ -98,14 +108,14 @@ export function findWatchNextEntry<T extends ProgressSortable>(
 /**
  * Returns the appropriate color class for progress indicators
  */
-export function getProgressColor(currentEp: number, nextEpisode: number | null | undefined) {
-  if (!currentEp || !nextEpisode) return "text-muted-foreground";
-  
+export function getProgressColor(progress: number, available: number) {
+  if (progress === 0 || available <= 0) return "text-muted-foreground";
+
   // If the user is more than 1 episode behind, show yellow (needs attention)
-  if (currentEp < nextEpisode - 1) {
+  if (available - progress > 1) {
     return "text-warning";
   }
-  
+
   // If the user is caught up or only 1 episode behind, show green
   return "text-success";
 }

@@ -37,8 +37,8 @@ export function AnimeSection({
             <h2 className="font-display text-lg font-semibold">
               {title}
               {sortedEntries.length > 0 && (
-                <span className="ml-2 text-sm font-normal text-muted-foreground">
-                  ({sortedEntries.length})
+                <span className="ml-2 font-data text-xs font-semibold text-muted-foreground">
+                  {sortedEntries.length}
                 </span>
               )}
             </h2>
@@ -51,7 +51,7 @@ export function AnimeSection({
             </span>
           </button>
         </CollapsibleTrigger>
-        <CollapsibleContent className="px-4 pb-4">
+        <CollapsibleContent className="px-4 pb-4 pt-2">
           {sortedEntries.length > 0 ? (
             <div
               className={cn(

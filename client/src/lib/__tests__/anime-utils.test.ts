@@ -1,7 +1,10 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import {
+  availableEpisodeCount,
   episodesBehind,
   findWatchNextEntry,
+  getProgressColor,
+  progressCeiling,
 } from "../anime-utils";
 
 type Entry = {
@@ -66,6 +69,100 @@ describe("episodesBehind", () => {
         })
       )
     ).toBe(2);
+  });
+});
+
+describe("availableEpisodeCount", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("uses next episode minus one when that episode has not aired", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-01-01T00:00:00Z"));
+    const future = Math.floor(Date.now() / 1000) + 86_400;
+
+    expect(
+      availableEpisodeCount(
+        entry({
+          media: {
+            nextAiringEpisode: { episode: 5, airingAt: future },
+          },
+        })
+      )
+    ).toBe(4);
+  });
+
+  it("treats next episode as available once airingAt has passed", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-01-01T00:00:00Z"));
+    const past = Math.floor(Date.now() / 1000) - 60;
+
+    expect(
+      availableEpisodeCount(
+        entry({
+          media: {
+            nextAiringEpisode: { episode: 5, airingAt: past },
+          },
+        })
+      )
+    ).toBe(5);
+  });
+
+  it("falls back to media.episodes when there is no next airing", () => {
+    expect(
+      availableEpisodeCount(entry({ media: { episodes: 12 } }))
+    ).toBe(12);
+  });
+});
+
+describe("progressCeiling", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("caps at available episodes, not the season total, when next airing exists", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-01-01T00:00:00Z"));
+    const future = Math.floor(Date.now() / 1000) + 86_400;
+
+    expect(
+      progressCeiling(
+        entry({
+          media: {
+            episodes: 12,
+            nextAiringEpisode: { episode: 5, airingAt: future },
+          },
+        })
+      )
+    ).toBe(4);
+  });
+
+  it("uses the season total when there is no next airing", () => {
+    expect(progressCeiling(entry({ media: { episodes: 12 } }))).toBe(12);
+  });
+
+  it("returns null when neither next airing nor a season total is known", () => {
+    expect(progressCeiling(entry({ media: {} }))).toBeNull();
+    expect(progressCeiling(entry({}))).toBeNull();
+  });
+});
+
+describe("getProgressColor", () => {
+  it("is muted when progress is 0", () => {
+    expect(getProgressColor(0, 12)).toBe("text-muted-foreground");
+  });
+
+  it("is green when 1 episode behind", () => {
+    expect(getProgressColor(3, 4)).toBe("text-success");
+  });
+
+  it("is yellow when 2 or more episodes behind", () => {
+    expect(getProgressColor(2, 4)).toBe("text-warning");
+  });
+
+  it("is muted when available is unknown or zero", () => {
+    expect(getProgressColor(5, 0)).toBe("text-muted-foreground");
   });
 });
 

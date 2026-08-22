@@ -4,7 +4,11 @@ import { useUpdateProgress } from "@/hooks";
 import { cn } from "@/lib/utils";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import ControlButton from "./control-button";
-import { getProgressColor } from "@/lib/anime-utils";
+import {
+  availableEpisodeCount,
+  getProgressColor,
+  progressCeiling,
+} from "@/lib/anime-utils";
 
 type VariantType = "default" | "minimal" | "pill";
 
@@ -15,7 +19,7 @@ interface EpisodeControlsProps {
   className?: string;
   compact?: boolean;
   variant?: VariantType;
-  targetEpisode?: number;
+  nextAiringEpisode?: { episode: number; airingAt?: number | null } | null;
 }
 
 // Main component
@@ -26,7 +30,7 @@ export function EpisodeControls({
   className,
   compact = false,
   variant = "default",
-  targetEpisode = 0,
+  nextAiringEpisode,
 }: EpisodeControlsProps) {
   const [localProgress, setLocalProgress] = useState(currentEpisode);
   const { updateProgress, isUpdating } = useUpdateProgress();
@@ -47,10 +51,16 @@ export function EpisodeControls({
     }
   };
 
-  // AniList often returns null episodes for ongoing seasons; callers coerce that
-  // to 0. Only apply an upper bound when a real season total is known.
-  const hasKnownTotal = totalEpisodes > 0;
-  const canIncrement = !hasKnownTotal || localProgress < totalEpisodes;
+  // A missing season total is unbounded unless next-airing supplies a ceiling.
+  const entry = {
+    progress: localProgress,
+    media: {
+      episodes: totalEpisodes > 0 ? totalEpisodes : null,
+      nextAiringEpisode: nextAiringEpisode ?? null,
+    },
+  };
+  const ceiling = progressCeiling(entry);
+  const canIncrement = ceiling == null || localProgress < ceiling;
 
   const handleIncrement = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -78,7 +88,7 @@ export function EpisodeControls({
   const decrementDisabled = isUpdating || localProgress === 0;
   const progressColorClass = getProgressColor(
     localProgress,
-    targetEpisode || (hasKnownTotal ? totalEpisodes : null)
+    availableEpisodeCount(entry)
   );
 
   return (

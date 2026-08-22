@@ -7,7 +7,7 @@ interface CoverImageProps {
 
 export function CoverImage({ src, alt }: CoverImageProps) {
   return (
-    <div className="h-[4.5rem] w-12 flex-shrink-0 overflow-hidden rounded-lg bg-muted">
+    <div className="h-20 w-14 flex-shrink-0 overflow-hidden rounded-lg bg-muted sm:h-24 sm:w-16">
       <img
         src={src}
         alt={alt}

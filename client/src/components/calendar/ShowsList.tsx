@@ -14,7 +14,7 @@ export function ShowsList({ showsForSelectedDate, selectedDay, selectedDate }: S
     <div className="space-y-6">
       {showsForSelectedDate.length > 0 ? (
         <section className="rounded-xl bg-card p-4 sm:p-6" aria-live="polite">
-            <div className="mb-5 flex items-center gap-3">
+            <div className="mb-4 flex items-center gap-3">
               <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
                 <CalendarIcon className="h-4 w-4" aria-hidden />
               </span>

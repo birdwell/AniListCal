@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { EpisodeControls } from "@/components/episode-controls";
 import { StatusSelector } from "@/components/status-selector";
 import { Calendar, Clock, ListChecks } from "lucide-react";
+import { episodesBehind } from "@/lib/anime-utils";
 import type { EpisodeTrackingSectionData } from "./types";
 
 function formatTimeUntilAiring(timeUntilAiring: number) {
@@ -30,7 +31,10 @@ export function EpisodeTrackingSection({
 
   const currentEpisode = mediaListEntry.progress || 0;
   const totalEpisodes = episodes || 0;
-  const nextEpisodeNumber = nextAiringEpisode?.episode;
+  const behind = episodesBehind({
+    progress: currentEpisode,
+    media: { episodes, nextAiringEpisode },
+  });
 
   return (
     <Card className="overflow-hidden">
@@ -62,7 +66,14 @@ export function EpisodeTrackingSection({
                 mediaId={mediaId}
                 currentEpisode={currentEpisode}
                 totalEpisodes={totalEpisodes}
-                targetEpisode={nextEpisodeNumber}
+                nextAiringEpisode={
+                  nextAiringEpisode
+                    ? {
+                        episode: nextAiringEpisode.episode,
+                        airingAt: nextAiringEpisode.airingAt,
+                      }
+                    : undefined
+                }
                 variant="minimal"
                 className="flex-shrink-0"
               />
@@ -111,14 +122,11 @@ export function EpisodeTrackingSection({
                   </span>
                 </div>
 
-                {currentEpisode < nextAiringEpisode.episode - 1 && (
+                {behind > 0 && (
                   <p className="mt-3 text-sm text-muted-foreground">
                     <span className="font-data font-medium text-warning">
-                      {nextAiringEpisode.episode - 1 - currentEpisode} episode
-                      {nextAiringEpisode.episode - 1 - currentEpisode > 1
-                        ? "s"
-                        : ""}{" "}
-                      behind
+                      {behind} episode
+                      {behind > 1 ? "s" : ""} behind
                     </span>
                   </p>
                 )}

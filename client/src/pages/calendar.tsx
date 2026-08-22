@@ -28,24 +28,23 @@ function CalendarPage() {
   return (
     <PageShell size="wide" className="space-y-6">
       <PageHeader title="Calendar" />
-      <DaySelector
-        orderedDays={orderedDays}
-        selectedDay={selectedDay}
-        setSelectedDay={setSelectedDay}
-      />
-
-      {showsForSelectedDate.length > 0 ? (
-        <ShowsList
-          showsForSelectedDate={showsForSelectedDate}
+      <div className="space-y-4">
+        <DaySelector
+          orderedDays={orderedDays}
           selectedDay={selectedDay}
-          selectedDate={selectedDate}
+          setSelectedDay={setSelectedDay}
         />
-      ) : (
-        <AppState
-          kind="empty"
-          title="Nothing airs this day"
-        />
-      )}
+
+        {showsForSelectedDate.length > 0 ? (
+          <ShowsList
+            showsForSelectedDate={showsForSelectedDate}
+            selectedDay={selectedDay}
+            selectedDate={selectedDate}
+          />
+        ) : (
+          <AppState kind="empty" title="Nothing airs this day" />
+        )}
+      </div>
     </PageShell>
   );
 }

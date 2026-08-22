@@ -13,6 +13,10 @@ vi.mock("@/components/theme-toggle", () => ({
   ThemeToggle: () => <button type="button">Theme</button>,
 }));
 
+vi.mock("@/components/profile-nav-avatar", () => ({
+  ProfileNavAvatar: () => <span data-testid="profile-avatar">Avatar</span>,
+}));
+
 describe("Layout", () => {
   it("docks the mobile tab bar outside the scrolling main region", () => {
     const { hook } = memoryLocation({ path: "/", static: true });
@@ -47,5 +51,6 @@ describe("Layout", () => {
     expect(tabBar).toHaveTextContent("Search");
     expect(tabBar).toHaveTextContent("Calendar");
     expect(tabBar).toHaveTextContent("Profile");
+    expect(screen.getByTestId("profile-avatar")).toBeInTheDocument();
   });
 });

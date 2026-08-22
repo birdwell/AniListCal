@@ -33,7 +33,10 @@ export function AppState({
       aria-busy={isLoading || undefined}
     >
       {isLoading ? (
-        <Loader2 className="h-7 w-7 animate-spin text-primary" aria-hidden />
+        <Loader2
+          className="h-7 w-7 animate-spin text-primary motion-reduce:animate-none"
+          aria-hidden
+        />
       ) : isError ? (
         <AlertCircle className="h-7 w-7 text-destructive" aria-hidden />
       ) : (

@@ -52,7 +52,7 @@ export function TagFilter({ categorizedTags }: TagFilterProps) {
     const hasFilteredResults = Object.keys(filteredCategorizedTags).length > 0;
 
     return (
-        <div className="mt-3 w-full rounded-xl bg-card p-4 shadow-sm ring-1 ring-border/55">
+        <div className="mt-3 w-full rounded-xl bg-card p-4 ring-1 ring-border/55">
             <h2 className="sr-only">Filter by tags</h2>
             {selectedTags.length > 0 && (
                 <div className="mb-4">

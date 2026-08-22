@@ -16,7 +16,7 @@ export function ViewToggle({ isCompact, onToggle }: ViewToggleProps) {
       onClick={onToggle}
       title={label}
       aria-label={label}
-      className="min-h-11 min-w-11 shadow-sm transition-shadow hover:shadow motion-reduce:transition-none"
+      className="min-h-11 min-w-11"
     >
       {isCompact ? (
         <LayoutGrid className="h-4 w-4" />

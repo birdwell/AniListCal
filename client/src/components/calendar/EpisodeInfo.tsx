@@ -20,17 +20,17 @@ export function EpisodeInfo({
 }: EpisodeInfoProps) {
   if (shouldShowPreviousEpisode) {
     return (
-      <div className="space-y-1 text-sm">
-        <div className="flex items-center gap-2">
-          <span className="text-muted-foreground">Episode {displayEpisode}</span>
-          <span className="font-data font-medium text-success">
-            • Aired {formatTimeSince(previousEpisodeAiringAt)}
+      <div className="min-w-0 space-y-1 font-data text-xs sm:text-sm">
+        <div className="flex min-w-0 items-center gap-1.5">
+          <span className="shrink-0 text-muted-foreground">Ep {displayEpisode}</span>
+          <span className="truncate font-medium text-success">
+            · Aired {formatTimeSince(previousEpisodeAiringAt)}
           </span>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-muted-foreground">Episode {episode}</span>
-          <span className={cn("font-data font-medium", getAiringStatusColor(airingAt))}>
-            • {formatTimeUntil(airingAt)}
+        <div className="flex min-w-0 items-center gap-1.5">
+          <span className="shrink-0 text-muted-foreground">Ep {episode}</span>
+          <span className={cn("truncate font-medium", getAiringStatusColor(airingAt))}>
+            · {formatTimeUntil(airingAt)}
           </span>
         </div>
       </div>
@@ -38,10 +38,10 @@ export function EpisodeInfo({
   }
 
   return (
-    <div className="flex items-center gap-2 text-sm">
-      <span className="text-muted-foreground">Episode {episode}</span>
-      <span className={cn("font-data font-medium", getAiringStatusColor(airingAt))}>
-        • {formatTimeUntil(airingAt)}
+    <div className="flex min-w-0 items-center gap-1.5 font-data text-xs sm:text-sm">
+      <span className="shrink-0 text-muted-foreground">Ep {episode}</span>
+      <span className={cn("truncate font-medium", getAiringStatusColor(airingAt))}>
+        · {formatTimeUntil(airingAt)}
       </span>
     </div>
   );

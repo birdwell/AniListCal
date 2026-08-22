@@ -5,6 +5,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { logout } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { BrandMark } from "@/components/brand-mark";
+import { ProfileNavAvatar } from "@/components/profile-nav-avatar";
 
 const NAV_ITEMS = [
   { href: "/", label: "Home", icon: Home },
@@ -104,7 +105,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 )}
                 aria-current={active ? "page" : undefined}
               >
-                <Icon className="h-5 w-5" aria-hidden />
+                {href === "/profile" ? (
+                  <ProfileNavAvatar active={active} />
+                ) : (
+                  <Icon className="h-5 w-5" aria-hidden />
+                )}
                 <span>{label}</span>
               </Link>
             );

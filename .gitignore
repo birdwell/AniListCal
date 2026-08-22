@@ -28,3 +28,4 @@ SECURITY_CHECKLIST.md
 *.png
 !generated-icon.png
 !client/public/*.png
+!client/public/avatars/*.png

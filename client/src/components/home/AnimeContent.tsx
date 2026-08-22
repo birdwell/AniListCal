@@ -176,8 +176,8 @@ export function AnimeContent({ animeEntries }: AnimeContentProps) {
   };
 
   return (
-    <div className="space-y-5 sm:space-y-6">
-      <div className="sticky top-[calc(-1rem-env(safe-area-inset-top))] z-30 -mx-4 bg-background px-4 pb-3 pt-[calc(1rem+env(safe-area-inset-top))] sm:-mx-6 sm:px-6 md:top-16 md:pt-3 lg:-mx-10 lg:px-10">
+    <div className="space-y-4">
+      <div className="sticky top-[calc(-1rem-env(safe-area-inset-top))] z-30 -mx-4 mt-[calc(-1rem-env(safe-area-inset-top))] bg-background px-4 pb-3 pt-[calc(1rem+env(safe-area-inset-top))] sm:-mx-6 sm:px-6 md:-mt-3 md:top-16 md:pt-3 lg:-mx-10 lg:px-10">
         <Collapsible open={isTagFilterOpen} onOpenChange={setIsTagFilterOpen}>
           <div className="flex items-center gap-2">
             <div className="relative min-w-0 flex-1">
@@ -203,7 +203,7 @@ export function AnimeContent({ animeEntries }: AnimeContentProps) {
                 {selectedTags.length > 0 && (
                   <Badge
                     variant="secondary"
-                    className="absolute -top-1.5 -right-1.5 h-3.5 w-3.5 p-0 flex items-center justify-center text-[10px] rounded-full"
+                    className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full p-0 text-xs"
                   >
                     {selectedTags.length}
                   </Badge>
@@ -219,7 +219,7 @@ export function AnimeContent({ animeEntries }: AnimeContentProps) {
       </div>
 
       {watchNext && (
-        <section className="overflow-hidden rounded-2xl bg-card shadow-sm ring-1 ring-border/55">
+        <section className="overflow-hidden rounded-2xl bg-card shadow-raised">
           <div className="flex items-center gap-3 px-4 pb-2 pt-4 sm:px-5 sm:pt-5">
             <span className="h-2.5 w-2.5 rounded-full bg-live" aria-hidden />
             <h2 className="font-display text-xl font-semibold">Watch next</h2>

@@ -73,7 +73,10 @@ function Router() {
         <Switch>
           <Route path="/login" component={Login} />
           <Route path="/auth-error" component={() => (
-            <PageShell size="narrow" className="space-y-6 py-10 sm:py-16">
+            <PageShell
+              size="narrow"
+              className="flex min-h-svh flex-col justify-center gap-6 py-8 sm:py-12"
+            >
               <PageHeader title="Sign-in failed" />
               <AppState
                 kind="error"

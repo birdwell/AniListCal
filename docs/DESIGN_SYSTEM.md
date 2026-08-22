@@ -29,8 +29,8 @@ The supported scale is 12/16 utility, 14/20 small, 16/24 body, 20/26 section, 30
 
 Use the 4, 8, 12, 16, 24, 32, 48, and 64 pixel rhythm. `PageShell` supplies shared gutters of 16 pixels on mobile, 24 on tablet, and 40 on desktop.
 
-- `PageShell size="wide"`: 1280 pixel maximum for Home, Calendar, and show details.
-- `PageShell size="narrow"`: 768 pixel maximum for Search, Profile, authentication, and errors.
+- `PageShell size="wide"`: 1280 pixel maximum for Home, Calendar, Search, and show details.
+- `PageShell size="narrow"`: 768 pixel maximum for Profile, authentication, and errors.
 - `PageHeader`: the only page-level heading pattern; descriptions are optional and must add information.
 - `SectionHeading`: a consistent `h2`, optional count, and one action.
 

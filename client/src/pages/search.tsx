@@ -53,7 +53,7 @@ export default function SearchPage() {
     (trimmedQuery.length > 0 && isFetching && !isFetchingNextPage);
 
   return (
-    <PageShell size="narrow" className="space-y-6">
+    <PageShell size="wide" className="space-y-6">
       <PageHeader title="Search" />
 
       <SearchBar
@@ -100,7 +100,7 @@ export default function SearchPage() {
                 >
                   {isFetchingNextPage ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin motion-reduce:animate-none" />
                       Loading
                     </>
                   ) : (

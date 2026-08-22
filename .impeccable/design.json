@@ -1,0 +1,143 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-22T01:26:39Z",
+  "title": "Design System: AniListCal",
+  "extensions": {
+    "colorMeta": {
+      "midnight": { "role": "neutral", "displayName": "Midnight", "canonical": "hsl(257 38% 11%)", "tonalRamp": ["oklch(15% 0.042 295.3)", "oklch(27% 0.042 295.3)", "oklch(39% 0.042 295.3)", "oklch(51% 0.042 295.3)", "oklch(63% 0.042 295.3)", "oklch(75% 0.042 295.3)", "oklch(87% 0.042 295.3)", "oklch(95% 0.042 295.3)"] },
+      "snow": { "role": "neutral", "displayName": "Snow", "canonical": "hsl(264 38% 97%)", "tonalRamp": ["oklch(15% 0.008 304.2)", "oklch(27% 0.008 304.2)", "oklch(39% 0.008 304.2)", "oklch(51% 0.008 304.2)", "oklch(63% 0.008 304.2)", "oklch(75% 0.008 304.2)", "oklch(87% 0.008 304.2)", "oklch(95% 0.008 304.2)"] },
+      "surface-card": { "role": "neutral", "displayName": "White Card", "canonical": "hsl(0 0% 100%)", "tonalRamp": ["oklch(15% 0.000 89.9)", "oklch(27% 0.000 89.9)", "oklch(39% 0.000 89.9)", "oklch(51% 0.000 89.9)", "oklch(63% 0.000 89.9)", "oklch(75% 0.000 89.9)", "oklch(87% 0.000 89.9)", "oklch(95% 0.000 89.9)"] },
+      "broadcast-violet": { "role": "primary", "displayName": "Broadcast Violet", "canonical": "hsl(266 51% 43%)", "tonalRamp": ["oklch(15% 0.171 299.3)", "oklch(27% 0.171 299.3)", "oklch(39% 0.171 299.3)", "oklch(51% 0.171 299.3)", "oklch(63% 0.171 299.3)", "oklch(75% 0.171 299.3)", "oklch(87% 0.171 299.3)", "oklch(95% 0.171 299.3)"] },
+      "signal-red": { "role": "secondary", "displayName": "Signal Red", "canonical": "hsl(350 68% 53%)", "tonalRamp": ["oklch(15% 0.198 16.9)", "oklch(27% 0.198 16.9)", "oklch(39% 0.198 16.9)", "oklch(51% 0.198 16.9)", "oklch(63% 0.198 16.9)", "oklch(75% 0.198 16.9)", "oklch(87% 0.198 16.9)", "oklch(95% 0.198 16.9)"] },
+      "sakura": { "role": "secondary", "displayName": "Sakura", "canonical": "hsl(337 74% 80%)", "tonalRamp": ["oklch(15% 0.096 354.8)", "oklch(27% 0.096 354.8)", "oklch(39% 0.096 354.8)", "oklch(51% 0.096 354.8)", "oklch(63% 0.096 354.8)", "oklch(75% 0.096 354.8)", "oklch(87% 0.096 354.8)", "oklch(95% 0.096 354.8)"] },
+      "airing-teal": { "role": "tertiary", "displayName": "Airing Teal", "canonical": "hsl(173 57% 31%)", "tonalRamp": ["oklch(15% 0.084 183.7)", "oklch(27% 0.084 183.7)", "oklch(39% 0.084 183.7)", "oklch(51% 0.084 183.7)", "oklch(63% 0.084 183.7)", "oklch(75% 0.084 183.7)", "oklch(87% 0.084 183.7)", "oklch(95% 0.084 183.7)"] },
+      "muted-lilac": { "role": "neutral", "displayName": "Muted Lilac", "canonical": "hsl(267 27% 94%)", "tonalRamp": ["oklch(15% 0.012 306.3)", "oklch(27% 0.012 306.3)", "oklch(39% 0.012 306.3)", "oklch(51% 0.012 306.3)", "oklch(63% 0.012 306.3)", "oklch(75% 0.012 306.3)", "oklch(87% 0.012 306.3)", "oklch(95% 0.012 306.3)"] },
+      "muted-foreground": { "role": "neutral", "displayName": "Muted Ink", "canonical": "hsl(267 8% 42%)", "tonalRamp": ["oklch(15% 0.028 305.7)", "oklch(27% 0.028 305.7)", "oklch(39% 0.028 305.7)", "oklch(51% 0.028 305.7)", "oklch(63% 0.028 305.7)", "oklch(75% 0.028 305.7)", "oklch(87% 0.028 305.7)", "oklch(95% 0.028 305.7)"] },
+      "border": { "role": "neutral", "displayName": "Lilac Border", "canonical": "hsl(266 22% 87%)", "tonalRamp": ["oklch(15% 0.021 305.4)", "oklch(27% 0.021 305.4)", "oklch(39% 0.021 305.4)", "oklch(51% 0.021 305.4)", "oklch(63% 0.021 305.4)", "oklch(75% 0.021 305.4)", "oklch(87% 0.021 305.4)", "oklch(95% 0.021 305.4)"] },
+      "warning": { "role": "tertiary", "displayName": "Warning Amber", "canonical": "hsl(36 100% 30%)", "tonalRamp": ["oklch(15% 0.118 66.3)", "oklch(27% 0.118 66.3)", "oklch(39% 0.118 66.3)", "oklch(51% 0.118 66.3)", "oklch(63% 0.118 66.3)", "oklch(75% 0.118 66.3)", "oklch(87% 0.118 66.3)", "oklch(95% 0.118 66.3)"] },
+      "dark-background": { "role": "neutral", "displayName": "Night Canvas", "canonical": "hsl(257 35% 8%)", "tonalRamp": ["oklch(15% 0.030 296.2)", "oklch(27% 0.030 296.2)", "oklch(39% 0.030 296.2)", "oklch(51% 0.030 296.2)", "oklch(63% 0.030 296.2)", "oklch(75% 0.030 296.2)", "oklch(87% 0.030 296.2)", "oklch(95% 0.030 296.2)"] },
+      "dark-card": { "role": "neutral", "displayName": "Night Card", "canonical": "hsl(263 29% 12%)", "tonalRamp": ["oklch(15% 0.035 301.1)", "oklch(27% 0.035 301.1)", "oklch(39% 0.035 301.1)", "oklch(51% 0.035 301.1)", "oklch(63% 0.035 301.1)", "oklch(75% 0.035 301.1)", "oklch(87% 0.035 301.1)", "oklch(95% 0.035 301.1)"] },
+      "dark-primary": { "role": "primary", "displayName": "Night Broadcast Violet", "canonical": "hsl(275 80% 71%)", "tonalRamp": ["oklch(15% 0.179 309.4)", "oklch(27% 0.179 309.4)", "oklch(39% 0.179 309.4)", "oklch(51% 0.179 309.4)", "oklch(63% 0.179 309.4)", "oklch(75% 0.179 309.4)", "oklch(87% 0.179 309.4)", "oklch(95% 0.179 309.4)"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Page Display", "purpose": "The single page title and rare large next-up title." },
+      "title": { "displayName": "Section Title", "purpose": "Section landmarks and card titles." },
+      "body": { "displayName": "Interface Body", "purpose": "Readable content and familiar controls." },
+      "label": { "displayName": "Control Label", "purpose": "Buttons, navigation, and concise actions." },
+      "data": { "displayName": "Broadcast Data", "purpose": "Episode progress, dates, countdowns, and compact state labels." }
+    },
+    "shadows": [
+      { "name": "raised-light", "value": "0 12px 32px -20px hsl(257 38% 11% / 0.34)", "purpose": "Menus, popovers, and deliberately raised light-theme surfaces." },
+      { "name": "raised-dark", "value": "0 16px 40px -22px hsl(0 0% 0% / 0.72)", "purpose": "The dark-theme counterpart for deliberate layering." },
+      { "name": "quiet-card-ring", "value": "0 0 0 1px hsl(266 22% 87% / 0.70)", "purpose": "The normal flat card boundary." }
+    ],
+    "motion": [
+      { "name": "state-fast", "value": "150ms ease", "purpose": "Targeted color, border, opacity, transform, width, and shadow feedback." },
+      { "name": "disclosure", "value": "200ms ease-out", "purpose": "Accordion expansion and collapse." },
+      { "name": "reduced-motion", "value": "0.01ms", "purpose": "Global nonessential-motion suppression when reduced motion is requested." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" },
+      { "name": "xl", "value": "1280px" },
+      { "name": "2xl", "value": "1536px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The default decisive action: violet, compact, and accessible at 44 pixels high.",
+      "html": "<button class=\"ds-btn-primary\">Update progress</button>",
+      "css": ".ds-btn-primary { display:inline-flex; align-items:center; justify-content:center; gap:8px; height:44px; padding:8px 16px; border:0; border-radius:10px; background:hsl(var(--primary, 266 51% 43%)); color:hsl(var(--primary-foreground, 0 0% 100%)); font:600 14px/20px ui-sans-serif,system-ui,sans-serif; transition:background-color 150ms ease,box-shadow 150ms ease,opacity 150ms ease; } .ds-btn-primary:hover { background:hsl(var(--primary, 266 51% 43%) / .90); } .ds-btn-primary:focus-visible { outline:0; box-shadow:0 0 0 3px hsl(var(--ring, 266 51% 43%)),0 0 0 5px hsl(var(--background, 264 38% 97%)); } .ds-btn-primary:active { opacity:.88; }"
+    },
+    {
+      "name": "Outline Button",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "A contained alternative that stays quiet until hover or focus.",
+      "html": "<button class=\"ds-btn-outline\">View schedule</button>",
+      "css": ".ds-btn-outline { display:inline-flex; align-items:center; justify-content:center; height:44px; padding:8px 16px; border:1px solid hsl(var(--input, 266 22% 82%)); border-radius:10px; background:hsl(var(--card, 0 0% 100%)); color:hsl(var(--foreground, 257 38% 11%)); font:600 14px/20px ui-sans-serif,system-ui,sans-serif; transition:color 150ms ease,background-color 150ms ease,border-color 150ms ease,box-shadow 150ms ease; } .ds-btn-outline:hover { border-color:hsl(var(--primary, 266 51% 43%) / .40); background:hsl(var(--accent, 267 27% 94%)); color:hsl(var(--accent-foreground, 266 51% 35%)); } .ds-btn-outline:focus-visible { outline:0; box-shadow:0 0 0 3px hsl(var(--ring, 266 51% 43%)),0 0 0 5px hsl(var(--background, 264 38% 97%)); }"
+    },
+    {
+      "name": "Search Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "A 44-pixel field with a quiet card surface and explicit violet focus treatment.",
+      "html": "<label class=\"ds-field\"><span class=\"ds-field-label\">Search anime</span><input class=\"ds-input\" placeholder=\"Title, genre, or studio\"></label>",
+      "css": ".ds-field { display:grid; gap:8px; color:hsl(var(--foreground, 257 38% 11%)); font-family:ui-sans-serif,system-ui,sans-serif; } .ds-field-label { font-size:14px; line-height:20px; font-weight:600; } .ds-input { width:100%; height:44px; padding:8px 14px; border:1px solid hsl(var(--input, 266 22% 82%)); border-radius:10px; background:hsl(var(--card, 0 0% 100%)); color:hsl(var(--foreground, 257 38% 11%)); font:400 16px/24px ui-sans-serif,system-ui,sans-serif; transition:border-color 150ms ease,box-shadow 150ms ease; } .ds-input::placeholder { color:hsl(var(--muted-foreground, 267 8% 42%)); } .ds-input:hover { border-color:hsl(var(--primary, 266 51% 43%) / .40); } .ds-input:focus-visible { outline:0; border-color:hsl(var(--primary, 266 51% 43%) / .60); box-shadow:0 0 0 3px hsl(var(--ring, 266 51% 43%)),0 0 0 5px hsl(var(--background, 264 38% 97%)); }"
+    },
+    {
+      "name": "Primary Navigation",
+      "kind": "nav",
+      "description": "The desktop icon-label navigation with a violet active state and underline.",
+      "html": "<nav class=\"ds-nav\" aria-label=\"Preview navigation\"><a class=\"ds-nav-item ds-nav-active\" href=\"#\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M3 11.5 12 4l9 7.5v8a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z\"/></svg>Home</a><a class=\"ds-nav-item\" href=\"#\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"11\" cy=\"11\" r=\"7\"/><path d=\"m20 20-4-4\"/></svg>Search</a><a class=\"ds-nav-item\" href=\"#\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect x=\"3\" y=\"5\" width=\"18\" height=\"16\" rx=\"2\"/><path d=\"M16 3v4M8 3v4M3 10h18\"/></svg>Calendar</a></nav>",
+      "css": ".ds-nav { display:flex; align-items:stretch; height:64px; background:hsl(var(--background, 264 38% 97%)); font-family:ui-sans-serif,system-ui,sans-serif; } .ds-nav-item { position:relative; display:inline-flex; align-items:center; gap:8px; padding:0 12px; color:hsl(var(--muted-foreground, 267 8% 42%)); text-decoration:none; font-size:14px; line-height:20px; font-weight:500; transition:color 150ms ease; } .ds-nav-item svg { width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; } .ds-nav-item:hover { color:hsl(var(--foreground, 257 38% 11%)); } .ds-nav-item:focus-visible { outline:0; box-shadow:inset 0 0 0 3px hsl(var(--ring, 266 51% 43%)); } .ds-nav-active { color:hsl(var(--primary, 266 51% 43%)); } .ds-nav-active::after { content:\"\"; position:absolute; left:12px; right:12px; bottom:0; height:2px; border-radius:999px; background:hsl(var(--primary, 266 51% 43%)); }"
+    },
+    {
+      "name": "Selected Filter Chip",
+      "kind": "chip",
+      "description": "An interactive data-label chip with a full mobile target and selected violet fill.",
+      "html": "<button class=\"ds-chip\" aria-pressed=\"true\">Currently Airing <svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M18 6 6 18M6 6l12 12\"/></svg></button>",
+      "css": ".ds-chip { display:inline-flex; align-items:center; justify-content:center; gap:6px; min-height:44px; padding:6px 12px; border:0; border-radius:10px; background:hsl(var(--primary, 266 51% 43%)); color:hsl(var(--primary-foreground, 0 0% 100%)); font:600 12px/16px SFMono-Regular,\"Cascadia Mono\",\"Roboto Mono\",ui-monospace,monospace; letter-spacing:.03em; transition:background-color 150ms ease,box-shadow 150ms ease; } .ds-chip svg { width:12px; height:12px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; } .ds-chip:hover { background:hsl(var(--primary, 266 51% 43%) / .90); } .ds-chip:focus-visible { outline:0; box-shadow:0 0 0 3px hsl(var(--ring, 266 51% 43%)),0 0 0 5px hsl(var(--background, 264 38% 97%)); }"
+    },
+    {
+      "name": "Anime Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "A flat, artwork-led card whose title, airing data, and episode action form one scan path.",
+      "html": "<article class=\"ds-anime-card\"><div class=\"ds-cover\" aria-hidden=\"true\"><span>ANIME</span></div><div class=\"ds-card-body\"><div><h3>Frieren: Beyond Journey's End</h3><p>Ep 18 · Fri, 8:00 PM</p></div><span class=\"ds-card-arrow\">›</span></div></article>",
+      "css": ".ds-anime-card { display:flex; gap:16px; padding:16px; overflow:hidden; border-radius:12px; background:hsl(var(--card, 0 0% 100%)); color:hsl(var(--card-foreground, 257 38% 11%)); box-shadow:0 0 0 1px hsl(var(--border, 266 22% 87%) / .70); transition:background-color 150ms ease,box-shadow 150ms ease; font-family:ui-sans-serif,system-ui,sans-serif; } .ds-anime-card:hover { background:hsl(var(--muted, 267 27% 94%) / .70); box-shadow:0 6px 16px -12px hsl(var(--foreground, 257 38% 11%) / .45); } .ds-anime-card:focus-within { box-shadow:0 0 0 3px hsl(var(--ring, 266 51% 43%)); } .ds-cover { display:grid; place-items:center; flex:0 0 64px; height:96px; border-radius:8px; background:hsl(var(--muted, 267 27% 94%)); color:hsl(var(--muted-foreground, 267 8% 42%)); font:600 11px/16px SFMono-Regular,ui-monospace,monospace; letter-spacing:.08em; } .ds-card-body { display:flex; min-width:0; flex:1; align-items:center; justify-content:space-between; gap:12px; } .ds-card-body h3 { margin:0; font-size:16px; line-height:20px; font-weight:600; } .ds-card-body p { margin:8px 0 0; color:hsl(var(--muted-foreground, 267 8% 42%)); font:500 12px/16px SFMono-Regular,ui-monospace,monospace; } .ds-card-arrow { color:hsl(var(--muted-foreground, 267 8% 42%)); font-size:24px; }"
+    },
+    {
+      "name": "Episode Controls",
+      "kind": "custom",
+      "description": "The recurring 44-pixel progress control that keeps update actions and tabular episode data together.",
+      "html": "<div class=\"ds-episode\" role=\"group\" aria-label=\"Episode progress preview\"><button aria-label=\"Decrease episode\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M5 12h14\"/></svg></button><span>07/12</span><button aria-label=\"Increase episode\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M12 5v14M5 12h14\"/></svg></button></div>",
+      "css": ".ds-episode { display:inline-grid; grid-template-columns:44px minmax(44px,auto) 44px; align-items:center; height:44px; overflow:hidden; border-radius:12px; background:hsl(var(--secondary, 267 27% 94%)); color:hsl(var(--foreground, 257 38% 11%)); } .ds-episode button { display:grid; place-items:center; width:44px; height:44px; border:0; border-radius:0; background:transparent; color:hsl(var(--primary, 266 51% 43%)); transition:background-color 150ms ease; } .ds-episode button:hover { background:hsl(var(--background, 264 38% 97%) / .55); } .ds-episode button:focus-visible { position:relative; outline:0; box-shadow:inset 0 0 0 3px hsl(var(--ring, 266 51% 43%)); } .ds-episode button:active { background:hsl(var(--accent, 267 27% 94%)); } .ds-episode svg { width:14px; height:14px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; } .ds-episode span { min-width:44px; padding:0 4px; text-align:center; font:600 16px/24px SFMono-Regular,\"Cascadia Mono\",\"Roboto Mono\",ui-monospace,monospace; font-variant-numeric:tabular-nums; }"
+    },
+    {
+      "name": "Broadcast Band",
+      "kind": "custom",
+      "refersTo": "feature-surface",
+      "description": "The signature compact strip combining progress, broadcast timing, and imminent-airing signal.",
+      "html": "<div class=\"ds-broadcast\"><span class=\"ds-broadcast-progress\">EP 07 / 12</span><span class=\"ds-broadcast-track\"><i></i></span><span class=\"ds-broadcast-time\">THU 20:30 · <strong>IN 18H</strong></span></div>",
+      "css": ".ds-broadcast { display:flex; align-items:center; gap:12px; padding:12px 16px; border-radius:16px; background:hsl(var(--card, 0 0% 100%)); color:hsl(var(--foreground, 257 38% 11%)); box-shadow:0 0 0 1px hsl(var(--border, 266 22% 87%) / .55); font:600 12px/16px SFMono-Regular,\"Cascadia Mono\",\"Roboto Mono\",ui-monospace,monospace; letter-spacing:.03em; } .ds-broadcast-progress { white-space:nowrap; } .ds-broadcast-track { position:relative; width:96px; height:4px; overflow:hidden; border-radius:999px; background:hsl(var(--muted, 267 27% 94%)); } .ds-broadcast-track i { display:block; width:58%; height:100%; border-radius:inherit; background:hsl(var(--primary, 266 51% 43%)); transition:width 150ms ease; } .ds-broadcast-time { color:hsl(var(--muted-foreground, 267 8% 42%)); white-space:nowrap; } .ds-broadcast-time strong { color:hsl(var(--live, 350 68% 53%)); } @media (max-width:520px) { .ds-broadcast { flex-wrap:wrap; } .ds-broadcast-track { flex:1; min-width:80px; } .ds-broadcast-time { width:100%; } }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Simple Anime Track with Focus on Airing Shows",
+    "overview": "AniListCal is a calm, precise, useful, and lightly warm operating surface for a viewer's daily anime routine. The interface should feel like a personal airing desk: it puts the next useful decision, real broadcast timing, and episode progress ahead of broad library administration. Anime artwork provides most of the visual color while product chrome stays quiet and legible.\n\nThe system is quiet at rest and responsive in action. Structure comes from spacing, typography, low-contrast tonal surfaces, and exact state color rather than ornamental effects. It must not resemble a general-purpose admin dashboard or attempt to imitate every AniList surface.",
+    "keyCharacteristics": [
+      "Airing information and progress are the visual signature.",
+      "Quiet, precise product chrome lets anime artwork remain expressive.",
+      "Light and dark themes retain the same semantic hierarchy.",
+      "Controls feel immediate without becoming decorative or animated by default.",
+      "Mobile targets and navigation are first-class, not compressed desktop leftovers."
+    ],
+    "rules": [
+      { "name": "The Signal Rule", "body": "Signal Red communicates an episode airing within 24 hours; do not spend it on generic emphasis.", "section": "colors" },
+      { "name": "The Artwork Rule", "body": "Let cover art carry broad chromatic variety. Product chrome stays within the semantic palette.", "section": "colors" },
+      { "name": "The Data Earns Mono Rule", "body": "Use the data face only for values and compact state labels; prose and navigation stay in the body face.", "section": "typography" },
+      { "name": "The One Page Heading Rule", "body": "`PageHeader` owns the single page-level `h1`; shared section headings use the display face at 20/28px.", "section": "typography" },
+      { "name": "The Flat-by-Default Rule", "body": "A surface begins flat; elevation must explain hierarchy, layering, or interactivity.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do place the next actionable airing or progress decision ahead of broad library management.",
+      "Do use real schedule and progress data as the interface's distinctive visual material.",
+      "Do keep page gutters, headings, card geometry, focus rings, and mobile targets on their shared contracts.",
+      "Do let anime artwork carry most of the screen's color while semantic chrome stays disciplined.",
+      "Do use progressive disclosure when filters or supporting detail would compete with the primary task."
+    ],
+    "donts": [
+      "Don't add gradient heroes, glass panels, ornamental cherry blossoms, or generic metric tiles.",
+      "Don't turn the app into a general-purpose admin dashboard or a visual copy of AniList.",
+      "Don't add subtitles, captions, or helper text that merely restate a heading or visible content.",
+      "Don't frame every container with both a border and a shadow, or nest framed cards inside one another.",
+      "Don't use raw palette colors for application state, `transition-all`, or motion that ignores reduced-motion preferences.",
+      "Don't introduce a sidebar when the top-and-bottom navigation model already serves the product hierarchy."
+    ]
+  }
+}

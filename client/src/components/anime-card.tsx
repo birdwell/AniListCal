@@ -51,7 +51,7 @@ export function AnimeCard({
   if (isCompact) {
     return (
       <article>
-        <Card className="group relative overflow-hidden bg-muted/45 ring-0 transition-colors hover:bg-muted/70 hover:shadow-md">
+        <Card className="group relative overflow-hidden bg-muted/45 ring-0 transition-[background-color,box-shadow] duration-150 hover:bg-muted hover:ring-1 hover:ring-border/60 hover:shadow-raised motion-reduce:transition-none">
           <Link
             href={`/show/${id}`}
             aria-label={`View ${title}`}
@@ -96,7 +96,14 @@ export function AnimeCard({
                     totalEpisodes={totalEpisodes}
                     compact
                     variant="pill"
-                    targetEpisode={nextEpisode?.episode}
+                    nextAiringEpisode={
+                      nextEpisode
+                        ? {
+                            episode: nextEpisode.episode,
+                            airingAt: nextEpisode.airingAt,
+                          }
+                        : undefined
+                    }
                     className="flex-shrink-0"
                   />
                 </div>
@@ -110,7 +117,7 @@ export function AnimeCard({
 
   return (
     <article className="h-full">
-    <Card className="group relative h-full overflow-hidden transition-colors hover:bg-accent/35 hover:shadow-md">
+    <Card className="group relative h-full overflow-hidden transition-[background-color,box-shadow] duration-150 hover:bg-accent/35 hover:shadow-raised motion-reduce:transition-none">
       <Link
         href={`/show/${id}`}
         aria-label={`View ${title}`}
@@ -126,7 +133,7 @@ export function AnimeCard({
           decoding="async"
           className="h-full w-full object-cover"
         />
-        <Badge className="absolute top-1 sm:top-2 right-1 sm:right-2 text-xs sm:text-sm bg-primary/90 backdrop-blur-sm shadow-md">
+        <Badge className="absolute right-1 top-1 bg-primary/90 text-xs shadow-raised backdrop-blur-sm sm:right-2 sm:top-2 sm:text-sm">
           {status}
         </Badge>
       </div>
@@ -143,7 +150,14 @@ export function AnimeCard({
               mediaId={id}
               currentEpisode={currentEpisode}
               totalEpisodes={totalEpisodes}
-              targetEpisode={nextEpisode?.episode}
+              nextAiringEpisode={
+                nextEpisode
+                  ? {
+                      episode: nextEpisode.episode,
+                      airingAt: nextEpisode.airingAt,
+                    }
+                  : undefined
+              }
               compact={true}
               variant="default"
               className="flex-shrink-0"
